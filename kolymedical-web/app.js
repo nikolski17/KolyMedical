@@ -53,132 +53,198 @@ function getRelativeDate(daysOffset) {
   return d.toISOString().split('T')[0];
 }
 
-// 2. Control de Base de Datos Local (Adaptador LocalStorage)
-// 2. Control de Base de Datos Local (Adaptador LocalStorage & Cloud Sync)
-const CLOUD_DB_URL = 'https://jsonblob.com/api/jsonBlob/019f4e63-d14b-7026-8a56-ea90e4bbbf45';
+// 2. Conectividad y Adaptador de Base de Datos (Supabase con fallback Offline)
+const SUPABASE_URL = "https://tounxohlvyjcwcyeddlg.supabase.co";
+const SUPABASE_KEY = "sb_publishable_hIQfVzbdMGIxNB9QF37JbA_qwaKW7Rx";
+const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+// Memoria caché local para consultas sincrónicas instantáneas
+let localAppointmentsCache = [];
+let localUsersCache = [];
+
+// Inicializar caché local desde LocalStorage para soporte offline
+try {
+  const cachedApts = localStorage.getItem('kolymedical_appointments');
+  localAppointmentsCache = cachedApts ? JSON.parse(cachedApts) : INITIAL_APPOINTMENTS;
+  
+  const cachedUsers = localStorage.getItem('kolymedical_users');
+  localUsersCache = cachedUsers ? JSON.parse(cachedUsers) : INITIAL_USERS;
+} catch (e) {
+  localAppointmentsCache = INITIAL_APPOINTMENTS;
+  localUsersCache = INITIAL_USERS;
+}
+
+// Funciones de Mapeo de datos (PostgreSQL snake_case <-> Frontend camelCase)
+function mapAptToDb(apt) {
+  return {
+    id: apt.id,
+    patient_name: apt.patientName,
+    patient_age: apt.patientAge,
+    patient_phone: apt.patientPhone,
+    service_id: apt.serviceId,
+    specialist_id: apt.specialistId,
+    date: apt.date,
+    time: apt.time,
+    modality: apt.modality,
+    status: apt.status,
+    tracked_by: apt.trackedBy
+  };
+}
+
+function mapAptFromDb(dbApt) {
+  return {
+    id: dbApt.id,
+    patientName: dbApt.patient_name,
+    patientAge: dbApt.patient_age,
+    patientPhone: dbApt.patient_phone,
+    serviceId: dbApt.service_id,
+    specialistId: dbApt.specialist_id,
+    date: dbApt.date,
+    time: dbApt.time,
+    modality: dbApt.modality,
+    status: dbApt.status,
+    trackedBy: dbApt.tracked_by
+  };
+}
+
+function mapUserToDb(u) {
+  return {
+    username: u.username,
+    fullname: u.fullname,
+    password: u.password,
+    role: u.role,
+    tracked_by: u.trackedBy || null,
+    specialist_id: u.specialistId || null
+  };
+}
+
+function mapUserFromDb(dbU) {
+  return {
+    username: dbU.username,
+    fullname: dbU.fullname,
+    password: dbU.password,
+    role: dbU.role,
+    trackedBy: dbU.tracked_by || undefined,
+    specialistId: dbU.specialist_id || undefined
+  };
+}
 
 const DB = {
   getAppointments: function() {
-    let data = localStorage.getItem('kolymedical_appointments');
-    if (!data) {
-      localStorage.setItem('kolymedical_appointments', JSON.stringify(INITIAL_APPOINTMENTS));
-      return INITIAL_APPOINTMENTS;
-    }
-    const list = JSON.parse(data);
-    let updated = false;
-    list.forEach(a => {
-      if (a.trackedBy === 'Juanito') {
-        a.trackedBy = 'Brayan';
-        updated = true;
-      }
-    });
-    if (updated) {
-      localStorage.setItem('kolymedical_appointments', JSON.stringify(list));
-    }
-    return list;
+    return localAppointmentsCache;
   },
   
-  saveAppointment: function(apt) {
-    const appointments = this.getAppointments();
+  saveAppointment: async function(apt) {
     apt.id = 'apt-' + Date.now();
-    appointments.push(apt);
-    this.saveAll(appointments);
+    
+    // Guardar en caché local inmediatamente
+    localAppointmentsCache.push(apt);
+    localStorage.setItem('kolymedical_appointments', JSON.stringify(localAppointmentsCache));
+    
+    // Subir a Supabase
+    if (supabaseClient) {
+      try {
+        const { error } = await supabaseClient
+          .from('appointments')
+          .insert([mapAptToDb(apt)]);
+        if (error) console.error('Error al insertar cita en Supabase:', error);
+      } catch (err) {
+        console.error('Error de red al conectar con Supabase:', err);
+      }
+    }
     return apt;
   },
 
-  updateAppointmentStatus: function(id, status) {
+  updateAppointmentStatus: async function(id, status) {
     if (status === 'cancelada') {
       return this.deleteAppointment(id);
     }
-    const appointments = this.getAppointments();
-    const index = appointments.findIndex(a => a.id === id);
+    
+    // Actualizar caché local
+    const index = localAppointmentsCache.findIndex(a => a.id === id);
     if (index !== -1) {
-      appointments[index].status = status;
-      this.saveAll(appointments);
+      localAppointmentsCache[index].status = status;
+      localStorage.setItem('kolymedical_appointments', JSON.stringify(localAppointmentsCache));
+      
+      // Actualizar en Supabase
+      if (supabaseClient) {
+        try {
+          const { error } = await supabaseClient
+            .from('appointments')
+            .update({ status: status })
+            .eq('id', id);
+          if (error) console.error('Error al actualizar estado en Supabase:', error);
+        } catch (err) {
+          console.error('Error de red al conectar con Supabase:', err);
+        }
+      }
       return true;
     }
     return false;
   },
 
-  deleteAppointment: function(id) {
-    let appointments = this.getAppointments();
-    appointments = appointments.filter(a => a.id !== id);
-    this.saveAll(appointments);
+  deleteAppointment: async function(id) {
+    // Eliminar de caché local
+    localAppointmentsCache = localAppointmentsCache.filter(a => a.id !== id);
+    localStorage.setItem('kolymedical_appointments', JSON.stringify(localAppointmentsCache));
+    
+    // Eliminar en Supabase
+    if (supabaseClient) {
+      try {
+        const { error } = await supabaseClient
+          .from('appointments')
+          .delete()
+          .eq('id', id);
+        if (error) console.error('Error al eliminar cita de Supabase:', error);
+      } catch (err) {
+        console.error('Error de red al conectar con Supabase:', err);
+      }
+    }
     return true;
   },
 
-  saveAll: function(list) {
-    localStorage.setItem('kolymedical_appointments', JSON.stringify(list));
-    // Sincronizar asincrónicamente con la nube (JSONBlob)
-    fetch(CLOUD_DB_URL, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(list)
-    }).catch(err => console.log('Error al escribir en la base de datos cloud:', err));
-  },
-
-  syncWithCloud: function(callback) {
-    fetch(CLOUD_DB_URL)
-      .then(res => {
-        if (res.status === 404 || res.status === 410) {
-          // Si el blob expiró o no existe, lo resubimos
-          this.saveAll(this.getAppointments());
-          return null;
+  syncWithCloud: async function(callback) {
+    if (!supabaseClient) {
+      if (callback) callback();
+      return;
+    }
+    
+    const fetchAndMerge = async () => {
+      try {
+        const { data, error } = await supabaseClient
+          .from('appointments')
+          .select('*');
+        if (error) {
+          console.error('Error al consultar citas de Supabase:', error);
+          return;
         }
-        return res.json();
-      })
-      .then(cloudList => {
-        if (cloudList && Array.isArray(cloudList)) {
-          const localList = this.getAppointments();
-          
-          // Filtrar para asegurarnos de tener solo objetos válidos de cita
-          const validCloudList = cloudList.filter(a => a && typeof a === 'object' && a.id);
-          
-          // Si la nube está vacía pero localmente tenemos citas, las subimos
-          if (validCloudList.length === 0 && localList.length > 0) {
-            this.saveAll(localList);
-            return;
-          }
-          
-          // Combinar listas de forma bidireccional segura para evitar borrar citas de otros dispositivos
-          let merged = [...localList];
-          let changed = false;
-          
-          validCloudList.forEach(cApt => {
-            const idx = merged.findIndex(lApt => lApt.id === cApt.id);
-            if (idx === -1) {
-              merged.push(cApt);
-              changed = true;
-            } else {
-              // Si ya existía, pero el estado en la nube es más reciente/diferente
-              if (JSON.stringify(merged[idx]) !== JSON.stringify(cApt)) {
-                merged[idx] = cApt;
-                changed = true;
-              }
-            }
-          });
-          
-          // Subir citas locales nuevas que falten en la nube
-          let needsUpload = false;
-          localList.forEach(lApt => {
-            const existsInCloud = validCloudList.some(cApt => cApt.id === lApt.id);
-            if (!existsInCloud) {
-              needsUpload = true;
-            }
-          });
-
-          if (changed || needsUpload) {
-            localStorage.setItem('kolymedical_appointments', JSON.stringify(merged));
-            if (needsUpload) {
-              this.saveAll(merged); // Sube los locales nuevos combinados
-            }
-            if (callback) callback();
-          }
+        
+        if (data) {
+          localAppointmentsCache = data.map(mapAptFromDb);
+          localStorage.setItem('kolymedical_appointments', JSON.stringify(localAppointmentsCache));
+          if (callback) callback();
         }
-      })
-      .catch(err => console.log('Error al sincronizar desde la base de datos cloud:', err));
+      } catch (err) {
+        console.error('Error de conexión al sincronizar con Supabase:', err);
+      }
+    };
+
+    // Consulta inicial
+    await fetchAndMerge();
+
+    // Escucha de cambios en tiempo real
+    supabaseClient
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'appointments' },
+        () => {
+          fetchAndMerge();
+        }
+      )
+      .subscribe();
   }
-};
+};;
 
 // 3. Inicialización General según la Página
 document.addEventListener('DOMContentLoaded', () => {
@@ -587,35 +653,87 @@ const INITIAL_USERS = [
 
 const DB_Users = {
   getUsers: function() {
-    let data = localStorage.getItem('kolymedical_users');
-    if (!data) {
-      localStorage.setItem('kolymedical_users', JSON.stringify(INITIAL_USERS));
-      return INITIAL_USERS;
-    }
-    const list = JSON.parse(data);
-    const hasBrayan = list.some(u => u.username === 'brayan');
-    if (!hasBrayan) {
-      localStorage.setItem('kolymedical_users', JSON.stringify(INITIAL_USERS));
-      return INITIAL_USERS;
-    }
-    return list;
+    return localUsersCache;
   },
-  saveUser: function(userObj) {
-    const users = this.getUsers();
-    const index = users.findIndex(u => u.username.toLowerCase() === userObj.username.toLowerCase());
+  
+  saveUser: async function(userObj) {
+    const index = localUsersCache.findIndex(u => u.username.toLowerCase() === userObj.username.toLowerCase());
     if (index !== -1) {
-      users[index] = userObj;
+      localUsersCache[index] = userObj;
     } else {
-      users.push(userObj);
+      localUsersCache.push(userObj);
     }
-    localStorage.setItem('kolymedical_users', JSON.stringify(users));
+    localStorage.setItem('kolymedical_users', JSON.stringify(localUsersCache));
+    
+    if (supabaseClient) {
+      try {
+        const { error } = await supabaseClient
+          .from('users')
+          .upsert([mapUserToDb(userObj)]);
+        if (error) console.error('Error al guardar usuario en Supabase:', error);
+      } catch (err) {
+        console.error('Error de red al conectar con Supabase:', err);
+      }
+    }
     return true;
   },
-  deleteUser: function(username) {
-    let users = this.getUsers();
-    users = users.filter(u => u.username.toLowerCase() !== username.toLowerCase());
-    localStorage.setItem('kolymedical_users', JSON.stringify(users));
+  
+  deleteUser: async function(username) {
+    localUsersCache = localUsersCache.filter(u => u.username.toLowerCase() !== username.toLowerCase());
+    localStorage.setItem('kolymedical_users', JSON.stringify(localUsersCache));
+    
+    if (supabaseClient) {
+      try {
+        const { error } = await supabaseClient
+          .from('users')
+          .delete()
+          .eq('username', username);
+        if (error) console.error('Error al eliminar usuario en Supabase:', error);
+      } catch (err) {
+        console.error('Error de red al conectar con Supabase:', err);
+      }
+    }
     return true;
+  },
+
+  syncWithCloud: async function(callback) {
+    if (!supabaseClient) {
+      if (callback) callback();
+      return;
+    }
+    
+    const fetchUsers = async () => {
+      try {
+        const { data, error } = await supabaseClient
+          .from('users')
+          .select('*');
+        if (error) {
+          console.error('Error al consultar usuarios en Supabase:', error);
+          return;
+        }
+        
+        if (data) {
+          localUsersCache = data.map(mapUserFromDb);
+          localStorage.setItem('kolymedical_users', JSON.stringify(localUsersCache));
+          if (callback) callback();
+        }
+      } catch (err) {
+        console.error('Error de conexión al sincronizar usuarios con Supabase:', err);
+      }
+    };
+
+    await fetchUsers();
+
+    supabaseClient
+      .channel('users-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'users' },
+        () => {
+          fetchUsers();
+        }
+      )
+      .subscribe();
   }
 };
 
@@ -1282,21 +1400,7 @@ function initAdminBookingForm() {
   });
 }
 
-// 🔄 Sincronización en tiempo real entre pestañas del navegador
-window.addEventListener('storage', (e) => {
-  if (e.key === 'kolymedical_appointments') {
-    if (document.getElementById('admin-dashboard')) {
-      updateStats();
-      renderCalendarWidget();
-      renderAppointmentsTable();
-      if (typeof renderDetailedTable === 'function') {
-        renderDetailedTable();
-      }
-    }
-  }
-});
-
-// 🌐 Sincronización automática con la base de datos en la nube (JSONBlob) cada 8 segundos
+// 🌐 Función de refresco de interfaz ante actualizaciones de datos
 function handleSyncUpdate() {
   if (document.getElementById('admin-dashboard')) {
     updateStats();
@@ -1306,19 +1410,15 @@ function handleSyncUpdate() {
       renderDetailedTable();
     }
   } else if (document.getElementById('public-web')) {
-    // Si el paciente está en el formulario, refrescar los horarios ocupados
     const timeGrid = document.getElementById('time-slots-grid');
     const inputDate = document.getElementById('booking-date');
     if (timeGrid && inputDate && inputDate.value) {
-      // Gatillar evento change para regenerar slots
       inputDate.dispatchEvent(new Event('change'));
     }
   }
 }
 
+// 🔄 Inicialización de Sincronización en Tiempo Real con Supabase (Citas y Personal)
 DB.syncWithCloud(handleSyncUpdate);
-
-setInterval(() => {
-  DB.syncWithCloud(handleSyncUpdate);
-}, 8000);
+DB_Users.syncWithCloud();
 
