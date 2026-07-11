@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KolyMedical — Medicina Regenerativa, Células Madre y FibroScan en Lima</title>
+  <meta name="description" content="Centro médico multidisciplinar líder en Medicina Regenerativa, terapia celular con células madre, infiltración de rodilla y hombro, elastografía hepática FibroScan, heridas crónicas y atención médica a domicilio en Lima, Perú.">
+  <meta name="keywords" content="medicina regenerativa lima, celulas madre peru, dr joan pedraza, curacion pie diabetico domicilio, fibroscan peru, infiltracion rodilla celulas madre, tratamiento cirrosis hepatica, escaras domicilio peru">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kolymedical.netlify.app/">
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- Datos Estructurados JSON-LD para Google SEO (Schema.org) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "MedicalClinic",
+    "name": "KolyMedical",
+    "image": "https://kolymedical.netlify.app/LOGO.png",
+    "@id": "https://kolymedical.netlify.app/#clinic",
+    "url": "https://kolymedical.netlify.app/",
+    "telephone": "+51987346934",
+    "email": "kolymedical26@gmail.com",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "Av. Venezuela 615",
+      "addressLocality": "Lima",
+      "addressRegion": "Lima",
+      "postalCode": "15082",
+      "addressCountry": "PE"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": -12.0543,
+      "longitude": -77.0421
+    },
+    "openingHoursSpecification": [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday"
+        ],
+        "opens": "09:00",
+        "closes": "18:00"
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": "Saturday",
+        "opens": "09:00",
+        "closes": "14:00"
+      }
+    ],
+    "medicalSpecialty": [
+      "MedicalSpecialty",
+      "RenalClinic",
+      "Gastroenterology"
+    ],
+    "availableService": [
+      {
+        "@type": "MedicalProcedure",
+        "name": "Medicina Regenerativa y Terapia Celular",
+        "description": "Tratamiento avanzado con células madre y ortobiológicos para artrosis, cirrosis hepática, nefropatías y asma."
+      },
+      {
+        "@type": "MedicalProcedure",
+        "name": "Estudio FibroScan",
+        "description": "Elastografía hepática no invasiva e indolora para diagnóstico de hígado graso y fibrosis."
+      },
+      {
+        "@type": "MedicalProcedure",
+        "name": "Curación de Heridas Crónicas a Domicilio",
+        "description": "Cuidados avanzados a domicilio para úlceras de pie diabético, escaras y úlceras varicosas."
+      }
+    ],
+    "employee": [
+      {
+        "@type": "Physician",
+        "name": "Dr. Joan Pedraza",
+        "medicalSpecialty": "RenalClinic"
+      },
+      {
+        "@type": "Physician",
+        "name": "Dr. Ruslan Golovliov",
+        "medicalSpecialty": "Gastroenterology"
+      }
+    ]
+  }
+  </script>
+</head>
+<body id="public-web">
+
+  <!-- 1. HEADER / NAVEGACIÓN -->
+  <header class="header">
+    <div class="container">
+      <a href="#" class="logo-container">
+        <img src="LOGO.png" alt="KolyMedical" class="logo-icon" style="object-fit: contain;">
+        <div class="logo-text">
+          KolyMedical
+          <span>Ciencia e Innovación</span>
+        </div>
+      </a>
+      
+      <nav class="nav-links">
+        <a href="#inicio" class="nav-link">Inicio</a>
+        <a href="#metodo" class="nav-link">Método KOLY</a>
+        <a href="#servicios" class="nav-link">Servicios</a>
+        <a href="#" class="nav-link" id="btn-open-treatments" style="font-weight: 600; color: var(--color-accent);">Tratamientos Premium ✨</a>
+        <a href="#tarifario" class="nav-link">Tarifario</a>
+        <a href="#contacto" class="nav-link">Contacto</a>
+        <a href="admin.html" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">Panel Médico</a>
+        <button class="btn btn-accent open-booking-modal">Reservar Cita</button>
+      </nav>
+      
+      <button class="menu-toggle" id="mobile-menu-toggle">☰</button>
+    </div>
+  </header>
+
+  <!-- 2. HERO SECTION -->
+  <section class="hero" id="inicio">
+    <div class="container hero-grid">
+      <div class="hero-content">
+        <h1 class="animate-fade">Ciencia, investigación y <span>bienestar</span></h1>
+        <p>En KolyMedical brindamos soluciones médicas integrales y de vanguardia. Especialistas en medicina regenerativa con células madre y diagnóstico avanzado no invasivo para restaurar tu salud y mejorar tu calidad de vida.</p>
+        <div class="hero-buttons">
+          <button class="btn btn-primary open-booking-modal">Reservar Cita Online</button>
+          <button class="btn btn-secondary" id="btn-hero-treatments">Explorar Tratamientos</button>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="hero-card">
+          <div class="hero-card-header">
+            <div class="pulse-badge">
+              <span class="pulse-dot"></span>
+              Novastem Labs
+            </div>
+            <span style="font-size: 0.85rem; color: var(--color-text-muted);">Sede Operativa</span>
+          </div>
+          <p style="font-size: 0.9rem; font-weight: 500; color: var(--color-primary-dark); margin-bottom: 0.5rem;">Sede Principal en Perú</p>
+          <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 1.5rem;">Av. Venezuela 6113, Lima, Perú</p>
+          <div style="border-top: 1px solid var(--color-border); padding-top: 1rem;">
+            <p style="font-size: 0.8rem; color: var(--color-text-muted);"><strong>Modalidad de Atención:</strong></p>
+            <p style="font-size: 0.85rem; color: var(--color-primary-dark);">Presencial en sede & consultas virtuales en todo el Perú.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. MÉTODO KOLY -->
+  <section class="section koly-method" id="metodo">
+    <div class="container">
+      <div class="text-center">
+        <h2 class="section-title">El Método KOLY</h2>
+        <p class="section-subtitle">Nuestro modelo estructurado de atención acompaña al paciente en cada etapa, garantizando precisión clínica y soporte humano continuo.</p>
+      </div>
+      
+      <div class="method-timeline">
+        <div class="method-card">
+          <span class="method-step">01</span>
+          <h3>Evaluación Integral</h3>
+          <p>Recopilamos tus datos, síntomas, antecedentes y exámenes previos para construir una historia clínica inicial detallada.</p>
+        </div>
+        <div class="method-card">
+          <span class="method-step">02</span>
+          <h3>Diagnóstico Avanzado</h3>
+          <p>Analizamos las condiciones específicas del paciente y los factores de riesgo con tecnologías no invasivas.</p>
+        </div>
+        <div class="method-card">
+          <span class="method-step">03</span>
+          <h3>Plan Personalizado</h3>
+          <p>Diseñamos un plan terapéutico a medida combinando medicina regenerativa, nutrición, psicología y soporte integral.</p>
+        </div>
+        <div class="method-card">
+          <span class="method-step">04</span>
+          <h3>Tratamiento</h3>
+          <p>Coordinamos y aplicamos el tratamiento en Novastem Labs bajo los más estrictos estándares con especialistas calificados.</p>
+        </div>
+        <div class="method-card">
+          <span class="method-step">05</span>
+          <h3>Seguimiento Continuo</h3>
+          <p>Realizamos evaluaciones periódicas de control para optimizar resultados y medir la evolución clínica del paciente.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. SERVICIOS Y ENFERMEDADES TRATADAS -->
+  <section class="section services-section" id="servicios">
+    <div class="container">
+      <div class="text-center">
+        <h2 class="section-title">Servicios Médicos</h2>
+        <p class="section-subtitle">Ofrecemos especialidades conectadas entre sí para proporcionar un abordaje integral a condiciones complejas.</p>
+      </div>
+      
+      <div class="services-grid">
+        <!-- Servicio 1: Medicina Regenerativa -->
+        <div class="service-card">
+          <div class="service-icon">🧬</div>
+          <h3>Medicina Regenerativa</h3>
+          <p>Alternativa complementaria a la medicina convencional con células madre, enfocada en detener el daño y revertir la progresión de enfermedades crónicas y degenerativas.</p>
+          <span class="service-doctor">Especialista: Dr. Pedraza</span>
+          
+          <img src="img/tratamiento_celulas_madre.jpg" alt="Tratamiento Células Madre" class="service-img">
+
+          <div class="diseases-accordion">
+            <h4 style="margin: 1.5rem 0 0.5rem 0; font-size: 0.95rem; color: var(--color-primary-dark);">Enfermedades Tratadas:</h4>
+            
+            <div class="accordion-item">
+              <div class="accordion-title">Hepáticas <span>▼</span></div>
+              <div class="accordion-content">
+                <img src="img/cirrosis.jpg" alt="Enfermedades Hepáticas" class="accordion-img">
+                • Cirrosis hepática (estadios Child A, B, C)<br>
+                • Fibrosis hepática y Ascitis
+              </div>
+            </div>
+            
+            <div class="accordion-item">
+              <div class="accordion-title">Oncológicas (Autovacunas) <span>▼</span></div>
+              <div class="accordion-content">
+                <img src="img/autovacunas_oncologia.jpg" alt="Autovacunas Oncológicas" class="accordion-img">
+                • Cáncer de mama, cáncer de hígado, etc.<br>
+                • Tratamiento celular personalizado de autovacunas
+              </div>
+            </div>
+            
+            <div class="accordion-item">
+              <div class="accordion-title">Pulmonares <span>▼</span></div>
+              <div class="accordion-content">
+                <img src="img/pulmonares.jpg" alt="Enfermedades Pulmonares" class="accordion-img">
+                • Fibrosis pulmonar avanzada y secuelas respiratorias
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <div class="accordion-title">Musculoesqueléticas <span>▼</span></div>
+              <div class="accordion-content">
+                <img src="img/artrosis.jpg" alt="Enfermedades Musculoesqueléticas" class="accordion-img">
+                • Artritis y Artrosis avanzada<br>
+                • Condromalasia patelar
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <div class="accordion-title">Neurológicas <span>▼</span></div>
+              <div class="accordion-content">
+                <img src="img/neurologicas.jpg" alt="Enfermedades Neurológicas" class="accordion-img">
+                • Esclerosis Lateral Amiotrófica (ELA)<br>
+                • Enfermedad de Parkinson
+              </div>
+            </div>
+          </div>
+        </div>
+
+         <div class="service-card">
+          <div class="service-icon">🔍</div>
+          <h3>Tecnología FibroScan</h3>
+          <p>Elastografía hepática no invasiva e indolora para la medición y estadificación inmediata de la fibrosis hepática, hígado graso y cirrosis. Sin agujas ni biopsia.</p>
+          <span class="service-doctor">Especialista: Dr. Ruslan Golovliov (Solo Presencial)</span>
+          
+          <img src="img/fibroscan_estudio.jpg" alt="Estudio FibroScan" class="service-img">
+
+          <div class="diseases-accordion" style="margin-top: 1.5rem;">
+            <div class="accordion-item">
+              <div class="accordion-title">¿Para qué sirve? <span>▼</span></div>
+              <div class="accordion-content">
+                <img src="img/fibroscan_diagnostico.jpg" alt="Diagnóstico FibroScan" class="accordion-img">
+                • Diagnóstico inmediato de grasa en el hígado.<br>
+                • Monitoreo de rigidez del tejido hepático.<br>
+                • Prevención y estadificación de cirrosis sin dolor.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Servicio 3: Especialidades Clínicas -->
+        <div class="service-card">
+          <div class="service-icon">🥗</div>
+          <h3>Especialidades Médicas</h3>
+          <p>Soporte clínico integral que actúa de manera transversal en el diagnóstico y la nutrición durante la aplicación del tratamiento.</p>
+          
+          <div style="margin-top: 1rem; border-top: 1px solid var(--color-border); padding-top: 1rem;">
+            <strong style="font-size: 0.95rem; color: var(--color-primary-dark); display: block; margin-bottom: 0.2rem;">Nutrición Clínica</strong>
+            <p style="font-size: 0.85rem; margin-bottom: 0.5rem;">Planes alimenticios terapéuticos adaptados a pacientes crónicos.</p>
+            <span class="service-doctor" style="margin-bottom: 1rem; display:block;">Especialista: Lic. Amelia</span>
+            <img src="img/nutricion_antienvejecimiento.jpg" alt="Nutrición Clínica" class="service-img icon-img">
+          </div>
+
+          <div style="margin-top: 1rem; border-top: 1px solid var(--color-border); padding-top: 1rem;">
+            <strong style="font-size: 0.95rem; color: var(--color-primary-dark); display: block; margin-bottom: 0.2rem;">Gastroenterología</strong>
+            <p style="font-size: 0.85rem; margin-bottom: 0.5rem;">Diagnóstico y tratamiento de patologías digestivas y gastritis crónica.</p>
+            <span class="service-doctor" style="margin-bottom: 1rem; display:block;">Especialista: Dr. Joel Morales</span>
+            <img src="img/gastroenterologia.jpg" alt="Gastroenterología" class="service-img icon-img">
+          </div>
+
+          <div style="margin-top: 1rem; border-top: 1px solid var(--color-border); padding-top: 1rem;">
+            <strong style="font-size: 0.95rem; color: var(--color-primary-dark); display: block; margin-bottom: 0.2rem;">Otorrinolaringología</strong>
+            <p style="font-size: 0.85rem; margin-bottom: 0.5rem;">Atención de enfermedades de oído, nariz y garganta con enfoque regenerativo.</p>
+            <span class="service-doctor" style="margin-bottom: 1rem; display:block;">Especialista: Dr. Guido Montes</span>
+            <img src="img/otorrino_consulta.jpg" alt="Otorrinolaringología" class="service-img icon-img">
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. TARIFARIO BASE -->
+  <section class="section pricing-section" id="tarifario">
+    <div class="container">
+      <div class="text-center">
+        <h2 class="section-title">Tarifas de Consulta</h2>
+        <p class="section-subtitle">Costos transparentes de evaluación inicial. Los tratamientos regenerativos se cotizan de forma personalizada según el estadio clínico del paciente.</p>
+      </div>
+      
+      <div class="pricing-grid">
+        <!-- Tarifa 1: Medicina Regenerativa -->
+        <div class="price-card">
+          <h3>Medicina Regenerativa</h3>
+          <div class="price-amount"><span class="price-currency">S/</span> 100</div>
+          <span class="price-period">Por Consulta Inicial</span>
+          <ul class="price-features">
+            <li>Evaluación con el Dr. Pedraza</li>
+            <li>Revisión de historial clínico</li>
+            <li>Pre-diagnóstico personalizado</li>
+            <li>Presencial o Virtual</li>
+          </ul>
+          <button class="btn btn-primary open-booking-modal" style="width: 100%;">Reservar Consulta</button>
+        </div>
+
+        <!-- Tarifa 2: Fibroscan -->
+        <div class="price-card popular">
+          <h3>Estudio FibroScan</h3>
+          <div class="price-amount"><span class="price-currency">S/</span> 650</div>
+          <span class="price-period">Por Estudio Diagnóstico</span>
+          <ul class="price-features">
+            <li>Elastografía hepática inmediata</li>
+            <li>Entrega de informe al instante</li>
+            <li>No invasivo y sin dolor</li>
+            <li>Realizado por el Dr. Ruslan Golovliov</li>
+            <li>Atención únicamente Presencial</li>
+          </ul>
+          <button class="btn btn-accent open-booking-modal" style="width: 100%;">Reservar Estudio</button>
+        </div>
+
+        <!-- Tarifa 3: Nutrición Clínica -->
+        <div class="price-card">
+          <h3>Nutrición Clínica</h3>
+          <div class="price-amount"><span class="price-currency">S/</span> 150</div>
+          <span class="price-period">Por Consulta Inicial</span>
+          <ul class="price-features">
+            <li>Evaluación con Lic. Amelia</li>
+            <li>Diseño de plan alimenticio</li>
+            <li>Enfoque terapéutico clínico</li>
+            <li>Presencial o Virtual</li>
+          </ul>
+          <button class="btn btn-primary open-booking-modal" style="width: 100%;">Reservar Consulta</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. CONTACTO -->
+  <section class="section" id="contacto">
+    <div class="container" style="max-width: 800px;">
+      <div class="text-center">
+        <h2 class="section-title">Contáctanos</h2>
+        <p class="section-subtitle">¿Tienes consultas o deseas una pre-evaluación rápida? Escríbenos directamente a WhatsApp y un asesor comercial te guiará.</p>
+        <a href="https://wa.me/51987346934?text=Hola%20KolyMedical,%20deseo%20informaci%C3%B3n%20sobre%20los%20tratamientos." target="_blank" class="btn btn-accent btn-lg" style="padding: 1.2rem 2.5rem; font-size: 1.1rem;">
+          💬 Enviar Mensaje a WhatsApp
+        </a>
+        <p style="margin-top: 1.5rem; font-size: 0.85rem; color: var(--color-text-muted);">
+          Horario de Atención: Lunes a Viernes 9:00 am - 6:00 pm | Sábados 9:00 am - 2:00 pm
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. MODAL DE AGENDAMIENTO PASO A PASO (PACIENTES) -->
+  <div class="modal" id="booking-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Reserva de Cita</h2>
+        <span class="modal-close">&times;</span>
+      </div>
+      
+      <!-- Indicador de pasos -->
+      <div style="padding-top: 1.5rem;">
+        <div class="step-indicator">
+          <div class="step-dot active"></div>
+          <div class="step-dot"></div>
+          <div class="step-dot"></div>
+        </div>
+      </div>
+
+      <div class="booking-form">
+        <!-- PASO 1: Servicio e Especialista -->
+        <div class="form-step active">
+          <h3 style="font-size: 1.1rem; color: var(--color-primary); margin-bottom: 1.5rem;">Paso 1: ¿Qué consulta deseas agendar?</h3>
+          <div class="form-group">
+            <label for="booking-service">Servicio / Tratamiento:</label>
+            <select id="booking-service" class="form-control">
+              <option value="">-- Selecciona Servicio --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="booking-doctor">Médico Especialista:</label>
+            <select id="booking-doctor" class="form-control" disabled>
+              <option value="">-- Selecciona Especialista --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="booking-modality">Modalidad de Cita:</label>
+            <select id="booking-modality" class="form-control">
+              <option value="Presencial">Presencial</option>
+              <option value="Virtual">Virtual</option>
+            </select>
+            <div id="booking-modality-note" style="color: var(--color-primary-light); font-size: 0.8rem; margin-top: 0.5rem; display: none; font-weight: 500;"></div>
+          </div>
+        </div>
+
+        <!-- PASO 2: Fecha y Hora -->
+        <div class="form-step">
+          <h3 style="font-size: 1.1rem; color: var(--color-primary); margin-bottom: 1.5rem;">Paso 2: Selecciona la fecha y hora</h3>
+          <div class="form-group">
+            <label for="booking-date">Fecha de la Cita:</label>
+            <input type="date" id="booking-date" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>Horarios Disponibles:</label>
+            <input type="hidden" id="booking-selected-time">
+            <div class="time-grid" id="time-slots-grid">
+              <p style="color: var(--color-text-muted); font-size: 0.85rem; padding: 0.5rem; grid-column: span 4;">Selecciona una especialidad y fecha primero.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- PASO 3: Datos de Contacto -->
+        <div class="form-step">
+          <h3 style="font-size: 1.1rem; color: var(--color-primary); margin-bottom: 1.5rem;">Paso 3: Tus Datos de Contacto</h3>
+          <div class="form-group">
+            <label for="booking-name">Nombre y Apellido del Paciente:</label>
+            <input type="text" id="booking-name" class="form-control" placeholder="Ej. Carlos Mendoza">
+          </div>
+          <div class="form-group">
+            <label for="booking-age">Edad:</label>
+            <input type="number" id="booking-age" class="form-control" placeholder="Ej. 45" min="1" max="120">
+          </div>
+          <div class="form-group">
+            <label for="booking-phone">Número de Teléfono / WhatsApp:</label>
+            <input type="tel" id="booking-phone" class="form-control" placeholder="Ej. 987654321">
+          </div>
+        </div>
+
+        <!-- Navegación del Formulario -->
+        <div class="form-navigation">
+          <button class="btn btn-secondary" id="btn-prev" style="display: none;">Atrás</button>
+          <button class="btn btn-primary" id="btn-next" style="margin-left: auto;">Siguiente</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. FOOTER -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-logo">
+            <img src="LOGO.png" alt="KolyMedical Logo" class="logo-icon" style="width: 35px; height: 35px; object-fit: contain; filter: brightness(0) invert(1);">
+            KolyMedical
+          </div>
+          <p class="footer-desc">Centro médico organizador de tu evolución de salud. Desde la primera consulta hasta el tratamiento definitivo.</p>
+        </div>
+        
+        <div class="footer-links">
+          <h4>Navegación</h4>
+          <ul>
+            <li><a href="#inicio">Inicio</a></li>
+            <li><a href="#metodo">Método KOLY</a></li>
+            <li><a href="#servicios">Servicios</a></li>
+            <li><a href="#tarifario">Tarifario</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-contact">
+          <h4>Contacto</h4>
+          <ul>
+            <li>📍 Av. Venezuela 6113, Lima, Perú</li>
+            <li>📞 WhatsApp: +51 987 346 934</li>
+            <li>✉️ Correo: kolymedical26@gmail.com</li>
+            <li>🕒 Lun-Vie: 9am - 6pm | Sáb: 9am - 2pm</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="footer-bottom">
+        <p>&copy; 2026 KolyMedical. Todos los derechos reservados. | "Ciencia, investigación y bienestar"</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- 9. CAJÓN DE TRATAMIENTOS PREMIUM (DRAWER) -->
+  <div id="treatments-drawer" class="treatments-drawer">
+    <div class="drawer-content">
+      <div class="drawer-header">
+        <h2>Tratamientos Médicos Premium <span>Especialidades y Procedimientos Clínicos</span></h2>
+        <button class="drawer-close" id="btn-close-treatments">&times;</button>
+      </div>
+      
+      <div class="drawer-body-layout">
+        <!-- Tabs del Cajón -->
+        <aside class="drawer-tabs">
+          <button class="drawer-tab-btn active" data-tab="tab-cells">🧬 Células Madre</button>
+          <button class="drawer-tab-btn" data-tab="tab-nebulization">💨 Nebulización</button>
+          <button class="drawer-tab-btn" data-tab="tab-wounds">🏡 Domicilio y Heridas</button>
+          <button class="drawer-tab-btn" data-tab="tab-diagnostics">🔍 Diagnóstico</button>
+        </aside>
+        
+        <!-- Contenido de los Tabs -->
+        <main class="drawer-main-content">
+          <!-- Tab 1: Medicina Regenerativa -->
+          <div class="drawer-tab-pane active" id="tab-cells">
+            <h3>Terapia Celular y Medicina Regenerativa</h3>
+            <p>Aplicación avanzada de células madre adultas y factores ortobiológicos diseñados para reparar tejidos dañados, modular el sistema inmune y detener la progresión de enfermedades crónicas y degenerativas.</p>
+            <div class="treatment-features-grid">
+              <div class="treatment-feature-card">
+                <h4>🦴 Artrosis y Desgaste Articular</h4>
+                <p>Tratamientos para el dolor de hombro (Síndrome del Manguito Rotador, Capsulitis Adhesiva) y artrosis severa en rodilla y cadera sin cirugía.</p>
+              </div>
+              <div class="treatment-feature-card">
+                <h4>🍺 Regeneración Hepática</h4>
+                <p>Protocolos especializados para detener la progresión de cirrosis hepática (estadios Child A, B y C) y revertir la fibrosis de tejido.</p>
+              </div>
+              <div class="treatment-feature-card">
+                <h4>🩺 Enfermedades Renales y Crónicas</h4>
+                <p>Terapias con inductores, liberadores y movilizadores de células madre para nefropatías crónicas y soporte metabólico integral.</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Tab 2: Nebulización Regenerativa -->
+          <div class="drawer-tab-pane" id="tab-nebulization">
+            <h3>Nebulización Regenerativa</h3>
+            <p>Tratamiento innovador de medicina regenerativa inhalada. Permite la administración directa de compuestos biológicos y factores inductores en el sistema respiratorio para acelerar la curación de tejidos y desinflamar el árbol bronquial.</p>
+            <div class="treatment-features-grid">
+              <div class="treatment-feature-card">
+                <h4>🫁 Asma Bronquial</h4>
+                <p>Nebulización de terapia alternativa orientada a modular la respuesta inmune y reducir la hiperreactividad de la vía aérea en pacientes asmáticos.</p>
+              </div>
+              <div class="treatment-feature-card">
+                <h4>👵 Bronquitis Crónica</h4>
+                <p>Eficaz para pacientes adultos mayores con bronquitis crónica que no muestran respuesta a inhaladores convencionales.</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Tab 3: Curación y Domicilio -->
+          <div class="drawer-tab-pane" id="tab-wounds">
+            <h3>Curación de Heridas y Cuidados a Domicilio</h3>
+            <p>Especialistas en la curación avanzada de heridas de difícil resolución y cuidados de enfermería a domicilio, bajo supervisión y autorización médica constante.</p>
+            <div class="treatment-features-grid">
+              <div class="treatment-feature-card">
+                <h4>🦶 Pie Diabético</h4>
+                <p>Curación y desbridamiento de úlceras de pie diabético con aplicación de parches y apósitos biológicos regenerativos.</p>
+              </div>
+              <div class="treatment-feature-card">
+                <h4>🛏️ Escaras y Úlceras de Presión</h4>
+                <p>Atención especializada a pacientes postrados para el cierre acelerado de escaras y prevención de infecciones.</p>
+              </div>
+              <div class="treatment-feature-card">
+                <h4>🦵 Úlceras Varicosas</h4>
+                <p>Tratamiento de úlceras de origen venoso y vascular para lograr el cierre definitivo de heridas en tiempo récord.</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Tab 4: Diagnóstico -->
+          <div class="drawer-tab-pane" id="tab-diagnostics">
+            <h3>Diagnóstico Hepático No Invasivo</h3>
+            <p>Utilizamos tecnología de elastografía de última generación para evaluar la salud de tu hígado sin necesidad de biopsias dolorosas ni agujas.</p>
+            <div class="treatment-features-grid">
+              <div class="treatment-feature-card">
+                <h4>🔍 Tecnología FibroScan</h4>
+                <p>Cuantificación inmediata del nivel de grasa en el hígado e indicación del grado exacto de fibrosis y rigidez hepática.</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- GALERÍA DE PROCEDIMIENTOS -->
+          <section class="gallery-section" style="margin-top: 3rem; border-top: 1px solid var(--color-border); padding-top: 2rem;">
+            <h3 style="margin-bottom: 1.5rem; color: var(--color-primary-dark); font-weight: 700;">Galería de Procedimientos Reales</h3>
+            <div class="gallery-grid">
+              <div class="gallery-card">
+                <img src="img/procedimiento_hombro.jpg" alt="Infiltración de hombro" class="gallery-img">
+                <div class="gallery-info">
+                  <h4>Infiltración Articular</h4>
+                  <p>Infiltración ecoguiada de células madre y factores de crecimiento en hombro para Capsulitis Adhesiva y Manguito Rotador.</p>
+                </div>
+              </div>
+              <div class="gallery-card">
+                <img src="img/procedimiento_nebulizacion.jpg" alt="Nebulización regenerativa" class="gallery-img">
+                <div class="gallery-info">
+                  <h4>Nebulización Regenerativa</h4>
+                  <p>Sesión clínica de nebulización biológica inhalada para asma e hiperreactividad bronquial.</p>
+                </div>
+              </div>
+              <div class="gallery-card">
+                <img src="img/procedimiento_laboratorio.jpg" alt="Procesamiento en laboratorio" class="gallery-img">
+                <div class="gallery-info">
+                  <h4>Procesamiento Biológico</h4>
+                  <p>Preparación de inductores y liberadores celulares en laboratorio de campana de flujo laminar on-site.</p>
+                </div>
+              </div>
+              <div class="gallery-card">
+                <img src="img/procedimiento_curacion.jpg" alt="Curación de úlcera" class="gallery-img">
+                <div class="gallery-info">
+                  <h4>Curación de Úlceras</h4>
+                  <p>Cuidados y curación avanzada a domicilio de úlcera por pie diabético bajo supervisión médica.</p>
+                </div>
+              </div>
+              <div class="gallery-card">
+                <img src="img/procedimiento_fibroscan.jpg" alt="Estudio Fibroscan" class="gallery-img">
+                <div class="gallery-info">
+                  <h4>Elastografía Hepática</h4>
+                  <p>Medición directa e inmediata de la salud del hígado mediante el equipo no invasivo FibroScan.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    // Control de Menú Móvil
+    const menuToggle = document.getElementById('mobile-menu-toggle');
+    const navLinks = document.querySelector('.nav-links');
+    
+    menuToggle.addEventListener('click', () => {
+      const isVisible = navLinks.style.display === 'flex';
+      navLinks.style.display = isVisible ? 'none' : 'flex';
+      if (!isVisible) {
+        navLinks.style.flexDirection = 'column';
+        navLinks.style.position = 'absolute';
+        navLinks.style.top = '80px';
+        navLinks.style.left = '0';
+        navLinks.style.right = '0';
+        navLinks.style.backgroundColor = '#FFFFFF';
+        navLinks.style.padding = '2rem';
+        navLinks.style.boxShadow = 'var(--shadow-md)';
+        navLinks.style.gap = '1.5rem';
+      }
+    });
+
+    // Restaurar navegación al cambiar resolución
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 768) {
+        navLinks.style.display = 'flex';
+        navLinks.style.flexDirection = 'row';
+        navLinks.style.position = 'static';
+        navLinks.style.boxShadow = 'none';
+        navLinks.style.padding = '0';
+      } else {
+        navLinks.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>
