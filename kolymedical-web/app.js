@@ -46,6 +46,17 @@ const INITIAL_APPOINTMENTS = [
   { id: 'apt-4', patientName: 'Lucía Torres', patientAge: 60, patientPhone: '998877665', serviceId: 'otorrino', specialistId: 'montes', date: getRelativeDate(2), time: '09:00', modality: 'Virtual', status: 'confirmada', trackedBy: 'Andrea' }
 ];
 
+const INITIAL_USERS = [
+  { username: 'admin', fullname: 'Super Administrador', password: 'admin123', role: 'Administrador' },
+  { username: 'brayan', fullname: 'Brayan García', password: 'com123', role: 'Comercial', trackedBy: 'Brayan' },
+  { username: 'andrea', fullname: 'Andrea Mendoza', password: 'com123', role: 'Comercial', trackedBy: 'Andrea' },
+  { username: 'drpedraza', fullname: 'Dr. Pedraza', password: 'doc123', role: 'Médico', specialistId: 'pedraza' },
+  { username: 'licamelia', fullname: 'Lic. Amelia', password: 'doc123', role: 'Nutricionista', specialistId: 'amelia' },
+  { username: 'drmorales', fullname: 'Dr. Joel Morales', password: 'doc123', role: 'Médico', specialistId: 'morales' },
+  { username: 'drruslan', fullname: 'Dr. Ruslan Golovliov', password: 'doc123', role: 'Médico', specialistId: 'ruslan' },
+  { username: 'drguido', fullname: 'Dr. Guido Montes', password: 'doc123', role: 'Médico', specialistId: 'montes' }
+];
+
 // Helper para generar fechas relativas a hoy
 function getRelativeDate(daysOffset) {
   const d = new Date();
@@ -674,17 +685,8 @@ let calendarCurrentDate = new Date();
 
 // -----------------------------------------------------
 // 👥 GESTIÓN DE USUARIOS / TRABAJADORES (Super Admin)
-// -----------------------------------------------------
-const INITIAL_USERS = [
-  { username: 'admin', fullname: 'Super Administrador', password: 'admin123', role: 'Administrador' },
-  { username: 'brayan', fullname: 'Brayan García', password: 'com123', role: 'Comercial', trackedBy: 'Brayan' },
-  { username: 'andrea', fullname: 'Andrea Mendoza', password: 'com123', role: 'Comercial', trackedBy: 'Andrea' },
-  { username: 'drpedraza', fullname: 'Dr. Pedraza', password: 'doc123', role: 'Médico', specialistId: 'pedraza' },
-  { username: 'licamelia', fullname: 'Lic. Amelia', password: 'doc123', role: 'Nutricionista', specialistId: 'amelia' },
-  { username: 'drmorales', fullname: 'Dr. Joel Morales', password: 'doc123', role: 'Médico', specialistId: 'morales' },
-  { username: 'drruslan', fullname: 'Dr. Ruslan Golovliov', password: 'doc123', role: 'Médico', specialistId: 'ruslan' },
-  { username: 'drguido', fullname: 'Dr. Guido Montes', password: 'doc123', role: 'Médico', specialistId: 'montes' }
-];
+// ----------------------------------------------------- 
+// (INITIAL_USERS está definido arriba del archivo, junto a INITIAL_APPOINTMENTS)
 
 const DB_Users = {
   getUsers: function() {
@@ -1314,18 +1316,27 @@ function renderAppointmentsTable() {
   });
 }
 
-// Inicializar filtros de lista
-document.getElementById('admin-search').addEventListener('input', renderAppointmentsTable);
-document.getElementById('admin-filter-doctor').addEventListener('change', renderAppointmentsTable);
+// Inicializar filtros de lista (solo existe en admin.html)
+const adminSearchEl = document.getElementById('admin-search');
+const adminFilterDocEl = document.getElementById('admin-filter-doctor');
+
+if (adminSearchEl) {
+  adminSearchEl.addEventListener('input', renderAppointmentsTable);
+}
+if (adminFilterDocEl) {
+  adminFilterDocEl.addEventListener('change', renderAppointmentsTable);
+}
 
 // Llenar selectores iniciales de filtros
 const filterDocSelect = document.getElementById('admin-filter-doctor');
-SPECIALISTS.forEach(d => {
-  const opt = document.createElement('option');
-  opt.value = d.id;
-  opt.textContent = d.name;
-  filterDocSelect.appendChild(opt);
-});
+if (filterDocSelect) {
+  SPECIALISTS.forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d.id;
+    opt.textContent = d.name;
+    filterDocSelect.appendChild(opt);
+  });
+}
 
 // 📅 Agendamiento de Citas Manual por el Personal (Admin Direct Booker)
 function initAdminBookingForm() {
