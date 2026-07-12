@@ -66,16 +66,43 @@ if (window.supabase) {
   }
 }
 
+// Safe storage wrapper to prevent crashes in private windows / Brave Shields
+const safeLocalStorage = {
+  getItem: function(key) {
+    try { return localStorage.getItem(key); } catch (e) { return null; }
+  },
+  setItem: function(key, value) {
+    try { localStorage.setItem(key, value); } catch (e) {}
+  },
+  removeItem: function(key) {
+    try { localStorage.removeItem(key); } catch (e) {}
+  }
+};
+window.safeLocalStorage = safeLocalStorage;
+
+const safeSessionStorage = {
+  getItem: function(key) {
+    try { return sessionStorage.getItem(key); } catch (e) { return this[key] || null; }
+  },
+  setItem: function(key, value) {
+    try { sessionStorage.setItem(key, value); } catch (e) { this[key] = value; }
+  },
+  removeItem: function(key) {
+    try { sessionStorage.removeItem(key); } catch (e) { delete this[key]; }
+  }
+};
+window.safeSessionStorage = safeSessionStorage;
+
 // Memoria caché local para consultas sincrónicas instantáneas
 let localAppointmentsCache = [];
 let localUsersCache = [];
 
 // Inicializar caché local desde LocalStorage para soporte offline
 try {
-  const cachedApts = localStorage.getItem('kolymedical_appointments');
+  const cachedApts = safeLocalStorage.getItem('kolymedical_appointments');
   localAppointmentsCache = cachedApts ? JSON.parse(cachedApts) : INITIAL_APPOINTMENTS;
   
-  const cachedUsers = localStorage.getItem('kolymedical_users');
+  const cachedUsers = safeLocalStorage.getItem('kolymedical_users');
   localUsersCache = cachedUsers ? JSON.parse(cachedUsers) : INITIAL_USERS;
 } catch (e) {
   localAppointmentsCache = INITIAL_APPOINTMENTS;
@@ -147,7 +174,7 @@ const DB = {
     
     // Guardar en caché local inmediatamente
     localAppointmentsCache.push(apt);
-    localStorage.setItem('kolymedical_appointments', JSON.stringify(localAppointmentsCache));
+    safeLocalStorage.setItem('kolymedical_appointments', JSON.stringify(localAppointmentsCache));
     
     // Subir a Supabase
     if (supabaseClient) {
@@ -172,7 +199,7 @@ const DB = {
     const index = localAppointmentsCache.findIndex(a => a.id === id);
     if (index !== -1) {
       localAppointmentsCache[index].status = status;
-      localStorage.setItem('kolymedical_appointments', JSON.stringify(localAppointmentsCache));
+      safeLocalStorage.setItem('kolymedical_appointments', JSON.stringify(localAppointmentsCache));
       
       // Actualizar en Supabase
       if (supabaseClient) {
@@ -194,7 +221,7 @@ const DB = {
   deleteAppointment: async function(id) {
     // Eliminar de caché local
     localAppointmentsCache = localAppointmentsCache.filter(a => a.id !== id);
-    localStorage.setItem('kolymedical_appointments', JSON.stringify(localAppointmentsCache));
+    safeLocalStorage.setItem('kolymedical_appointments', JSON.stringify(localAppointmentsCache));
     
     // Eliminar en Supabase
     if (supabaseClient) {
@@ -229,7 +256,7 @@ const DB = {
         
         if (data) {
           localAppointmentsCache = data.map(mapAptFromDb);
-          localStorage.setItem('kolymedical_appointments', JSON.stringify(localAppointmentsCache));
+          safeLocalStorage.setItem('kolymedical_appointments', JSON.stringify(localAppointmentsCache));
           if (callback) callback();
         }
       } catch (err) {
@@ -671,7 +698,7 @@ const DB_Users = {
     } else {
       localUsersCache.push(userObj);
     }
-    localStorage.setItem('kolymedical_users', JSON.stringify(localUsersCache));
+    safeLocalStorage.setItem('kolymedical_users', JSON.stringify(localUsersCache));
     
     if (supabaseClient) {
       try {
@@ -688,7 +715,7 @@ const DB_Users = {
   
   deleteUser: async function(username) {
     localUsersCache = localUsersCache.filter(u => u.username.toLowerCase() !== username.toLowerCase());
-    localStorage.setItem('kolymedical_users', JSON.stringify(localUsersCache));
+    safeLocalStorage.setItem('kolymedical_users', JSON.stringify(localUsersCache));
     
     if (supabaseClient) {
       try {
@@ -722,7 +749,7 @@ const DB_Users = {
         
         if (data) {
           localUsersCache = data.map(mapUserFromDb);
-          localStorage.setItem('kolymedical_users', JSON.stringify(localUsersCache));
+          safeLocalStorage.setItem('kolymedical_users', JSON.stringify(localUsersCache));
           if (callback) callback();
         }
       } catch (err) {
@@ -756,7 +783,7 @@ const CLINIC_QUOTES = [
 ];
 
 function initAdminDashboard() {
-  const isLogged = sessionStorage.getItem('kolymedical_logged');
+  const isLogged = safeSessionStorage.getItem('kolymedical_logged');
   const loginSection = document.getElementById('login-section');
   const dashboardSection = document.getElementById('dashboard-section');
 
@@ -782,8 +809,8 @@ function initLoginForm() {
     const matched = users.find(u => u.username.toLowerCase() === userVal && u.password === passVal);
 
     if (matched) {
-      sessionStorage.setItem('kolymedical_logged', 'true');
-      sessionStorage.setItem('kolymedical_user', JSON.stringify(matched));
+      safeSessionStorage.setItem('kolymedical_logged', 'true');
+      safeSessionStorage.setItem('kolymedical_user', JSON.stringify(matched));
       document.getElementById('login-section').style.display = 'none';
       document.getElementById('dashboard-section').style.display = 'grid';
       renderDashboard();
@@ -794,7 +821,7 @@ function initLoginForm() {
 }
 
 function renderDashboard() {
-  const currentUser = JSON.parse(sessionStorage.getItem('kolymedical_user'));
+  const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
   const menuUsers = document.getElementById('menu-users');
   const roleText = document.getElementById('sidebar-user-role');
   
@@ -860,8 +887,8 @@ function renderDashboard() {
 
   // Cerrar Sesión
   document.getElementById('btn-logout').addEventListener('click', () => {
-    sessionStorage.removeItem('kolymedical_logged');
-    sessionStorage.removeItem('kolymedical_user');
+    safeSessionStorage.removeItem('kolymedical_logged');
+    safeSessionStorage.removeItem('kolymedical_user');
     location.reload();
   });
 
@@ -880,7 +907,7 @@ function renderDashboard() {
 // 👤 VISTA: MI PERFIL (Cambiar Contraseña)
 // -----------------------------------------------------
 function renderProfileView() {
-  const currentUser = JSON.parse(sessionStorage.getItem('kolymedical_user'));
+  const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
   if (currentUser) {
     document.getElementById('profile-username').value = currentUser.username;
     document.getElementById('profile-new-password').value = '';
@@ -893,12 +920,12 @@ function initProfileForm() {
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     const newPass = document.getElementById('profile-new-password').value;
-    const currentUser = JSON.parse(sessionStorage.getItem('kolymedical_user'));
+    const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
 
     if (currentUser && newPass) {
       currentUser.password = newPass;
       DB_Users.saveUser(currentUser);
-      sessionStorage.setItem('kolymedical_user', JSON.stringify(currentUser));
+      safeSessionStorage.setItem('kolymedical_user', JSON.stringify(currentUser));
       alert('Contraseña actualizada con éxito.');
       document.getElementById('profile-new-password').value = '';
     }
@@ -997,7 +1024,7 @@ function updateStats() {
   let appointments = DB.getAppointments();
   
   // Filtrar citas si el usuario es Médico / Especialista o Comercial
-  const currentUser = JSON.parse(sessionStorage.getItem('kolymedical_user'));
+  const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
   if (currentUser) {
     if (currentUser.specialistId) {
       appointments = appointments.filter(a => a.specialistId === currentUser.specialistId);
@@ -1091,7 +1118,7 @@ function renderCalendarWidget() {
   let appointments = DB.getAppointments();
   
   // Filtrar citas si el usuario es Médico / Especialista o Comercial
-  const currentUser = JSON.parse(sessionStorage.getItem('kolymedical_user'));
+  const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
   if (currentUser) {
     if (currentUser.specialistId) {
       appointments = appointments.filter(a => a.specialistId === currentUser.specialistId);
@@ -1214,7 +1241,7 @@ function renderAppointmentsTable() {
   let appointments = DB.getAppointments();
 
   // Filtrar citas si el usuario es Médico / Especialista o Comercial
-  const currentUser = JSON.parse(sessionStorage.getItem('kolymedical_user'));
+  const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
   if (currentUser) {
     if (currentUser.specialistId) {
       appointments = appointments.filter(a => a.specialistId === currentUser.specialistId);

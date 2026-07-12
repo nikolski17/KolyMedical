@@ -367,7 +367,7 @@
   </main>
 
   <!-- Supabase Client CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="app.js"></script>
   <script>
     // Enlazar la tabla detallada de la vista de listado al buscador
@@ -382,7 +382,7 @@
       let appointments = DB.getAppointments();
 
       // Filtrar citas si el usuario es Médico / Especialista
-      const currentUser = JSON.parse(sessionStorage.getItem('kolymedical_user'));
+      const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
       if (currentUser && currentUser.specialistId) {
         appointments = appointments.filter(a => a.specialistId === currentUser.specialistId);
       }
