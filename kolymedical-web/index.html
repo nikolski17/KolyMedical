@@ -116,8 +116,7 @@
       <nav class="nav-links">
         <a href="#inicio" class="nav-link">Inicio</a>
         <a href="#staff" class="nav-link">Staff Médico</a>
-        <a href="#servicios" class="nav-link">Servicios</a>
-        <a href="#" class="nav-link" id="btn-open-treatments" style="font-weight: 600; color: var(--color-accent);">Tratamientos</a>
+        <a href="#servicios" class="nav-link">Servicios y Tratamientos</a>
         <a href="#tarifario" class="nav-link">Tarifario</a>
         <a href="#contacto" class="nav-link">Contacto</a>
         <a href="admin.html" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">Panel Médico</a>
@@ -136,7 +135,7 @@
         <p>En KolyMedical brindamos soluciones médicas integrales y de vanguardia. Especialistas en medicina regenerativa con células madre y diagnóstico avanzado no invasivo para restaurar tu salud y mejorar tu calidad de vida.</p>
         <div class="hero-buttons">
           <button class="btn btn-primary open-booking-modal">Reservar Cita Online</button>
-          <button class="btn btn-secondary" id="btn-hero-treatments">Ver Servicios</button>
+          <a href="#servicios" class="btn btn-secondary" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Ver Servicios y Tratamientos</a>
         </div>
       </div>
       <div class="hero-visual">
@@ -144,7 +143,7 @@
           <div class="hero-card-header">
             <div class="pulse-badge">
               <span class="pulse-dot"></span>
-              Novastem Labs
+              KolyMedical
             </div>
             <span style="font-size: 0.85rem; color: var(--color-text-muted);">Sede Operativa</span>
           </div>
@@ -186,7 +185,7 @@
         <div class="method-card">
           <span class="method-step">04</span>
           <h3>Tratamiento</h3>
-          <p>Coordinamos y aplicamos el tratamiento en Novastem Labs bajo los más estrictos estándares con especialistas calificados.</p>
+          <p>Coordinamos y aplicamos el tratamiento en nuestras sedes bajo los más estrictos estándares con especialistas calificados.</p>
         </div>
         <div class="method-card">
           <span class="method-step">05</span>
@@ -250,123 +249,572 @@
           <span class="staff-title">Otorrinolaringólogo</span>
           <span class="staff-specialty">Rinólogo y Cirujano Facial</span>
         </div>
+
+        <div class="staff-card">
+          <div class="staff-photo-wrapper">
+            <img src="img/staff_melendes.jpg" alt="Lic. Ricardo Melendes" class="staff-photo">
+          </div>
+          <h3>Lic. Ricardo Melendes</h3>
+          <span class="staff-title">Psicólogo Clínico</span>
+          <span class="staff-specialty">Acompañamiento integral del paciente</span>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- 4. SERVICIOS Y ENFERMEDADES TRATADAS -->
-  <section class="section services-section" id="servicios">
+  <!-- 4. SERVICIOS Y TRATAMIENTOS UNIFICADOS -->
+  <section class="section protocols-section" id="servicios">
     <div class="container">
       <div class="text-center">
-        <h2 class="section-title">Servicios Médicos</h2>
-        <p class="section-subtitle">Ofrecemos especialidades conectadas entre sí para proporcionar un abordaje integral a condiciones complejas.</p>
+        <h2 class="section-title" style="color: #ffffff;">Servicios y Tratamientos</h2>
+        <p class="section-subtitle" style="color: rgba(255,255,255,0.75); max-width: 800px; margin: 0 auto 3rem auto;">
+          Ofrecemos un abordaje médico integral y de vanguardia. Los tratamientos regenerativos principales son realizados por el <strong>Dr. Joan Manuel Pedraza La Barrera</strong>, apoyado de forma interdisciplinaria por especialistas de soporte y exámenes auxiliares de alta tecnología.
+        </p>
       </div>
+
+      <!-- Sistema de Pestañas (Tabs) Horizontales con Scroll en Móvil -->
+      <div class="protocol-tabs">
+        <button class="protocol-tab active" data-tab="general">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.5 10.5C4.5 7.46243 6.96243 5 10 5C13.0376 5 15.5 7.46243 15.5 10.5M10 5V19M4.5 10.5C4.5 13.5376 6.96243 16 10 16C13.0376 16 15.5 13.5376 15.5 10.5M10 16V19M10 19H14M10 5H6"/></svg>
+          Medicina Regenerativa
+        </button>
+        <button class="protocol-tab" data-tab="rodilla">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M5 5v14c0 1.66 3.13 3 7 3s7-1.34 7-3V5M5 5c0 1.66 3.13 3 7 3s7-1.34 7-3M5 5c0-1.66 3.13-3 7-3s7 1.34 7 3"/></svg>
+          Dolor de Rodilla
+        </button>
+        <button class="protocol-tab" data-tab="columna">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M8 6h8M8 10h8M8 14h8M8 18h8"/></svg>
+          Dolor de Columna
+        </button>
+        <button class="protocol-tab" data-tab="hepaticas">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4c-4.418 0-8 3.582-8 8s3.582 8 8 8 8-3.582 8-8-3.582-8-8-8zm-3 8h6M12 9v6"/></svg>
+          Enfermedades Hepáticas
+        </button>
+        <button class="protocol-tab" data-tab="pulmonares">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm6 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm-6 2c-3 0-5 2-5 5v1h10v-1c0-3-2-5-5-5zm6 0c-3 0-5 2-5 5v1h10v-1c0-3-2-5-5-5z"/></svg>
+          Enfermedades Pulmonares
+        </button>
+        <button class="protocol-tab" data-tab="oncologicas">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2c-2.76 0-5 2.24-5 5 0 3.18 3.2 6.64 4.54 8.04.26.27.66.27.92 0C13.8 13.64 17 10.18 17 7c0-2.76-2.24-5-5-5zm0 6.75a1.75 1.75 0 1 1 0-3.5 1.75 1.75 0 0 1 0 3.5z"/></svg>
+          Oncológicas
+        </button>
+        <button class="protocol-tab" data-tab="neurologicas">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.9 1M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.9 1M12 4.5c0 3 4 3 4 6s-4 3-4 6"/></svg>
+          Neurológicas
+        </button>
+        <button class="protocol-tab" data-tab="fibroscan">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Estudio FibroScan
+        </button>
+        <button class="protocol-tab" data-tab="soporte">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M12 18v3M10 21h4"/></svg>
+          Consultas de Soporte
+        </button>
+      </div>
+
+      <!-- Contenidos de las Pestañas -->
       
-      <div class="services-grid">
-        <!-- Servicio 1: Medicina Regenerativa -->
-        <div class="service-card">
-          <div class="service-icon">🧬</div>
-          <h3>Medicina Regenerativa</h3>
-          <p>Alternativa complementaria a la medicina convencional con células madre, enfocada en detener el daño y revertir la progresión de enfermedades crónicas y degenerativas.</p>
-          <span class="service-doctor">Especialista: Dr. Pedraza</span>
-          
-          <img src="img/tratamiento_celulas_madre.jpg" alt="Tratamiento Células Madre" class="service-img">
+      <!-- 1. Medicina Regenerativa General -->
+      <div class="protocol-content active" id="tab-general">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center;">
+          <div>
+            <h3 style="font-size: 1.8rem; color: #fff; margin-bottom: 1.5rem; font-weight: 700;">Terapia Celular y Medicina Regenerativa</h3>
+            <p style="color: rgba(255,255,255,0.85); line-height: 1.7; margin-bottom: 1.5rem;">
+              La medicina regenerativa representa una alternativa complementaria y avanzada frente a los tratamientos convencionales. Mediante la aplicación de células madre adultas y factores inductores biológicos, nos enfocamos en detener el daño tisular y revertir la progresión de enfermedades crónicas, autoinmunes y degenerativas.
+            </p>
+            <p style="color: rgba(255,255,255,0.85); line-height: 1.7; margin-bottom: 2rem;">
+              Todos nuestros protocolos principales son diseñados y dirigidos por el <strong>Dr. Joan Manuel Pedraza La Barrera</strong>, garantizando el máximo estándar en trazabilidad y precisión celular.
+            </p>
+            <button class="btn btn-accent open-booking-modal" style="padding: 1rem 2rem;">Reservar Evaluación Inicial</button>
+          </div>
+          <div>
+            <img src="img/tratamiento_celulas_madre.jpg" alt="Terapia Regenerativa" style="width: 100%; border-radius: var(--border-radius-md); box-shadow: var(--shadow-lg); object-fit: cover; height: 350px;">
+          </div>
+        </div>
+      </div>
 
-          <div class="diseases-accordion">
-            <h4 style="margin: 1.5rem 0 0.5rem 0; font-size: 0.95rem; color: var(--color-primary-dark);">Enfermedades Tratadas:</h4>
-            
-            <div class="accordion-item">
-              <div class="accordion-title">Hepáticas <span>▼</span></div>
-              <div class="accordion-content">
-                <img src="img/cirrosis.jpg" alt="Enfermedades Hepáticas" class="accordion-img">
-                • Cirrosis hepática (estadios Child A, B, C)<br>
-                • Fibrosis hepática y Ascitis
+      <!-- 2. Dolor de Rodilla -->
+      <div class="protocol-content" id="tab-rodilla">
+        <div class="protocol-grid">
+          <div class="protocol-card">
+            <h4>Patologías Tratadas</h4>
+            <ul class="protocol-list">
+              <li>Artrosis de rodilla (desgaste de cartílago)</li>
+              <li>Condromalacia rotuliana o patelar</li>
+              <li>Rotura y lesiones de meniscos</li>
+              <li>Esguinces articulares y ligamentosos</li>
+              <li>Tendinosis patelar o cuadricipital</li>
+              <li>Entesitis y Quiste de Baker</li>
+            </ul>
+          </div>
+          <div class="protocol-card">
+            <h4>Terapias Regenerativas</h4>
+            <ul class="protocol-list terapias">
+              <li>Células Madre adultas</li>
+              <li>Plasma Rico en Plaquetas (PRP) autólogo</li>
+              <li>Factores de crecimiento ortobiológicos</li>
+              <li>Ozonoterapia articular dirigida</li>
+              <li>Ácido Hialurónico intraarticular</li>
+              <li>Bloqueos y proloterapia localizada</li>
+            </ul>
+          </div>
+          <div class="protocol-card benefits-card">
+            <h4>Beneficios Clínicos</h4>
+            <div class="benefits-grid">
+              <div class="benefit-item">
+                <strong>Alivio del Dolor</strong>
+                <p>Disminuye el dolor crónico permitiendo recuperar la movilidad diaria.</p>
               </div>
-            </div>
-            
-            <div class="accordion-item">
-              <div class="accordion-title">Oncológicas (Autovacunas) <span>▼</span></div>
-              <div class="accordion-content">
-                <img src="img/autovacunas_oncologia.jpg" alt="Autovacunas Oncológicas" class="accordion-img">
-                • Cáncer de mama, cáncer de hígado, etc.<br>
-                • Tratamiento celular personalizado de autovacunas
+              <div class="benefit-item">
+                <strong>Reparación Articular</strong>
+                <p>Estimula la regeneración natural del cartílago, tendones y ligamentos.</p>
               </div>
-            </div>
-            
-            <div class="accordion-item">
-              <div class="accordion-title">Pulmonares <span>▼</span></div>
-              <div class="accordion-content">
-                <img src="img/pulmonares.jpg" alt="Enfermedades Pulmonares" class="accordion-img">
-                • Fibrosis pulmonar avanzada y secuelas respiratorias
-              </div>
-            </div>
-
-            <div class="accordion-item">
-              <div class="accordion-title">Musculoesqueléticas <span>▼</span></div>
-              <div class="accordion-content">
-                <img src="img/artrosis.jpg" alt="Enfermedades Musculoesqueléticas" class="accordion-img">
-                • Artritis y Artrosis avanzada<br>
-                • Condromalasia patelar
-              </div>
-            </div>
-
-            <div class="accordion-item">
-              <div class="accordion-title">Neurológicas <span>▼</span></div>
-              <div class="accordion-content">
-                <img src="img/neurologicas.jpg" alt="Enfermedades Neurológicas" class="accordion-img">
-                • Esclerosis Lateral Amiotrófica (ELA)<br>
-                • Enfermedad de Parkinson
+              <div class="benefit-item">
+                <strong>Alternativa No Quirúrgica</strong>
+                <p>Evita o posterga cirugías invasivas de reemplazo articular (prótesis).</p>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-         <div class="service-card">
-          <div class="service-icon">🔍</div>
-          <h3>Tecnología FibroScan</h3>
-          <p>Elastografía hepática no invasiva e indolora para la medición y estadificación inmediata de la fibrosis hepática, hígado graso y cirrosis. Sin agujas ni biopsia.</p>
-          <span class="service-doctor">Especialista: Dr. Ruslan Golovliov (Solo Presencial)</span>
-          
-          <img src="img/fibroscan_estudio.jpg" alt="Estudio FibroScan" class="service-img">
-
-          <div class="diseases-accordion" style="margin-top: 1.5rem;">
-            <div class="accordion-item">
-              <div class="accordion-title">¿Para qué sirve? <span>▼</span></div>
-              <div class="accordion-content">
-                <img src="img/fibroscan_diagnostico.jpg" alt="Diagnóstico FibroScan" class="accordion-img">
-                • Diagnóstico inmediato de grasa en el hígado.<br>
-                • Monitoreo de rigidez del tejido hepático.<br>
-                • Prevención y estadificación de cirrosis sin dolor.
+      <!-- 3. Dolor de Columna -->
+      <div class="protocol-content" id="tab-columna">
+        <div class="protocol-grid">
+          <div class="protocol-card">
+            <h4>Patologías Tratadas</h4>
+            <ul class="protocol-list">
+              <li>Hernia Discal (cervical, dorsal, lumbar)</li>
+              <li>Síndrome Facetario y Espondiloartrosis</li>
+              <li>Sacroileitis e inflamación sacroilíaca</li>
+              <li>Síndrome Piramidal (pseudociática)</li>
+              <li>Cervicalgias, Dorsalgias y Lumbalgias crónicas</li>
+              <li>Espondilolistesis y Estenosis Foraminal</li>
+              <li>Hipertrofia de ligamento amarillo y síndrome miofascial</li>
+            </ul>
+          </div>
+          <div class="protocol-card">
+            <h4>Terapias Regenerativas</h4>
+            <ul class="protocol-list terapias">
+              <li>Células Madre y inductores celulares</li>
+              <li>Factores de crecimiento plaquetarios (PRP)</li>
+              <li>Ozonoterapia discal e intramuscular</li>
+              <li>Neurolisis periférica y terapia PIT (Terapia Infiltrativa Perineural)</li>
+              <li>Proloterapia regenerativa lumbar</li>
+            </ul>
+          </div>
+          <div class="protocol-card benefits-card">
+            <h4>Beneficios Clínicos</h4>
+            <div class="benefits-grid">
+              <div class="benefit-item">
+                <strong>Efecto Antiinflamatorio</strong>
+                <p>Modula la cascada inflamatoria rodeando los nervios comprometidos.</p>
+              </div>
+              <div class="benefit-item">
+                <strong>Estabilización Espinal</strong>
+                <p>Fortalece el soporte ligamentoso y muscular de los segmentos espinales.</p>
+              </div>
+              <div class="benefit-item">
+                <strong>Liberación Nerviosa</strong>
+                <p>Reduce la compresión y el adormecimiento irradiado a miembros inferiores.</p>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- Servicio 3: Especialidades Clínicas -->
-        <div class="service-card">
-          <div class="service-icon">🥗</div>
-          <h3>Especialidades Médicas</h3>
-          <p>Soporte clínico integral que actúa de manera transversal en el diagnóstico y la nutrición durante la aplicación del tratamiento.</p>
-          
-          <div style="margin-top: 1rem; border-top: 1px solid var(--color-border); padding-top: 1rem;">
-            <strong style="font-size: 0.95rem; color: var(--color-primary-dark); display: block; margin-bottom: 0.2rem;">Nutrición Clínica</strong>
-            <p style="font-size: 0.85rem; margin-bottom: 0.5rem;">Planes alimenticios terapéuticos adaptados a pacientes crónicos.</p>
-            <span class="service-doctor" style="margin-bottom: 1rem; display:block;">Especialista: Lic. Amelia</span>
-            <img src="img/nutricion_antienvejecimiento.jpg" alt="Nutrición Clínica" class="service-img icon-img">
+      <!-- 4. Enfermedades Hepáticas -->
+      <div class="protocol-content" id="tab-hepaticas">
+        <div class="protocol-grid">
+          <div class="protocol-card">
+            <h4>Patologías Tratadas</h4>
+            <ul class="protocol-list">
+              <li>Hígado Graso (esteatosis hepática severa)</li>
+              <li>Cirrosis Hepática (estadios Child A, B y C)</li>
+              <li>Hepatitis Autoinmune</li>
+              <li>Cirrosis Biliar Primaria</li>
+              <li>Enfermedad de Wilson</li>
+            </ul>
+          </div>
+          <div class="protocol-card">
+            <h4>Terapias Intraparenquimales y Sistémicas</h4>
+            <ul class="protocol-list terapias">
+              <li>Células Madre Mesenquimales (MSC)</li>
+              <li>BMAC / Ficoll-Paque de Médula Ósea</li>
+              <li>FVE de Tejido Adiposo autólogo</li>
+              <li>Gelatina de Wharton de Cordón Umbilical</li>
+              <li>Infiltración directa intraparenquimal guiada</li>
+            </ul>
+            <p class="protocol-note">* Seguimiento clínico especializado por Gastroenterología</p>
+          </div>
+          <div class="protocol-card benefits-card">
+            <h4>Beneficios Clínicos Basados en Evidencia</h4>
+            <div class="benefits-grid">
+              <div class="benefit-item">
+                <strong>Regeneración Tisular</strong>
+                <p>Las MSC promueven la regeneración de hepatocitos y mejoran la arquitectura hepática.</p>
+              </div>
+              <div class="benefit-item">
+                <strong>Reducción de Fibrosis</strong>
+                <p>Disminuye la activación de células estrelladas, limitando el depósito de colágeno fibrótico.</p>
+              </div>
+              <div class="benefit-item">
+                <strong>Soporte Sintético</strong>
+                <p>Mejora parámetros bioquímicos cruciales: transaminasas, bilirrubina y síntesis de albúmina.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Enfermedades Pulmonares -->
+      <div class="protocol-content" id="tab-pulmonares">
+        <div class="protocol-grid">
+          <div class="protocol-card">
+            <h4>Patologías Tratadas</h4>
+            <ul class="protocol-list">
+              <li>Fibrosis Pulmonar avanzada</li>
+              <li>EPOC (Enfermedad Pulmonar Obstructiva Crónica)</li>
+              <li>Secuelas respiratorias graves de COVID-19</li>
+              <li>Secuelas de Tuberculosis (TBC)</li>
+              <li>Hiperreactividad bronquial severa</li>
+            </ul>
+          </div>
+          <div class="protocol-card">
+            <h4>Terapias Regenerativas Inhaladas y Sistémicas</h4>
+            <ul class="protocol-list terapias">
+              <li>Nebulización biológica de inductores celulares</li>
+              <li>Factores liberadores endovenosos</li>
+              <li>Terapia con células madre adultas sistémica</li>
+              <li>Soporte de inmunomodulación</li>
+            </ul>
+          </div>
+          <div class="protocol-card benefits-card">
+            <h4>Beneficios Clínicos</h4>
+            <div class="benefits-grid">
+              <div class="benefit-item">
+                <strong>Mejora de la Capacidad Vital</strong>
+                <p>Optimiza la oxigenación general y reduce la disnea (falta de aire) de esfuerzo.</p>
+              </div>
+              <div class="benefit-item">
+                <strong>Efecto Antifibrótico</strong>
+                <p>Ayuda a frenar la progresión del endurecimiento de las paredes alveolares pulmonares.</p>
+              </div>
+              <div class="benefit-item">
+                <strong>Desinflamación Bronquial</strong>
+                <p>Reduce la hiperreactividad y la inflamación obstructiva del árbol respiratorio.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. Oncológicas -->
+      <div class="protocol-content" id="tab-oncologicas">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center;">
+          <div>
+            <h3 style="font-size: 1.6rem; color: #fff; margin-bottom: 1.5rem; font-weight: 700;">Inmunoterapia Celular de Autovacunas</h3>
+            <p style="color: rgba(255,255,255,0.85); line-height: 1.7; margin-bottom: 1.5rem;">
+              Ofrecemos un tratamiento celular personalizado mediante la preparación y aplicación de <strong>autovacunas oncológicas</strong>. Este protocolo complementa los tratamientos convencionales y tiene como fin reactivar el propio sistema inmunitario del paciente para reconocer y combatir células tumorales específicas.
+            </p>
+            <p style="color: rgba(255,255,255,0.85); line-height: 1.7; margin-bottom: 1.5rem;">
+              <strong>Patologías de Apoyo:</strong> Cáncer de mama, cáncer de hígado, tumores sólidos y soporte inmunológico avanzado post-quimioterapia.
+            </p>
+            <button class="btn btn-accent open-booking-modal">Solicitar Pre-Evaluación</button>
+          </div>
+          <div>
+            <img src="img/autovacunas_oncologia.jpg" alt="Autovacunas Oncológicas" style="width: 100%; border-radius: var(--border-radius-md); box-shadow: var(--shadow-lg); object-fit: cover; height: 300px;">
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. Neurológicas -->
+      <div class="protocol-content" id="tab-neurologicas">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center;">
+          <div>
+            <h3 style="font-size: 1.6rem; color: #fff; margin-bottom: 1.5rem; font-weight: 700;">Soporte Neurológico Regenerativo</h3>
+            <p style="color: rgba(255,255,255,0.85); line-height: 1.7; margin-bottom: 1.5rem;">
+              Protocolos enfocados en la neuroprotección y en mitigar la tasa de neurodegeneración celular. Mediante factores liberadores y secretoma de células madre adultas, se busca brindar un soporte biológico al tejido nervioso central y periférico.
+            </p>
+            <p style="color: rgba(255,255,255,0.85); line-height: 1.7; margin-bottom: 1.5rem;">
+              <strong>Patologías Abordadas:</strong>
+            </p>
+            <ul style="color: rgba(255,255,255,0.85); margin-left: 1.5rem; margin-bottom: 1.5rem; line-height: 1.6;">
+              <li>Esclerosis Lateral Amiotrófica (ELA)</li>
+              <li>Enfermedad de Parkinson (soporte de síntomas y rigidez)</li>
+              <li>Secuelas de accidentes cerebrovasculares</li>
+            </ul>
+          </div>
+          <div>
+            <img src="img/neurologicas.jpg" alt="Enfermedades Neurológicas" style="width: 100%; border-radius: var(--border-radius-md); box-shadow: var(--shadow-lg); object-fit: cover; height: 300px;">
+          </div>
+        </div>
+      </div>
+
+      <!-- 8. Estudio FibroScan -->
+      <div class="protocol-content" id="tab-fibroscan">
+        <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 2rem; align-items: center;">
+          <div>
+            <h3 style="font-size: 1.6rem; color: #fff; margin-bottom: 1.25rem; font-weight: 700;">Estudio Diagnóstico Auxiliar FibroScan</h3>
+            <p style="color: rgba(255,255,255,0.85); line-height: 1.7; margin-bottom: 1.25rem;">
+              El **FibroScan** (elastografía hepática) representa un examen auxiliar diagnóstico crucial y no invasivo. Permite medir y estadificar de forma inmediata la rigidez del hígado, hígado graso (esteatosis) y cirrosis hepática sin necesidad de biopsias dolorosas ni agujas.
+            </p>
+            <p style="color: rgba(255,255,255,0.85); line-height: 1.7; margin-bottom: 1.5rem;">
+              Es una herramienta esencial indicada por el médico especialista para el diagnóstico precoz y monitoreo continuo de cirrosis hepática o fibrosis del tejido pulmonar.
+            </p>
+            <p style="color: var(--color-accent-light); font-weight: 600; margin-bottom: 1.5rem;">* Realizado de forma presencial por el especialista Dr. Ruslan Golovliov.</p>
+            <button class="btn btn-accent open-booking-modal">Reservar Examen FibroScan</button>
+          </div>
+          <div>
+            <img src="img/fibroscan_estudio.jpg" alt="Examen Fibroscan" style="width: 100%; border-radius: var(--border-radius-md); box-shadow: var(--shadow-lg); object-fit: cover; height: 280px; margin-bottom: 1rem;">
+          </div>
+        </div>
+      </div>
+
+      <!-- 9. Especialidades de Soporte -->
+      <div class="protocol-content" id="tab-soporte">
+        <h3 style="font-size: 1.6rem; color: #fff; margin-bottom: 2rem; font-weight: 700; text-align: center;">Consultas de Soporte y Acompañamiento Clínico</h3>
+        <p style="color: rgba(255,255,255,0.85); text-align: center; max-width: 700px; margin: 0 auto 2.5rem auto; font-size: 0.95rem; line-height: 1.6;">
+          Especialidades transversales encargadas de realizar las consultas de control, seguimiento y coadyuvancia en la nutrición, digestión y bienestar psicológico de nuestros pacientes en tratamiento regenerativo.
+        </p>
+        
+        <div class="support-specialties-grid">
+          <!-- Nutrición -->
+          <div class="support-specialty-card">
+            <div class="support-card-image-wrapper">
+              <img src="img/nutricion_antienvejecimiento.jpg" alt="Nutrición Clínica">
+            </div>
+            <h5>Nutrición Clínica</h5>
+            <p>Planes alimenticios terapéuticos adaptados a pacientes metabólicos y crónicos.</p>
+            <span class="support-doc-badge">Control: Lic. Amelia</span>
           </div>
 
-          <div style="margin-top: 1rem; border-top: 1px solid var(--color-border); padding-top: 1rem;">
-            <strong style="font-size: 0.95rem; color: var(--color-primary-dark); display: block; margin-bottom: 0.2rem;">Gastroenterología</strong>
-            <p style="font-size: 0.85rem; margin-bottom: 0.5rem;">Diagnóstico y tratamiento de patologías digestivas y gastritis crónica.</p>
-            <span class="service-doctor" style="margin-bottom: 1rem; display:block;">Especialista: Dr. Joel Morales</span>
-            <img src="img/gastroenterologia.jpg" alt="Gastroenterología" class="service-img icon-img">
+          <!-- Gastro -->
+          <div class="support-specialty-card">
+            <div class="support-card-image-wrapper">
+              <img src="img/gastroenterologia.jpg" alt="Gastroenterología">
+            </div>
+            <h5>Gastroenterología</h5>
+            <p>Diagnóstico, control y tratamiento de patologías digestivas y gastritis crónica.</p>
+            <span class="support-doc-badge">Control: Dr. Joel Morales</span>
           </div>
 
-          <div style="margin-top: 1rem; border-top: 1px solid var(--color-border); padding-top: 1rem;">
-            <strong style="font-size: 0.95rem; color: var(--color-primary-dark); display: block; margin-bottom: 0.2rem;">Otorrinolaringología</strong>
-            <p style="font-size: 0.85rem; margin-bottom: 0.5rem;">Atención de enfermedades de oído, nariz y garganta con enfoque regenerativo.</p>
-            <span class="service-doctor" style="margin-bottom: 1rem; display:block;">Especialista: Dr. Guido Montes</span>
-            <img src="img/otorrino_consulta.jpg" alt="Otorrinolaringología" class="service-img icon-img">
+          <!-- ORL -->
+          <div class="support-specialty-card">
+            <div class="support-card-image-wrapper">
+              <img src="img/otorrino_consulta.jpg" alt="Otorrinolaringología">
+            </div>
+            <h5>Otorrinolaringología</h5>
+            <p>Evaluación y tratamiento de afecciones del oído, nariz y garganta.</p>
+            <span class="support-doc-badge">Control: Dr. Guido Montes</span>
+          </div>
+
+          <!-- Psicología -->
+          <div class="support-specialty-card">
+            <div class="support-card-image-wrapper">
+              <img src="img/psicología.jpg" alt="Psicología Clínica">
+            </div>
+            <h5>Psicología Clínica</h5>
+            <p>Acompañamiento emocional y mental indispensable para afrontar enfermedades crónicas y degenerativas.</p>
+            <span class="support-doc-badge">Control: Lic. Ricardo Melendes</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 4.2 PROTOCOLOS REGENERATIVOS ESPECIALIZADOS -->
+  <section class="section protocols-section" id="protocolos">
+    <div class="container">
+      <div class="text-center">
+        <h2 class="section-title">Protocolos Regenerativos Especializados</h2>
+        <p class="section-subtitle">Tratamientos avanzados, regenerativos y personalizados para recuperar tu movilidad y calidad de vida.</p>
+      </div>
+
+      <!-- Tabs de navegación -->
+      <div class="protocol-tabs">
+        <button class="protocol-tab active" data-tab="rodilla">🦵 Dolor de Rodilla</button>
+        <button class="protocol-tab" data-tab="columna">🦴 Dolor de Columna</button>
+        <button class="protocol-tab" data-tab="hepaticas">🫁 Enfermedades Hepáticas</button>
+      </div>
+
+      <!-- Contenido: Rodilla -->
+      <div class="protocol-content active" id="tab-rodilla">
+        <div class="protocol-grid">
+          <div class="protocol-card">
+            <h4>📋 Patologías Tratadas</h4>
+            <ul class="protocol-list">
+              <li>Artrosis</li>
+              <li>Condromalacia</li>
+              <li>Rotura de Meniscos</li>
+              <li>Esguinces</li>
+              <li>Tendinosis</li>
+              <li>Entesitis</li>
+              <li>Quiste de Baker</li>
+            </ul>
+          </div>
+          <div class="protocol-card">
+            <h4>💉 Terapias Regenerativas</h4>
+            <ul class="protocol-list terapias">
+              <li>Células Madre</li>
+              <li>PRP (Plasma Rico en Plaquetas)</li>
+              <li>Ortobiológicos</li>
+              <li>Ozonoterapia</li>
+              <li>Ácido Hialurónico</li>
+              <li>Corticoides</li>
+              <li>Proloterapia</li>
+              <li>Neurolisis</li>
+              <li>PIT</li>
+            </ul>
+          </div>
+          <div class="protocol-card benefits-card">
+            <h4>✅ Beneficios</h4>
+            <div class="benefits-grid">
+              <div class="benefit-item">
+                <strong>Reduce el Dolor</strong>
+                <p>Disminuye el dolor crónico y mejora la calidad de vida.</p>
+              </div>
+              <div class="benefit-item">
+                <strong>Regenera los Tejidos</strong>
+                <p>Estimula la reparación del cartílago, tendones, ligamentos y huesos.</p>
+              </div>
+              <div class="benefit-item">
+                <strong>Disminuye la Inflamación</strong>
+                <p>Modula la inflamación y promueve un entorno óptimo para la regeneración.</p>
+              </div>
+              <div class="benefit-item">
+                <strong>Mejora la Movilidad</strong>
+                <p>Aumenta la flexibilidad y la función articular, recuperando la movilidad.</p>
+              </div>
+              <div class="benefit-item">
+                <strong>Tratamiento Personalizado</strong>
+                <p>Terapias adaptadas a cada paciente para resultados más efectivos y seguros.</p>
+              </div>
+              <div class="benefit-item">
+                <strong>Alternativa No Quirúrgica</strong>
+                <p>Evita o retrasa la cirugía y acelera la recuperación de forma natural.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contenido: Columna -->
+      <div class="protocol-content" id="tab-columna">
+        <div class="protocol-grid">
+          <div class="protocol-card">
+            <h4>📋 Patologías Tratadas</h4>
+            <ul class="protocol-list">
+              <li>Hernia Discal</li>
+              <li>Síndrome Facetario</li>
+              <li>Sacroileitis</li>
+              <li>Síndrome Piramidal</li>
+              <li>Cervicalgias</li>
+              <li>Dorsalgias</li>
+              <li>Lumbalgias</li>
+              <li>Coxigodinia</li>
+              <li>Espondiloartrosis</li>
+              <li>Espondilolistesis</li>
+              <li>Hipertrofia de Ligamento Amarillo</li>
+              <li>Síndrome Miofascial</li>
+              <li>Estenosis Foraminal</li>
+            </ul>
+          </div>
+          <div class="protocol-card">
+            <h4>💉 Terapias Regenerativas</h4>
+            <ul class="protocol-list terapias">
+              <li>Células Madre</li>
+              <li>PRP (Plasma Rico en Plaquetas)</li>
+              <li>Ortobiológicos</li>
+              <li>Ozonoterapia</li>
+              <li>Ácido Hialurónico</li>
+              <li>Corticoides</li>
+              <li>Proloterapia</li>
+              <li>Neurolisis</li>
+              <li>PIT</li>
+            </ul>
+          </div>
+          <div class="protocol-card benefits-card">
+            <h4>✅ Beneficios</h4>
+            <div class="benefits-grid">
+              <div class="benefit-item">
+                <strong>Reduce el Dolor</strong>
+                <p>Disminuye el dolor crónico y mejora la calidad de vida.</p>
+              </div>
+              <div class="benefit-item">
+                <strong>Regenera los Tejidos</strong>
+                <p>Estimula la reparación de discos, músculos, ligamentos y nervios.</p>
+              </div>
+              <div class="benefit-item">
+                <strong>Disminuye la Inflamación</strong>
+                <p>Modula la inflamación y promueve un entorno óptimo para la regeneración.</p>
+              </div>
+              <div class="benefit-item">
+                <strong>Mejora la Movilidad</strong>
+                <p>Aumenta la flexibilidad y la función de la columna y articulaciones.</p>
+              </div>
+              <div class="benefit-item">
+                <strong>Tratamiento Personalizado</strong>
+                <p>Terapias adaptadas a cada paciente para resultados más efectivos y seguros.</p>
+              </div>
+              <div class="benefit-item">
+                <strong>Alternativa No Quirúrgica</strong>
+                <p>Evita o retrasa la cirugía y acelera la recuperación de forma natural.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contenido: Hepáticas -->
+      <div class="protocol-content" id="tab-hepaticas">
+        <div class="protocol-grid">
+          <div class="protocol-card">
+            <h4>📋 Patologías Tratadas</h4>
+            <ul class="protocol-list">
+              <li>Hígado Graso</li>
+              <li>Cirrosis Hepática</li>
+              <li>Hepatitis Autoinmune</li>
+              <li>Cirrosis Biliar Primaria</li>
+              <li>Enfermedad de Wilson</li>
+            </ul>
+          </div>
+          <div class="protocol-card">
+            <h4>💉 Terapias Intraparenquimales y Sistémicas</h4>
+            <ul class="protocol-list terapias">
+              <li>Células Madre Mesenquimales</li>
+              <li>BMAC / Ficoll-Paque de Médula Ósea</li>
+              <li>FVE de Tejido Adiposo</li>
+              <li>Gelatina de Wharton de Cordón Umbilical</li>
+              <li>Factores Regenerativos</li>
+            </ul>
+            <p class="protocol-note">* Seguimiento por Gastroenterología</p>
+          </div>
+          <div class="protocol-card benefits-card">
+            <h4>✅ Beneficios Basados en Evidencia Científica</h4>
+            <div class="benefits-grid">
+              <div class="benefit-item">
+                <strong>Regeneración Tisular</strong>
+                <p>Las células madre mesenquimales promueven la regeneración de hepatocitos y mejoran la arquitectura hepática.</p>
+              </div>
+              <div class="benefit-item">
+                <strong>Modulación de la Inflamación</strong>
+                <p>Reducen la inflamación hepática al modular la respuesta inmune y disminuir citoquinas proinflamatorias.</p>
+              </div>
+              <div class="benefit-item">
+                <strong>Reducción de la Fibrosis</strong>
+                <p>Disminuyen la activación de células estrelladas hepáticas y la producción de colágeno, reduciendo la fibrosis.</p>
+              </div>
+              <div class="benefit-item">
+                <strong>Mejora de la Función Hepática</strong>
+                <p>Mejora en parámetros bioquímicos: transaminasas, bilirrubinas y albúmina, así como la función sintética y detoxificante.</p>
+              </div>
+              <div class="benefit-item">
+                <strong>Mejora Clínica y Calidad de Vida</strong>
+                <p>Reducción de complicaciones como ascitis, encefalopatía y fatiga. Mayor tolerancia al ejercicio y bienestar general.</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -497,6 +945,20 @@
             <li>Evaluación con Lic. Amelia</li>
             <li>Diseño de plan alimenticio</li>
             <li>Enfoque terapéutico clínico</li>
+            <li>Presencial o Virtual</li>
+          </ul>
+          <button class="btn btn-primary open-booking-modal" style="width: 100%;">Reservar Consulta</button>
+        </div>
+
+        <!-- Tarifa 4: Psicología Clínica -->
+        <div class="price-card">
+          <h3>Psicología Clínica</h3>
+          <div class="price-amount"><span class="price-currency">S/</span> 100</div>
+          <span class="price-period">Por Consulta Especializada</span>
+          <ul class="price-features">
+            <li>Evaluación con Lic. Ricardo Melendes</li>
+            <li>Acompañamiento emocional integral</li>
+            <li>Soporte a pacientes crónicos</li>
             <li>Presencial o Virtual</li>
           </ul>
           <button class="btn btn-primary open-booking-modal" style="width: 100%;">Reservar Consulta</button>
@@ -646,135 +1108,34 @@
     </div>
   </footer>
 
-  <!-- 9. CAJÓN DE TRATAMIENTOS PREMIUM (DRAWER) -->
-  <div id="treatments-drawer" class="treatments-drawer">
-    <div class="drawer-content">
-      <div class="drawer-header">
-        <h2>Servicios y Tratamientos <span>Especialidades y Procedimientos Clínicos</span></h2>
-        <button class="drawer-close" id="btn-close-treatments">&times;</button>
+  <!-- El Cajón de Tratamientos ha sido unificado dentro de la sección principal de Servicios y Tratamientos -->
+
+  <!-- BUZÓN DE SUGERENCIAS (Botón flotante + Modal) -->
+  <button class="suggestion-fab" id="suggestion-fab" title="Buzón de Sugerencias">
+    📢
+  </button>
+  <div class="suggestion-modal" id="suggestion-modal">
+    <div class="suggestion-modal-content">
+      <div class="suggestion-modal-header">
+        <h3>📢 Buzón de Sugerencias</h3>
+        <button class="suggestion-close" id="suggestion-close">&times;</button>
       </div>
-      
-      <div class="drawer-body-layout">
-        <!-- Tabs del Cajón -->
-        <aside class="drawer-tabs">
-          <button class="drawer-tab-btn active" data-tab="tab-cells">🧬 Células Madre</button>
-          <button class="drawer-tab-btn" data-tab="tab-nebulization">💨 Nebulización</button>
-          <button class="drawer-tab-btn" data-tab="tab-wounds">🏡 Domicilio y Heridas</button>
-          <button class="drawer-tab-btn" data-tab="tab-diagnostics">🔍 Diagnóstico</button>
-        </aside>
-        
-        <!-- Contenido de los Tabs -->
-        <main class="drawer-main-content">
-          <!-- Tab 1: Medicina Regenerativa -->
-          <div class="drawer-tab-pane active" id="tab-cells">
-            <h3>Terapia Celular y Medicina Regenerativa</h3>
-            <p>Aplicación avanzada de células madre adultas y factores ortobiológicos diseñados para reparar tejidos dañados, modular el sistema inmune y detener la progresión de enfermedades crónicas y degenerativas.</p>
-            <div class="treatment-features-grid">
-              <div class="treatment-feature-card">
-                <h4>🦴 Artrosis y Desgaste Articular</h4>
-                <p>Tratamientos para el dolor de hombro (Síndrome del Manguito Rotador, Capsulitis Adhesiva) y artrosis severa en rodilla y cadera sin cirugía.</p>
-              </div>
-              <div class="treatment-feature-card">
-                <h4>🍺 Regeneración Hepática</h4>
-                <p>Protocolos especializados para detener la progresión de cirrosis hepática (estadios Child A, B y C) y revertir la fibrosis de tejido.</p>
-              </div>
-              <div class="treatment-feature-card">
-                <h4>🩺 Enfermedades Renales y Crónicas</h4>
-                <p>Terapias con inductores, liberadores y movilizadores de células madre para nefropatías crónicas y soporte metabólico integral.</p>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Tab 2: Nebulización Regenerativa -->
-          <div class="drawer-tab-pane" id="tab-nebulization">
-            <h3>Nebulización Regenerativa</h3>
-            <p>Tratamiento innovador de medicina regenerativa inhalada. Permite la administración directa de compuestos biológicos y factores inductores en el sistema respiratorio para acelerar la curación de tejidos y desinflamar el árbol bronquial.</p>
-            <div class="treatment-features-grid">
-              <div class="treatment-feature-card">
-                <h4>🫁 Asma Bronquial</h4>
-                <p>Nebulización de terapia alternativa orientada a modular la respuesta inmune y reducir la hiperreactividad de la vía aérea en pacientes asmáticos.</p>
-              </div>
-              <div class="treatment-feature-card">
-                <h4>👵 Bronquitis Crónica</h4>
-                <p>Eficaz para pacientes adultos mayores con bronquitis crónica que no muestran respuesta a inhaladores convencionales.</p>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Tab 3: Curación y Domicilio -->
-          <div class="drawer-tab-pane" id="tab-wounds">
-            <h3>Curación de Heridas y Cuidados a Domicilio</h3>
-            <p>Especialistas en la curación avanzada de heridas de difícil resolución y cuidados de enfermería a domicilio, bajo supervisión y autorización médica constante.</p>
-            <div class="treatment-features-grid">
-              <div class="treatment-feature-card">
-                <h4>🦶 Pie Diabético</h4>
-                <p>Curación y desbridamiento de úlceras de pie diabético con aplicación de parches y apósitos biológicos regenerativos.</p>
-              </div>
-              <div class="treatment-feature-card">
-                <h4>🛏️ Escaras y Úlceras de Presión</h4>
-                <p>Atención especializada a pacientes postrados para el cierre acelerado de escaras y prevención de infecciones.</p>
-              </div>
-              <div class="treatment-feature-card">
-                <h4>🦵 Úlceras Varicosas</h4>
-                <p>Tratamiento de úlceras de origen venoso y vascular para lograr el cierre definitivo de heridas en tiempo récord.</p>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Tab 4: Diagnóstico -->
-          <div class="drawer-tab-pane" id="tab-diagnostics">
-            <h3>Diagnóstico Hepático No Invasivo</h3>
-            <p>Utilizamos tecnología de elastografía de última generación para evaluar la salud de tu hígado sin necesidad de biopsias dolorosas ni agujas.</p>
-            <div class="treatment-features-grid">
-              <div class="treatment-feature-card">
-                <h4>🔍 Tecnología FibroScan</h4>
-                <p>Cuantificación inmediata del nivel de grasa en el hígado e indicación del grado exacto de fibrosis y rigidez hepática.</p>
-              </div>
-            </div>
-          </div>
-          
-          <!-- GALERÍA DE PROCEDIMIENTOS -->
-          <section class="gallery-section" style="margin-top: 3rem; border-top: 1px solid var(--color-border); padding-top: 2rem;">
-            <h3 style="margin-bottom: 1.5rem; color: var(--color-primary-dark); font-weight: 700;">Galería de Procedimientos Reales</h3>
-            <div class="gallery-grid">
-              <div class="gallery-card">
-                <img src="img/procedimiento_hombro.jpg" alt="Infiltración de hombro" class="gallery-img">
-                <div class="gallery-info">
-                  <h4>Infiltración Articular</h4>
-                  <p>Infiltración ecoguiada de células madre y factores de crecimiento en hombro para Capsulitis Adhesiva y Manguito Rotador.</p>
-                </div>
-              </div>
-              <div class="gallery-card">
-                <img src="img/procedimiento_nebulizacion.jpg" alt="Nebulización regenerativa" class="gallery-img">
-                <div class="gallery-info">
-                  <h4>Nebulización Regenerativa</h4>
-                  <p>Sesión clínica de nebulización biológica inhalada para asma e hiperreactividad bronquial.</p>
-                </div>
-              </div>
-              <div class="gallery-card">
-                <img src="img/procedimiento_laboratorio.jpg" alt="Procesamiento en laboratorio" class="gallery-img">
-                <div class="gallery-info">
-                  <h4>Procesamiento Biológico</h4>
-                  <p>Preparación de inductores y liberadores celulares en laboratorio de campana de flujo laminar on-site.</p>
-                </div>
-              </div>
-              <div class="gallery-card">
-                <img src="img/procedimiento_curacion.jpg" alt="Curación de úlcera" class="gallery-img">
-                <div class="gallery-info">
-                  <h4>Curación de Úlceras</h4>
-                  <p>Cuidados y curación avanzada a domicilio de úlcera por pie diabético bajo supervisión médica.</p>
-                </div>
-              </div>
-              <div class="gallery-card">
-                <img src="img/procedimiento_fibroscan.jpg" alt="Estudio Fibroscan" class="gallery-img">
-                <div class="gallery-info">
-                  <h4>Elastografía Hepática</h4>
-                  <p>Medición directa e inmediata de la salud del hígado mediante el equipo no invasivo FibroScan.</p>
-                </div>
-              </div>
-            </div>
-          </section>
-        </main>
+      <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 1rem;">Tu opinión nos ayuda a mejorar. Déjanos tu sugerencia, comentario o recomendación:</p>
+      <form id="suggestion-form">
+        <div class="form-group">
+          <label for="suggestion-name">Tu Nombre (opcional):</label>
+          <input type="text" id="suggestion-name" class="form-control" placeholder="Nombre">
+        </div>
+        <div class="form-group">
+          <label for="suggestion-text">Tu Sugerencia:</label>
+          <textarea id="suggestion-text" class="form-control" rows="4" placeholder="Escribe aquí tu sugerencia..." required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Enviar Sugerencia</button>
+      </form>
+      <div id="suggestion-success" style="display:none; text-align:center; padding: 2rem;">
+        <span style="font-size: 3rem;">✅</span>
+        <p style="margin-top: 1rem; font-weight: 600; color: var(--color-primary);">¡Gracias por tu sugerencia!</p>
+        <p style="font-size: 0.85rem; color: var(--color-text-muted);">Tu opinión es muy valiosa para nosotros.</p>
       </div>
     </div>
   </div>
@@ -814,6 +1175,64 @@
       } else {
         navLinks.style.display = 'none';
       }
+    });
+
+    // Tabs de Protocolos Regenerativos
+    document.querySelectorAll('.protocol-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        // Desactivar todos los tabs y contenidos
+        document.querySelectorAll('.protocol-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.protocol-content').forEach(c => c.classList.remove('active'));
+        // Activar el seleccionado
+        tab.classList.add('active');
+        const target = document.getElementById('tab-' + tab.dataset.tab);
+        if (target) target.classList.add('active');
+      });
+    });
+
+    // Buzón de Sugerencias
+    const suggestionFab = document.getElementById('suggestion-fab');
+    const suggestionModal = document.getElementById('suggestion-modal');
+    const suggestionClose = document.getElementById('suggestion-close');
+    const suggestionForm = document.getElementById('suggestion-form');
+    const suggestionSuccess = document.getElementById('suggestion-success');
+
+    suggestionFab.addEventListener('click', () => {
+      suggestionModal.classList.add('open');
+    });
+
+    suggestionClose.addEventListener('click', () => {
+      suggestionModal.classList.remove('open');
+    });
+
+    suggestionModal.addEventListener('click', (e) => {
+      if (e.target === suggestionModal) {
+        suggestionModal.classList.remove('open');
+      }
+    });
+
+    suggestionForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = document.getElementById('suggestion-name').value.trim() || 'Anónimo';
+      const text = document.getElementById('suggestion-text').value.trim();
+      if (!text) return;
+
+      // Enviar por WhatsApp como sugerencia interna
+      const msg = `📢 SUGERENCIA WEB - KolyMedical\n\nDe: ${name}\nMensaje: ${text}`;
+      const encodedMsg = encodeURIComponent(msg);
+      window.open(`https://wa.me/51987346934?text=${encodedMsg}`, '_blank');
+
+      // Mostrar éxito
+      suggestionForm.style.display = 'none';
+      suggestionSuccess.style.display = 'block';
+
+      // Resetear después de 3s
+      setTimeout(() => {
+        suggestionForm.reset();
+        suggestionForm.style.display = 'block';
+        suggestionSuccess.style.display = 'none';
+        suggestionModal.classList.remove('open');
+      }, 3000);
     });
   </script>
 </body>

@@ -3,12 +3,14 @@
  */
 
 // 1. Base de Datos de Configuración Inicial (Mock Data)
-const SPECIALISTS = [
-  { id: 'pedraza', name: 'Dr. Pedraza', specialty: 'Medicina Regenerativa', hours: ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'] },
-  { id: 'amelia', name: 'Lic. Amelia', specialty: 'Nutrición Clínica', hours: ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '15:00', '15:30', '16:00', '16:30'] },
-  { id: 'morales', name: 'Dr. Joel Morales', specialty: 'Gastroenterología', hours: ['10:00', '11:00', '12:00', '16:00', '17:00'] },
-  { id: 'ruslan', name: 'Dr. Ruslan Golovliov', specialty: 'Estudio FibroScan', hours: ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'] },
-  { id: 'montes', name: 'Dr. Guido Montes', specialty: 'Otorrinolaringología', hours: ['09:00', '10:30', '12:00', '15:00', '16:30'] }
+let SPECIALISTS = [];
+const INITIAL_SPECIALISTS = [
+  { id: 'pedraza', name: 'Dr. Pedraza', specialty: 'Medicina Regenerativa', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '12:00', slotDuration: 60 },
+  { id: 'amelia', name: 'Lic. Amelia', specialty: 'Nutrición Clínica', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '16:30', slotDuration: 30 },
+  { id: 'morales', name: 'Dr. Joel Morales', specialty: 'Gastroenterología', workDays: [1, 2, 3, 4, 5, 6], workStart: '10:00', workEnd: '17:00', slotDuration: 30 },
+  { id: 'ruslan', name: 'Dr. Ruslan Golovliov', specialty: 'Estudio FibroScan', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '17:00', slotDuration: 30 },
+  { id: 'montes', name: 'Dr. Guido Montes', specialty: 'Otorrinolaringología', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '16:30', slotDuration: 60 },
+  { id: 'melendes', name: 'Lic. Ricardo Melendes', specialty: 'Psicología Clínica', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '16:00', slotDuration: 45 }
 ];
 
 const SERVICES = [
@@ -17,7 +19,8 @@ const SERVICES = [
   { id: 'gastro', name: 'Consulta — Gastroenterología', price: 100, specialistId: 'morales', duration: 60 },
   { id: 'otorrino', name: 'Consulta — Otorrinolaringología', price: 100, specialistId: 'montes', duration: 60 },
   { id: 'fibroscan', name: 'Estudio — FibroScan', price: 650, specialistId: 'ruslan', duration: 30 },
-  { id: 'curacion_heridas', name: 'Curación de Heridas Crónicas (A Domicilio)', price: 150, specialistId: 'pedraza', duration: 60 }
+  { id: 'curacion_heridas', name: 'Curación de Heridas Crónicas (A Domicilio)', price: 150, specialistId: 'pedraza', duration: 60 },
+  { id: 'psicologia', name: 'Consulta — Psicología Clínica', price: 100, specialistId: 'melendes', duration: 60 }
 ];
 
 const AGENT_CONTACTS = {
@@ -33,7 +36,7 @@ function sendWhatsAppReminder(apt) {
   const modality = apt.modality;
 
   const msg = `Hola ${apt.patientName}, te saludamos de KolyMedical. Le recordamos que tiene una cita programada para mañana ${dateStr} a las ${timeStr} (${modality}) con el ${doctor ? doctor.name : ''}. Por favor, confirme su asistencia respondiendo a este de WhatsApp. ¡Gracias!`;
-  
+
   const encodedMsg = encodeURIComponent(msg);
   const url = `https://wa.me/51${apt.patientPhone}?text=${encodedMsg}`;
   window.open(url, '_blank');
@@ -54,7 +57,8 @@ const INITIAL_USERS = [
   { username: 'licamelia', fullname: 'Lic. Amelia', password: 'doc123', role: 'Nutricionista', specialistId: 'amelia' },
   { username: 'drmorales', fullname: 'Dr. Joel Morales', password: 'doc123', role: 'Médico', specialistId: 'morales' },
   { username: 'drruslan', fullname: 'Dr. Ruslan Golovliov', password: 'doc123', role: 'Médico', specialistId: 'ruslan' },
-  { username: 'drguido', fullname: 'Dr. Guido Montes', password: 'doc123', role: 'Médico', specialistId: 'montes' }
+  { username: 'drguido', fullname: 'Dr. Guido Montes', password: 'doc123', role: 'Médico', specialistId: 'montes' },
+  { username: 'licmelendes', fullname: 'Lic. Ricardo Melendes', password: 'doc123', role: 'Psicólogo', specialistId: 'melendes' }
 ];
 
 // Helper para generar fechas relativas a hoy
@@ -79,26 +83,26 @@ if (window.supabase) {
 
 // Safe storage wrapper to prevent crashes in private windows / Brave Shields
 const safeLocalStorage = {
-  getItem: function(key) {
+  getItem: function (key) {
     try { return localStorage.getItem(key); } catch (e) { return null; }
   },
-  setItem: function(key, value) {
-    try { localStorage.setItem(key, value); } catch (e) {}
+  setItem: function (key, value) {
+    try { localStorage.setItem(key, value); } catch (e) { }
   },
-  removeItem: function(key) {
-    try { localStorage.removeItem(key); } catch (e) {}
+  removeItem: function (key) {
+    try { localStorage.removeItem(key); } catch (e) { }
   }
 };
 window.safeLocalStorage = safeLocalStorage;
 
 const safeSessionStorage = {
-  getItem: function(key) {
+  getItem: function (key) {
     try { return sessionStorage.getItem(key); } catch (e) { return this[key] || null; }
   },
-  setItem: function(key, value) {
+  setItem: function (key, value) {
     try { sessionStorage.setItem(key, value); } catch (e) { this[key] = value; }
   },
-  removeItem: function(key) {
+  removeItem: function (key) {
     try { sessionStorage.removeItem(key); } catch (e) { delete this[key]; }
   }
 };
@@ -112,12 +116,16 @@ let localUsersCache = [];
 try {
   const cachedApts = safeLocalStorage.getItem('kolymedical_appointments');
   localAppointmentsCache = cachedApts ? JSON.parse(cachedApts) : INITIAL_APPOINTMENTS;
-  
+
   const cachedUsers = safeLocalStorage.getItem('kolymedical_users');
   localUsersCache = cachedUsers ? JSON.parse(cachedUsers) : INITIAL_USERS;
+
+  const cachedSpecialists = safeLocalStorage.getItem('kolymedical_specialists');
+  SPECIALISTS = cachedSpecialists ? JSON.parse(cachedSpecialists) : INITIAL_SPECIALISTS;
 } catch (e) {
   localAppointmentsCache = INITIAL_APPOINTMENTS;
   localUsersCache = INITIAL_USERS;
+  SPECIALISTS = INITIAL_SPECIALISTS;
 }
 
 // Funciones de Mapeo de datos (PostgreSQL snake_case <-> Frontend camelCase)
@@ -176,17 +184,17 @@ function mapUserFromDb(dbU) {
 }
 
 const DB = {
-  getAppointments: function() {
+  getAppointments: function () {
     return localAppointmentsCache;
   },
-  
-  saveAppointment: async function(apt) {
+
+  saveAppointment: async function (apt) {
     apt.id = 'apt-' + Date.now();
-    
+
     // Guardar en caché local inmediatamente
     localAppointmentsCache.push(apt);
     safeLocalStorage.setItem('kolymedical_appointments', JSON.stringify(localAppointmentsCache));
-    
+
     // Subir a Supabase
     if (supabaseClient) {
       try {
@@ -201,17 +209,17 @@ const DB = {
     return apt;
   },
 
-  updateAppointmentStatus: async function(id, status) {
+  updateAppointmentStatus: async function (id, status) {
     if (status === 'cancelada') {
       return this.deleteAppointment(id);
     }
-    
+
     // Actualizar caché local
     const index = localAppointmentsCache.findIndex(a => a.id === id);
     if (index !== -1) {
       localAppointmentsCache[index].status = status;
       safeLocalStorage.setItem('kolymedical_appointments', JSON.stringify(localAppointmentsCache));
-      
+
       // Actualizar en Supabase
       if (supabaseClient) {
         try {
@@ -229,11 +237,11 @@ const DB = {
     return false;
   },
 
-  deleteAppointment: async function(id) {
+  deleteAppointment: async function (id) {
     // Eliminar de caché local
     localAppointmentsCache = localAppointmentsCache.filter(a => a.id !== id);
     safeLocalStorage.setItem('kolymedical_appointments', JSON.stringify(localAppointmentsCache));
-    
+
     // Eliminar en Supabase
     if (supabaseClient) {
       try {
@@ -249,12 +257,12 @@ const DB = {
     return true;
   },
 
-  syncWithCloud: async function(callback) {
+  syncWithCloud: async function (callback) {
     if (!supabaseClient) {
       if (callback) callback();
       return;
     }
-    
+
     const fetchAndMerge = async () => {
       try {
         const { data, error } = await supabaseClient
@@ -264,7 +272,7 @@ const DB = {
           console.error('Error al consultar citas de Supabase:', error);
           return;
         }
-        
+
         if (data) {
           localAppointmentsCache = data.map(mapAptFromDb);
           safeLocalStorage.setItem('kolymedical_appointments', JSON.stringify(localAppointmentsCache));
@@ -290,7 +298,44 @@ const DB = {
       )
       .subscribe();
   }
-};;
+};
+
+// Funciones auxiliares para disponibilidad dinámica
+function parseTimeToMinutes(timeStr) {
+  if (!timeStr) return 0;
+  const [h, m] = timeStr.split(':').map(Number);
+  return h * 60 + (m || 0);
+}
+
+function minutesToTimeString(mins) {
+  const h = Math.floor(mins / 60).toString().padStart(2, '0');
+  const m = (mins % 60).toString().padStart(2, '0');
+  return `${h}:${m}`;
+}
+
+function getDoctorAvailableSlots(doctor, dateVal) {
+  if (!doctor || !doctor.workDays || !doctor.workStart || !doctor.workEnd || !doctor.slotDuration) {
+    return [];
+  }
+
+  // selectedDay: 0 = domingo, 1 = lunes, ..., 6 = sábado
+  const selectedDay = new Date(dateVal + 'T00:00:00').getDay();
+  if (!doctor.workDays.includes(selectedDay)) {
+    return []; // No labora este día
+  }
+
+  const startMins = parseTimeToMinutes(doctor.workStart);
+  const endMins = parseTimeToMinutes(doctor.workEnd);
+  const duration = parseInt(doctor.slotDuration);
+
+  if (duration <= 0 || startMins >= endMins) return [];
+
+  const slots = [];
+  for (let mins = startMins; mins + duration <= endMins; mins += duration) {
+    slots.push(minutesToTimeString(mins));
+  }
+  return slots;
+}
 
 // 3. Inicialización General según la Página
 document.addEventListener('DOMContentLoaded', () => {
@@ -299,7 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initPublicWeb();
     initGalleryCarousel();
   }
-  
+
   // Inicialización en el Panel de Administración (admin.html)
   if (document.getElementById('admin-dashboard')) {
     initAdminDashboard();
@@ -314,15 +359,15 @@ function initGalleryCarousel() {
   const dotsContainer = document.getElementById('carousel-dots');
   const btnPrev = document.getElementById('carousel-prev');
   const btnNext = document.getElementById('carousel-next');
-  
+
   if (!track || !dotsContainer) return;
-  
+
   const slides = track.querySelectorAll('.carousel-slide');
   if (slides.length === 0) return;
-  
+
   let currentIndex = 0;
   let autoplayInterval = null;
-  
+
   // Crear dots
   slides.forEach((_, i) => {
     const dot = document.createElement('button');
@@ -330,7 +375,7 @@ function initGalleryCarousel() {
     dot.addEventListener('click', () => goToSlide(i));
     dotsContainer.appendChild(dot);
   });
-  
+
   function goToSlide(index) {
     currentIndex = index;
     const slide = slides[index];
@@ -340,37 +385,37 @@ function initGalleryCarousel() {
         behavior: 'smooth'
       });
     }
-    
+
     // Actualizar dots
     dotsContainer.querySelectorAll('.carousel-dot').forEach((dot, i) => {
       dot.classList.toggle('active', i === currentIndex);
     });
   }
-  
+
   function nextSlide() {
     goToSlide((currentIndex + 1) % slides.length);
   }
-  
+
   function prevSlide() {
     goToSlide((currentIndex - 1 + slides.length) % slides.length);
   }
-  
+
   // Botones de navegación
   if (btnNext) btnNext.addEventListener('click', () => { nextSlide(); resetAutoplay(); });
   if (btnPrev) btnPrev.addEventListener('click', () => { prevSlide(); resetAutoplay(); });
-  
+
   // Autoplay cada 2 segundos
   function startAutoplay() {
     autoplayInterval = setInterval(nextSlide, 2000);
   }
-  
+
   function resetAutoplay() {
     clearInterval(autoplayInterval);
     startAutoplay();
   }
-  
+
   startAutoplay();
-  
+
   // Pausar al hacer hover sobre el carrusel
   const wrapper = track.closest('.carousel-wrapper');
   if (wrapper) {
@@ -389,11 +434,11 @@ function initPublicWeb() {
     title.addEventListener('click', () => {
       const content = title.nextElementSibling;
       const isVisible = content.style.display === 'block';
-      
+
       // Cerrar otros
       document.querySelectorAll('.accordion-content').forEach(c => c.style.display = 'none');
       document.querySelectorAll('.accordion-title span').forEach(s => s.textContent = '▼');
-      
+
       if (!isVisible) {
         content.style.display = 'block';
         title.querySelector('span').textContent = '▲';
@@ -405,7 +450,7 @@ function initPublicWeb() {
   const modal = document.getElementById('booking-modal');
   const openModalBtns = document.querySelectorAll('.open-booking-modal');
   const closeModalBtn = document.querySelector('.modal-close');
-  
+
   openModalBtns.forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -413,62 +458,12 @@ function initPublicWeb() {
       resetBookingForm();
     });
   });
-  
+
   closeModalBtn.addEventListener('click', () => {
     modal.classList.remove('active');
   });
 
-  // Control del Cajón de Tratamientos Premium
-  const treatmentsDrawer = document.getElementById('treatments-drawer');
-  const btnOpenTreatments = document.getElementById('btn-open-treatments');
-  const btnHeroTreatments = document.getElementById('btn-hero-treatments');
-  const btnCloseTreatments = document.getElementById('btn-close-treatments');
-  
-  if (btnOpenTreatments) {
-    btnOpenTreatments.addEventListener('click', (e) => {
-      e.preventDefault();
-      treatmentsDrawer.classList.add('active');
-    });
-  }
-  
-  if (btnHeroTreatments) {
-    btnHeroTreatments.addEventListener('click', (e) => {
-      e.preventDefault();
-      treatmentsDrawer.classList.add('active');
-    });
-  }
-  
-  if (btnCloseTreatments) {
-    btnCloseTreatments.addEventListener('click', () => {
-      treatmentsDrawer.classList.remove('active');
-    });
-  }
-  
-  if (treatmentsDrawer) {
-    treatmentsDrawer.addEventListener('click', (e) => {
-      if (e.target === treatmentsDrawer) {
-        treatmentsDrawer.classList.remove('active');
-      }
-    });
-  }
-  
-  // Control de las pestañas del Cajón
-  const tabButtons = document.querySelectorAll('.drawer-tab-btn');
-  const tabPanes = document.querySelectorAll('.drawer-tab-pane');
-  
-  tabButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      tabButtons.forEach(b => b.classList.remove('active'));
-      tabPanes.forEach(p => p.classList.remove('active'));
-      
-      btn.classList.add('active');
-      const targetId = btn.getAttribute('data-tab');
-      const targetPane = document.getElementById(targetId);
-      if (targetPane) {
-        targetPane.classList.add('active');
-      }
-    });
-  });
+  // Lógica del Cajón de Tratamientos unificada en la sección principal.
 
   // Lógica del Formulario por Pasos
   const formSteps = document.querySelectorAll('.form-step');
@@ -492,9 +487,9 @@ function initPublicWeb() {
     const selectDoctor = document.getElementById('booking-doctor');
     const selectModality = document.getElementById('booking-modality');
     const modalityNote = document.getElementById('booking-modality-note');
-    
+
     selectDoctor.innerHTML = '<option value="">-- Selecciona Especialista --</option>';
-    
+
     if (serviceVal) {
       const service = SERVICES.find(s => s.id === serviceVal);
       const doc = SPECIALISTS.find(d => d.id === service.specialistId);
@@ -505,7 +500,7 @@ function initPublicWeb() {
         opt.selected = true;
         selectDoctor.appendChild(opt);
       }
-      
+
       // Si es Fibroscan, obligar presencial por el Dr. Ruslan Golovliov
       if (serviceVal === 'fibroscan') {
         // Limpiar opción temporal si existía
@@ -557,9 +552,9 @@ function initPublicWeb() {
   // Bloquear fechas pasadas
   const today = new Date().toISOString().split('T')[0];
   inputDate.min = today;
-
   inputDate.addEventListener('change', generateTimeSlots);
-  
+  selectService.addEventListener('change', generateTimeSlots);
+
   function generateTimeSlots() {
     const dateVal = inputDate.value;
     const serviceVal = selectService.value;
@@ -568,16 +563,15 @@ function initPublicWeb() {
 
     if (!dateVal || !serviceVal) return;
 
-    // Verificar si es domingo (0 = Domingo)
-    const selectedDay = new Date(dateVal + 'T00:00:00').getDay();
-    if (selectedDay === 0) {
-      timeGrid.innerHTML = '<p style="color: var(--color-danger); font-size: 0.85rem; padding: 0.5rem; grid-column: span 4;">Los domingos la clínica se encuentra cerrada.</p>';
+    const service = SERVICES.find(s => s.id === serviceVal);
+    const doctor = SPECIALISTS.find(d => d.id === service.specialistId);
+
+    const availableHours = getDoctorAvailableSlots(doctor, dateVal);
+    if (availableHours.length === 0) {
+      timeGrid.innerHTML = '<p style="color: var(--color-danger); font-size: 0.85rem; padding: 0.5rem; grid-column: span 4;">El especialista no tiene disponibilidad para esta fecha.</p>';
       return;
     }
 
-    const service = SERVICES.find(s => s.id === serviceVal);
-    const doctor = SPECIALISTS.find(d => d.id === service.specialistId);
-    
     // Obtener citas ya agendadas en esta fecha
     const appointments = DB.getAppointments();
     const busyTimes = appointments
@@ -585,12 +579,12 @@ function initPublicWeb() {
       .map(a => a.time);
 
     // Renderizar horas disponibles del doctor
-    doctor.hours.forEach(hour => {
+    availableHours.forEach(hour => {
       const isBusy = busyTimes.includes(hour);
       const slot = document.createElement('div');
       slot.className = `time-slot ${isBusy ? 'disabled' : ''}`;
       slot.textContent = hour;
-      
+
       if (!isBusy) {
         slot.addEventListener('click', () => {
           document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected'));
@@ -613,7 +607,7 @@ function initPublicWeb() {
     });
 
     btnPrev.style.display = currentStep === 0 ? 'none' : 'block';
-    
+
     if (currentStep === formSteps.length - 1) {
       btnNext.innerHTML = 'Confirmar Reserva';
       btnNext.className = 'btn btn-accent';
@@ -697,7 +691,7 @@ function initPublicWeb() {
     };
 
     DB.saveAppointment(newApt);
-    
+
     // Generar link de confirmación de WhatsApp
     const service = SERVICES.find(s => s.id === serviceId);
     const doctor = SPECIALISTS.find(d => d.id === specialistId);
@@ -763,11 +757,11 @@ let calendarCurrentDate = new Date();
 // (INITIAL_USERS está definido arriba del archivo, junto a INITIAL_APPOINTMENTS)
 
 const DB_Users = {
-  getUsers: function() {
+  getUsers: function () {
     return localUsersCache;
   },
-  
-  saveUser: async function(userObj) {
+
+  saveUser: async function (userObj) {
     const index = localUsersCache.findIndex(u => u.username.toLowerCase() === userObj.username.toLowerCase());
     if (index !== -1) {
       localUsersCache[index] = userObj;
@@ -775,7 +769,7 @@ const DB_Users = {
       localUsersCache.push(userObj);
     }
     safeLocalStorage.setItem('kolymedical_users', JSON.stringify(localUsersCache));
-    
+
     if (supabaseClient) {
       try {
         const { error } = await supabaseClient
@@ -788,11 +782,11 @@ const DB_Users = {
     }
     return true;
   },
-  
-  deleteUser: async function(username) {
+
+  deleteUser: async function (username) {
     localUsersCache = localUsersCache.filter(u => u.username.toLowerCase() !== username.toLowerCase());
     safeLocalStorage.setItem('kolymedical_users', JSON.stringify(localUsersCache));
-    
+
     if (supabaseClient) {
       try {
         const { error } = await supabaseClient
@@ -807,12 +801,12 @@ const DB_Users = {
     return true;
   },
 
-  syncWithCloud: async function(callback) {
+  syncWithCloud: async function (callback) {
     if (!supabaseClient) {
       if (callback) callback();
       return;
     }
-    
+
     const fetchUsers = async () => {
       try {
         const { data, error } = await supabaseClient
@@ -822,7 +816,7 @@ const DB_Users = {
           console.error('Error al consultar usuarios en Supabase:', error);
           return;
         }
-        
+
         if (data) {
           localUsersCache = data.map(mapUserFromDb);
           safeLocalStorage.setItem('kolymedical_users', JSON.stringify(localUsersCache));
@@ -899,18 +893,30 @@ function initLoginForm() {
 function renderDashboard() {
   const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
   const menuUsers = document.getElementById('menu-users');
+  const menuAvailability = document.getElementById('menu-availability');
   const roleText = document.getElementById('sidebar-user-role');
-  
+
   // Mostrar rol dinámicamente arriba del menú
   if (roleText && currentUser) {
     roleText.textContent = currentUser.role === 'Médico' ? 'MÉDICO' : currentUser.role.toUpperCase();
   }
 
-  // Tareas de roles: Solo admin Super Administrador puede ver el panel de usuarios
+  // Mensaje de bienvenida con nombre real del usuario conectado
+  const adminHeaderP = document.querySelector('.admin-header p');
+  if (adminHeaderP && currentUser) {
+    adminHeaderP.innerHTML = `Bienvenido, <strong>${currentUser.fullname}</strong> | Rol: <strong>${currentUser.role}</strong>`;
+  }
+
+  // Tareas de roles:
   if (currentUser && currentUser.role === 'Administrador') {
-    menuUsers.style.display = 'block';
+    if (menuUsers) menuUsers.style.display = 'block';
+    if (menuAvailability) menuAvailability.style.display = 'block';
+  } else if (currentUser && currentUser.specialistId) {
+    if (menuUsers) menuUsers.style.display = 'none';
+    if (menuAvailability) menuAvailability.style.display = 'block';
   } else {
-    menuUsers.style.display = 'none';
+    if (menuUsers) menuUsers.style.display = 'none';
+    if (menuAvailability) menuAvailability.style.display = 'none';
   }
 
   // Vincular engranaje de perfil al lado del nombre de la marca
@@ -919,7 +925,7 @@ function renderDashboard() {
     btnProfile.addEventListener('click', () => {
       // Remover activas del menú lateral
       document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
-      
+
       // Mostrar vista de perfil y ocultar otras
       document.querySelectorAll('.dashboard-view').forEach(sec => {
         sec.style.display = sec.id === 'view-profile' ? 'block' : 'none';
@@ -938,7 +944,7 @@ function renderDashboard() {
   // Navegación Sidebar
   const sidebarItems = document.querySelectorAll('.sidebar-item');
   const contentSections = document.querySelectorAll('.dashboard-view');
-  
+
   sidebarItems.forEach(item => {
     item.addEventListener('click', () => {
       sidebarItems.forEach(i => i.classList.remove('active'));
@@ -957,6 +963,8 @@ function renderDashboard() {
         renderUsersTable();
       } else if (viewName === 'profile') {
         renderProfileView();
+      } else if (viewName === 'availability') {
+        renderAvailabilityView();
       }
     });
   });
@@ -972,7 +980,8 @@ function renderDashboard() {
   initAdminBookingForm();
   initUserManagementForm();
   initProfileForm();
-  
+  initAvailabilityManagement();
+
   // Renderizar Vista Inicial (Estadísticas y Citas)
   updateStats();
   renderCalendarWidget();
@@ -1006,6 +1015,107 @@ function initProfileForm() {
       document.getElementById('profile-new-password').value = '';
     }
   });
+}
+
+// -----------------------------------------------------
+// ⏰ VISTA: DISPONIBILIDAD MÉDICA
+// -----------------------------------------------------
+function renderAvailabilityView() {
+  const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
+  if (!currentUser) return;
+
+  const selectDoc = document.getElementById('availability-doctor-select');
+  const containerSelect = document.getElementById('availability-doctor-select-container');
+  if (!selectDoc) return;
+
+  selectDoc.innerHTML = '';
+
+  if (currentUser.role === 'Administrador') {
+    if (containerSelect) containerSelect.style.display = 'block';
+    SPECIALISTS.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d.id;
+      opt.textContent = `${d.name} (${d.specialty})`;
+      selectDoc.appendChild(opt);
+    });
+  } else if (currentUser.specialistId) {
+    if (containerSelect) containerSelect.style.display = 'none';
+    const opt = document.createElement('option');
+    opt.value = currentUser.specialistId;
+    opt.textContent = currentUser.fullname;
+    selectDoc.appendChild(opt);
+  }
+
+  loadDoctorAvailabilityIntoForm();
+}
+
+function loadDoctorAvailabilityIntoForm() {
+  const selectDoc = document.getElementById('availability-doctor-select');
+  if (!selectDoc) return;
+  const docId = selectDoc.value;
+  if (!docId) return;
+
+  const doctor = SPECIALISTS.find(d => d.id === docId);
+  if (!doctor) return;
+
+  const dayChecks = document.querySelectorAll('input[name="workday"]');
+  dayChecks.forEach(chk => {
+    chk.checked = doctor.workDays && doctor.workDays.includes(parseInt(chk.value));
+  });
+
+  document.getElementById('avail-start').value = doctor.workStart || '09:00';
+  document.getElementById('avail-end').value = doctor.workEnd || '17:00';
+  document.getElementById('avail-duration').value = doctor.slotDuration || '30';
+}
+
+function initAvailabilityManagement() {
+  const selectDoc = document.getElementById('availability-doctor-select');
+  const form = document.getElementById('availability-form');
+
+  if (selectDoc) {
+    selectDoc.addEventListener('change', loadDoctorAvailabilityIntoForm);
+  }
+
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const docId = selectDoc.value;
+      if (!docId) return;
+
+      const doctorIndex = SPECIALISTS.findIndex(d => d.id === docId);
+      if (doctorIndex === -1) return;
+
+      const selectedDays = [];
+      const dayChecks = document.querySelectorAll('input[name="workday"]');
+      dayChecks.forEach(chk => {
+        if (chk.checked) {
+          selectedDays.push(parseInt(chk.value));
+        }
+      });
+
+      const workStart = document.getElementById('avail-start').value;
+      const workEnd = document.getElementById('avail-end').value;
+      const slotDuration = parseInt(document.getElementById('avail-duration').value);
+
+      if (selectedDays.length === 0) {
+        alert('Por favor, seleccione al menos un día laborable.');
+        return;
+      }
+
+      if (parseTimeToMinutes(workStart) >= parseTimeToMinutes(workEnd)) {
+        alert('La hora de inicio debe ser anterior a la hora de cierre.');
+        return;
+      }
+
+      SPECIALISTS[doctorIndex].workDays = selectedDays;
+      SPECIALISTS[doctorIndex].workStart = workStart;
+      SPECIALISTS[doctorIndex].workEnd = workEnd;
+      SPECIALISTS[doctorIndex].slotDuration = slotDuration;
+
+      safeLocalStorage.setItem('kolymedical_specialists', JSON.stringify(SPECIALISTS));
+      alert('Configuración de disponibilidad guardada correctamente.');
+    });
+  }
 }
 
 // -----------------------------------------------------
@@ -1098,7 +1208,7 @@ function resetUserForm() {
 // Actualizar Tarjetas de Estadísticas
 function updateStats() {
   let appointments = DB.getAppointments();
-  
+
   // Filtrar citas si el usuario es Médico / Especialista o Comercial
   const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
   if (currentUser) {
@@ -1108,11 +1218,11 @@ function updateStats() {
       appointments = appointments.filter(a => a.trackedBy === currentUser.trackedBy);
     }
   }
-  
+
   const total = appointments.length;
   const pendientes = appointments.filter(a => a.status === 'pendiente').length;
   const realizadas = appointments.filter(a => a.status === 'realizada').length;
-  
+
   // Calcular Ingresos generados basados en las citas confirmadas o realizadas
   const ingresos = appointments
     .filter(a => a.status === 'realizada' || a.status === 'confirmada')
@@ -1137,7 +1247,7 @@ function renderCalendarWidget() {
 
   // Nombre de los meses
   const monthsNames = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
   ];
 
@@ -1192,7 +1302,7 @@ function renderCalendarWidget() {
 
   // Celdas del mes actual
   let appointments = DB.getAppointments();
-  
+
   // Filtrar citas si el usuario es Médico / Especialista o Comercial
   const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
   if (currentUser) {
@@ -1202,11 +1312,11 @@ function renderCalendarWidget() {
       appointments = appointments.filter(a => a.trackedBy === currentUser.trackedBy);
     }
   }
-  
+
   for (let day = 1; day <= totalDays; day++) {
     const cell = document.createElement('div');
     cell.className = 'calendar-cell';
-    
+
     const formattedDay = day < 10 ? '0' + day : day;
     const formattedMonth = (month + 1) < 10 ? '0' + (month + 1) : (month + 1);
     const dateString = `${year}-${formattedMonth}-${formattedDay}`;
@@ -1219,7 +1329,7 @@ function renderCalendarWidget() {
 
     // Listar citas para este día
     const dayApts = appointments.filter(a => a.date === dateString && a.status !== 'cancelada');
-    
+
     if (dayApts.length > 0) {
       const aptsContainer = document.createElement('div');
       aptsContainer.className = 'calendar-appointments';
@@ -1230,12 +1340,12 @@ function renderCalendarWidget() {
         badge.className = `calendar-apt-badge ${apt.modality === 'Virtual' ? 'badge-virtual' : 'badge-presencial'}`;
         badge.title = `${apt.time} - ${apt.patientName} (${doc ? doc.name : ''})`;
         badge.textContent = `${apt.time} ${apt.patientName}`;
-        
+
         badge.addEventListener('click', (e) => {
           e.stopPropagation();
           showAppointmentDetail(apt);
         });
-        
+
         aptsContainer.appendChild(badge);
       });
       cell.appendChild(aptsContainer);
@@ -1257,11 +1367,28 @@ function renderCalendarWidget() {
   container.appendChild(grid);
 }
 
+// 🔐 Regla de seguridad #2: Solo Administrador y Comercial pueden ver enlaces
+// directos de WhatsApp / recordatorios de pacientes. Los especialistas
+// (Médico, Nutricionista, Psicólogo, etc.) ven el teléfono solo como texto.
+function canViewPatientWhatsApp() {
+  try {
+    const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
+    return !!currentUser && (currentUser.role === 'Administrador' || currentUser.role === 'Comercial');
+  } catch (e) {
+    return false;
+  }
+}
+
 // Mostrar Detalle de Cita en un Modal flotante simple
 function showAppointmentDetail(apt) {
   const service = SERVICES.find(s => s.id === apt.serviceId);
   const doctor = SPECIALISTS.find(d => d.id === apt.specialistId);
   const agentInfo = AGENT_CONTACTS[apt.trackedBy] ? `${AGENT_CONTACTS[apt.trackedBy].name} (Cel: ${AGENT_CONTACTS[apt.trackedBy].phone})` : (apt.trackedBy || 'Sin asignar');
+
+  // Teléfono: enlace de WhatsApp solo para Administrador/Comercial; texto plano para especialistas.
+  const phoneDetailHtml = canViewPatientWhatsApp()
+    ? `<a href="https://wa.me/51${apt.patientPhone}" target="_blank" style="color:var(--color-accent); font-weight:600;">${apt.patientPhone} 💬</a>`
+    : `<span style="font-weight:600; color:var(--color-primary-dark);">${apt.patientPhone}</span>`;
 
   // Crear modal de detalle dinámicamente
   const detailModal = document.createElement('div');
@@ -1271,7 +1398,7 @@ function showAppointmentDetail(apt) {
     <div class="modal-content" style="max-width: 450px; padding: 2rem;">
       <h3 style="color:var(--color-primary); font-weight:700; margin-bottom:1.5rem; border-bottom:1px solid var(--color-border); padding-bottom:0.5rem;">Detalle de la Cita</h3>
       <p style="margin-bottom:0.8rem;"><strong>Paciente:</strong> ${apt.patientName} (${apt.patientAge} años)</p>
-      <p style="margin-bottom:0.8rem;"><strong>Teléfono:</strong> <a href="https://wa.me/51${apt.patientPhone}" target="_blank" style="color:var(--color-accent); font-weight:600;">${apt.patientPhone} 💬</a></p>
+      <p style="margin-bottom:0.8rem;"><strong>Teléfono:</strong> ${phoneDetailHtml}</p>
       <p style="margin-bottom:0.8rem;"><strong>Agente/Comercial:</strong> ${agentInfo}</p>
       <p style="margin-bottom:0.8rem;"><strong>Servicio:</strong> ${service ? service.name : 'N/A'}</p>
       <p style="margin-bottom:0.8rem;"><strong>Especialista:</strong> ${doctor ? doctor.name : 'N/A'}</p>
@@ -1344,18 +1471,26 @@ function renderAppointmentsTable() {
     return;
   }
 
+  // Permiso de contacto directo (Regla #2): solo Administrador/Comercial.
+  const canViewWA = canViewPatientWhatsApp();
+
   filteredApts.forEach(apt => {
     const service = SERVICES.find(s => s.id === apt.serviceId);
     const doctor = SPECIALISTS.find(d => d.id === apt.specialistId);
+
+    // Celda de teléfono: enlace + recordatorio de WhatsApp solo si el rol lo permite.
+    const phoneCellHtml = canViewWA
+      ? `<div style="display:flex; flex-direction:column; gap:0.25rem;">
+          <a href="https://wa.me/51${apt.patientPhone}" target="_blank" style="color:var(--color-accent); font-weight:600;">${apt.patientPhone} 💬</a>
+          <button class="btn btn-secondary btn-reminder-wa" data-id="${apt.id}" style="padding:0.15rem 0.3rem; font-size:0.7rem; border-color:var(--color-accent); color:var(--color-accent); width:fit-content; height:fit-content; margin-top:0.1rem;">🔔 Recordar</button>
+        </div>`
+      : `<span style="font-weight:600; color:var(--color-primary-dark);">${apt.patientPhone}</span>`;
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><strong>${apt.patientName}</strong><br><span style="font-size:0.75rem; color:var(--color-text-muted);">${apt.patientAge} años | Seg: ${apt.trackedBy || 'Sin asignar'}</span></td>
       <td>
-        <div style="display:flex; flex-direction:column; gap:0.25rem;">
-          <a href="https://wa.me/51${apt.patientPhone}" target="_blank" style="color:var(--color-accent); font-weight:600;">${apt.patientPhone} 💬</a>
-          <button class="btn btn-secondary btn-reminder-wa" data-id="${apt.id}" style="padding:0.15rem 0.3rem; font-size:0.7rem; border-color:var(--color-accent); color:var(--color-accent); width:fit-content; height:fit-content; margin-top:0.1rem;">🔔 Recordar</button>
-        </div>
+        ${phoneCellHtml}
       </td>
       <td>${service ? service.name : 'N/A'}</td>
       <td>${doctor ? doctor.name : 'N/A'}</td>
@@ -1380,11 +1515,14 @@ function renderAppointmentsTable() {
       renderAppointmentsTable();
     });
 
-    // Recordatorio de WhatsApp
-    tr.querySelector('.btn-reminder-wa').addEventListener('click', (e) => {
-      e.preventDefault();
-      sendWhatsAppReminder(apt);
-    });
+    // Recordatorio de WhatsApp (solo existe para Administrador/Comercial)
+    const reminderBtn = tr.querySelector('.btn-reminder-wa');
+    if (reminderBtn) {
+      reminderBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        sendWhatsAppReminder(apt);
+      });
+    }
 
     tbody.appendChild(tr);
   });
@@ -1413,10 +1551,12 @@ if (filterDocSelect) {
 }
 
 // 📅 Agendamiento de Citas Manual por el Personal (Admin Direct Booker)
+// 📅 Agendamiento de Citas Manual por el Personal (Admin Direct Booker)
 function initAdminBookingForm() {
   const selectService = document.getElementById('admin-booking-service');
   const selectDoctor = document.getElementById('admin-booking-doctor');
-  
+  const adminDateInput = document.getElementById('admin-booking-date');
+
   // Llenar selectores del form
   SERVICES.forEach(s => {
     const opt = document.createElement('option');
@@ -1424,6 +1564,70 @@ function initAdminBookingForm() {
     opt.textContent = `${s.name} — S/ ${s.price}`;
     selectService.appendChild(opt);
   });
+
+  if (adminDateInput) {
+    const today = new Date().toISOString().split('T')[0];
+    adminDateInput.min = today;
+
+    adminDateInput.addEventListener('change', generateAdminTimeSlots);
+    selectService.addEventListener('change', generateAdminTimeSlots);
+  }
+
+  function generateAdminTimeSlots() {
+    const dateVal = adminDateInput.value;
+    const serviceVal = selectService.value;
+    const timeGrid = document.getElementById('admin-time-slots-grid');
+    if (!timeGrid) return;
+    timeGrid.innerHTML = '';
+
+    if (!dateVal || !serviceVal) return;
+
+    const service = SERVICES.find(s => s.id === serviceVal);
+    const doctor = SPECIALISTS.find(d => d.id === service.specialistId);
+
+    const availableHours = getDoctorAvailableSlots(doctor, dateVal);
+    if (availableHours.length === 0) {
+      timeGrid.innerHTML = '<p style="color: var(--color-danger); font-size: 0.8rem; padding: 0.25rem; grid-column: span 4;">El especialista no tiene disponibilidad para esta fecha.</p>';
+      return;
+    }
+
+    // Obtener citas ya agendadas en esta fecha
+    const appointments = DB.getAppointments();
+    const busyTimes = appointments
+      .filter(a => a.date === dateVal && a.specialistId === doctor.id && a.status !== 'cancelada')
+      .map(a => a.time);
+
+    // Renderizar horas disponibles del doctor
+    availableHours.forEach(hour => {
+      const isBusy = busyTimes.includes(hour);
+      const slot = document.createElement('div');
+      slot.className = `time-slot ${isBusy ? 'disabled' : ''}`;
+      slot.textContent = hour;
+      slot.style.padding = '0.3rem';
+      slot.style.fontSize = '0.8rem';
+      slot.style.border = '1px solid var(--color-border)';
+      slot.style.borderRadius = '4px';
+      slot.style.textAlign = 'center';
+      slot.style.cursor = isBusy ? 'not-allowed' : 'pointer';
+      slot.style.backgroundColor = isBusy ? '#eceff1' : 'transparent';
+      slot.style.color = isBusy ? '#90a4ae' : 'var(--color-primary-dark)';
+
+      if (!isBusy) {
+        slot.addEventListener('click', () => {
+          timeGrid.querySelectorAll('.time-slot').forEach(s => {
+            if (!s.classList.contains('disabled')) {
+              s.style.backgroundColor = 'transparent';
+              s.style.color = 'var(--color-primary-dark)';
+            }
+          });
+          slot.style.backgroundColor = 'var(--color-accent)';
+          slot.style.color = '#fff';
+          document.getElementById('admin-booking-time').value = hour;
+        });
+      }
+      timeGrid.appendChild(slot);
+    });
+  }
 
   selectService.addEventListener('change', () => {
     const serviceVal = selectService.value;
@@ -1439,7 +1643,7 @@ function initAdminBookingForm() {
         opt.selected = true;
         selectDoctor.appendChild(opt);
       }
-      
+
       if (serviceVal === 'fibroscan') {
         for (let i = 0; i < selectModality.options.length; i++) {
           if (selectModality.options[i].value === 'A Domicilio') {
@@ -1508,11 +1712,12 @@ function initAdminBookingForm() {
 
     DB.saveAppointment(newApt);
     alert('Cita interna agendada con éxito.');
-    
+
     // Resetear formulario
     document.getElementById('admin-booking-form-el').reset();
     selectDoctor.innerHTML = '<option value="">-- Selecciona Especialista --</option>';
-    
+    document.getElementById('admin-time-slots-grid').innerHTML = '<p style="color: var(--color-text-muted); font-size: 0.8rem; padding: 0.25rem; grid-column: span 4;">Selecciona servicio y fecha primero.</p>';
+
     // Actualizar Vistas
     updateStats();
     renderCalendarWidget();
@@ -1541,4 +1746,3 @@ function handleSyncUpdate() {
 // 🔄 Inicialización de Sincronización en Tiempo Real con Supabase (Citas y Personal)
 DB.syncWithCloud(handleSyncUpdate);
 DB_Users.syncWithCloud();
-

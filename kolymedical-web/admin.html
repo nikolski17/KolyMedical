@@ -66,6 +66,10 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sidebar-icon"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
             Listado de Citas
           </button>
+          <button class="sidebar-item" data-view="availability" id="menu-availability">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sidebar-icon"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            Disponibilidad Médica
+          </button>
           <button class="sidebar-item" data-view="users" id="menu-users" style="display: none;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sidebar-icon"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
             Gestión de Personal
@@ -187,14 +191,17 @@
                   <option value="">-- Selecciona Especialista --</option>
                 </select>
               </div>
-              <div class="form-group" style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 1rem;">
+              <div class="form-group" style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
                 <div>
                   <label for="admin-booking-date">Fecha:</label>
                   <input type="date" id="admin-booking-date" class="form-control" required>
                 </div>
-                <div>
-                  <label for="admin-booking-time">Hora:</label>
-                  <input type="time" id="admin-booking-time" class="form-control" required>
+              </div>
+              <div class="form-group">
+                <label>Horario Disponible:</label>
+                <input type="hidden" id="admin-booking-time" required>
+                <div class="time-grid" id="admin-time-slots-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-top: 0.5rem;">
+                  <p style="color: var(--color-text-muted); font-size: 0.8rem; padding: 0.25rem; grid-column: span 4;">Selecciona servicio y fecha primero.</p>
                 </div>
               </div>
               <div class="form-group">
@@ -340,6 +347,73 @@
         </div>
       </div>
 
+      <!-- VISTA 4.5: DISPONIBILIDAD MÉDICA -->
+      <div id="view-availability" class="dashboard-view" style="display: none;">
+        <div class="admin-card" style="max-width: 600px; margin: 0 auto;">
+          <div class="admin-card-header">
+            <h2>Configuración de Disponibilidad Médica</h2>
+          </div>
+          <p style="color:var(--color-text-muted); font-size:0.9rem; margin-bottom:1.5rem;">Configura los días, horarios de atención y la duración de las consultas de los especialistas.</p>
+          
+          <div class="form-group" id="availability-doctor-select-container">
+            <label for="availability-doctor-select">Especialista a configurar:</label>
+            <select id="availability-doctor-select" class="form-control">
+              <!-- Cargado dinámicamente -->
+            </select>
+          </div>
+
+          <form id="availability-form" onsubmit="event.preventDefault();">
+            <div class="form-group">
+              <label>Días Laborables:</label>
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-top: 0.5rem;">
+                <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.9rem; color:var(--color-primary-dark); font-weight:500;">
+                  <input type="checkbox" name="workday" value="1"> Lunes
+                </label>
+                <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.9rem; color:var(--color-primary-dark); font-weight:500;">
+                  <input type="checkbox" name="workday" value="2"> Martes
+                </label>
+                <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.9rem; color:var(--color-primary-dark); font-weight:500;">
+                  <input type="checkbox" name="workday" value="3"> Miércoles
+                </label>
+                <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.9rem; color:var(--color-primary-dark); font-weight:500;">
+                  <input type="checkbox" name="workday" value="4"> Jueves
+                </label>
+                <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.9rem; color:var(--color-primary-dark); font-weight:500;">
+                  <input type="checkbox" name="workday" value="5"> Viernes
+                </label>
+                <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.9rem; color:var(--color-primary-dark); font-weight:500;">
+                  <input type="checkbox" name="workday" value="6"> Sábado
+                </label>
+              </div>
+            </div>
+
+            <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+              <div>
+                <label for="avail-start">Hora de Inicio:</label>
+                <input type="time" id="avail-start" class="form-control" required>
+              </div>
+              <div>
+                <label for="avail-end">Hora de Cierre:</label>
+                <input type="time" id="avail-end" class="form-control" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="avail-duration">Duración de la Consulta:</label>
+              <select id="avail-duration" class="form-control" required>
+                <option value="30">30 minutos (Soporte / Nutrición / Gastro)</option>
+                <option value="45">45 minutos (Psicología)</option>
+                <option value="60">60 minutos (Medicina Regenerativa / Dr. Pedraza)</option>
+              </select>
+            </div>
+
+            <button type="submit" id="btn-save-availability" class="btn btn-accent" style="width: 100%; margin-top: 1.5rem;">
+              💾 Guardar Configuración de Horario
+            </button>
+          </form>
+        </div>
+      </div>
+
       <!-- VISTA 5: MI PERFIL / CAMBIO DE CONTRASEÑA -->
       <div id="view-profile" class="dashboard-view" style="display: none;">
         <div class="admin-card" style="max-width: 500px; margin: 0 auto;">
@@ -408,15 +482,23 @@
         const service = SERVICES.find(s => s.id === apt.serviceId);
         const doctor = SPECIALISTS.find(d => d.id === apt.specialistId);
 
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><strong>${apt.patientName}</strong><br><span style="font-size:0.75rem; color:var(--color-text-muted);">${apt.patientAge} años | Seg: ${apt.trackedBy || 'Sin asignar'}</span></td>
-          <td>
+        const isCommercialOrAdmin = currentUser && (currentUser.role === 'Administrador' || currentUser.role === 'Comercial');
+        let phoneHtml = '';
+        if (isCommercialOrAdmin) {
+          phoneHtml = `
             <div style="display:flex; flex-direction:column; gap:0.25rem;">
               <a href="https://wa.me/51${apt.patientPhone}" target="_blank" style="color:var(--color-accent); font-weight:600;">${apt.patientPhone} 💬</a>
               <button class="btn btn-secondary btn-reminder-wa" data-id="${apt.id}" style="padding:0.15rem 0.3rem; font-size:0.7rem; border-color:var(--color-accent); color:var(--color-accent); width:fit-content; height:fit-content; margin-top:0.1rem;">🔔 Recordar</button>
             </div>
-          </td>
+          `;
+        } else {
+          phoneHtml = `<span style="font-weight:600; color:var(--color-primary-dark);">${apt.patientPhone}</span>`;
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${apt.patientName}</strong><br><span style="font-size:0.75rem; color:var(--color-text-muted);">${apt.patientAge} años | Seg: ${apt.trackedBy || 'Sin asignar'}</span></td>
+          <td>${phoneHtml}</td>
           <td>${service ? service.name : 'N/A'}</td>
           <td>${doctor ? doctor.name : 'N/A'}</td>
           <td>${apt.date}<br><span style="font-weight:600; color:var(--color-primary-dark);">${apt.time}</span></td>
@@ -445,10 +527,13 @@
         });
 
         // Recordatorio de WhatsApp
-        tr.querySelector('.btn-reminder-wa').addEventListener('click', (e) => {
-          e.preventDefault();
-          sendWhatsAppReminder(apt);
-        });
+        const btnReminder = tr.querySelector('.btn-reminder-wa');
+        if (btnReminder) {
+          btnReminder.addEventListener('click', (e) => {
+            e.preventDefault();
+            sendWhatsAppReminder(apt);
+          });
+        }
 
         // Eliminar cita
         tr.querySelector('.btn-delete-apt').addEventListener('click', () => {
