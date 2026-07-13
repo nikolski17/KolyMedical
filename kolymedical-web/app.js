@@ -297,6 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Inicialización en la Página Pública (index.html)
   if (document.getElementById('public-web')) {
     initPublicWeb();
+    initGalleryCarousel();
   }
   
   // Inicialización en el Panel de Administración (admin.html)
@@ -304,6 +305,73 @@ document.addEventListener('DOMContentLoaded', () => {
     initAdminDashboard();
   }
 });
+
+// =============================================
+// 🖼️ CARRUSEL DE GALERÍA AUTO-SCROLL
+// =============================================
+function initGalleryCarousel() {
+  const track = document.getElementById('gallery-carousel-track');
+  const dotsContainer = document.getElementById('carousel-dots');
+  const btnPrev = document.getElementById('carousel-prev');
+  const btnNext = document.getElementById('carousel-next');
+  
+  if (!track || !dotsContainer) return;
+  
+  const slides = track.querySelectorAll('.carousel-slide');
+  if (slides.length === 0) return;
+  
+  let currentIndex = 0;
+  let autoplayInterval = null;
+  
+  // Crear dots
+  slides.forEach((_, i) => {
+    const dot = document.createElement('button');
+    dot.className = 'carousel-dot' + (i === 0 ? ' active' : '');
+    dot.addEventListener('click', () => goToSlide(i));
+    dotsContainer.appendChild(dot);
+  });
+  
+  function goToSlide(index) {
+    currentIndex = index;
+    track.style.transform = `translateX(-${currentIndex * 100}%)`;
+    
+    // Actualizar dots
+    dotsContainer.querySelectorAll('.carousel-dot').forEach((dot, i) => {
+      dot.classList.toggle('active', i === currentIndex);
+    });
+  }
+  
+  function nextSlide() {
+    goToSlide((currentIndex + 1) % slides.length);
+  }
+  
+  function prevSlide() {
+    goToSlide((currentIndex - 1 + slides.length) % slides.length);
+  }
+  
+  // Botones de navegación
+  if (btnNext) btnNext.addEventListener('click', () => { nextSlide(); resetAutoplay(); });
+  if (btnPrev) btnPrev.addEventListener('click', () => { prevSlide(); resetAutoplay(); });
+  
+  // Autoplay cada 2 segundos
+  function startAutoplay() {
+    autoplayInterval = setInterval(nextSlide, 2000);
+  }
+  
+  function resetAutoplay() {
+    clearInterval(autoplayInterval);
+    startAutoplay();
+  }
+  
+  startAutoplay();
+  
+  // Pausar al hacer hover sobre el carrusel
+  const wrapper = track.closest('.carousel-wrapper');
+  if (wrapper) {
+    wrapper.addEventListener('mouseenter', () => clearInterval(autoplayInterval));
+    wrapper.addEventListener('mouseleave', startAutoplay);
+  }
+}
 
 /* ==========================================================================
    🌐 PÁGINA PÚBLICA & FORMULARIO DE RESERVA DE PACIENTES
