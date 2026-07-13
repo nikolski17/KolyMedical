@@ -919,6 +919,23 @@ function renderDashboard() {
     if (menuAvailability) menuAvailability.style.display = 'none';
   }
 
+  // 🔒 "Ingresos Proyectados" y "Agendar Cita Interna" solo para Administrador y Comercial.
+  // Los médicos/especialistas no ven estos módulos.
+  const canManageBusiness = isAdminOrCommercial();
+  const incomeCard = document.getElementById('stat-card-income');
+  if (incomeCard) {
+    incomeCard.style.display = canManageBusiness ? '' : 'none';
+  }
+  const bookingCard = document.getElementById('admin-booking-card');
+  if (bookingCard) {
+    bookingCard.style.display = canManageBusiness ? '' : 'none';
+    // Si se oculta el agendamiento, la tabla "Últimas Citas" ocupa todo el ancho.
+    const bookingGrid = bookingCard.parentElement;
+    if (bookingGrid) {
+      bookingGrid.style.gridTemplateColumns = canManageBusiness ? '1.2fr 0.8fr' : '1fr';
+    }
+  }
+
   // Vincular engranaje de perfil al lado del nombre de la marca
   const btnProfile = document.getElementById('btn-sidebar-profile');
   if (btnProfile) {
@@ -1367,16 +1384,21 @@ function renderCalendarWidget() {
   container.appendChild(grid);
 }
 
-// 🔐 Regla de seguridad #2: Solo Administrador y Comercial pueden ver enlaces
-// directos de WhatsApp / recordatorios de pacientes. Los especialistas
-// (Médico, Nutricionista, Psicólogo, etc.) ven el teléfono solo como texto.
-function canViewPatientWhatsApp() {
+// 🔐 Roles con permiso de gestión comercial/administrativa (Administrador y Comercial).
+// Los especialistas (Médico, Nutricionista, Psicólogo, etc.) quedan excluidos.
+function isAdminOrCommercial() {
   try {
     const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
     return !!currentUser && (currentUser.role === 'Administrador' || currentUser.role === 'Comercial');
   } catch (e) {
     return false;
   }
+}
+
+// Regla de seguridad #2: solo Administrador/Comercial ven enlaces directos de
+// WhatsApp / recordatorios de pacientes. Los especialistas ven el teléfono como texto.
+function canViewPatientWhatsApp() {
+  return isAdminOrCommercial();
 }
 
 // Mostrar Detalle de Cita en un Modal flotante simple
