@@ -333,7 +333,13 @@ function initGalleryCarousel() {
   
   function goToSlide(index) {
     currentIndex = index;
-    track.style.transform = `translateX(-${currentIndex * 100}%)`;
+    const slide = slides[index];
+    if (slide) {
+      track.scrollTo({
+        left: slide.offsetLeft - track.offsetLeft,
+        behavior: 'smooth'
+      });
+    }
     
     // Actualizar dots
     dotsContainer.querySelectorAll('.carousel-dot').forEach((dot, i) => {
