@@ -21,7 +21,9 @@
   <meta name="geo.placename" content="Lima">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://kolymedical.netlify.app/">
+  <link rel="icon" type="image/png" href="Logosinfondo.png">
   <link rel="stylesheet" href="styles.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Datos Estructurados JSON-LD para Google SEO (Schema.org) -->
   <script type="application/ld+json">
@@ -270,7 +272,7 @@
         <button class="btn btn-accent open-booking-modal">Reservar Cita</button>
       </nav>
 
-      <button class="menu-toggle" id="mobile-menu-toggle">☰</button>
+      <button class="menu-toggle" id="mobile-menu-toggle" style="display: flex; align-items: center; justify-content: center;"><i data-lucide="menu" style="width: 24px; height: 24px;"></i></button>
     </div>
   </header>
 
@@ -1018,7 +1020,7 @@
           WhatsApp y un asesor comercial te guiará.</p>
         <a href="https://wa.me/51987346934?text=Hola%20KolyMedical,%20deseo%20informaci%C3%B3n%20sobre%20los%20tratamientos."
           target="_blank" class="btn btn-accent btn-lg" style="padding: 1.2rem 2.5rem; font-size: 1.1rem;">
-          💬 Enviar Mensaje a WhatsApp
+          <i data-lucide="message-circle" class="icon-inline mr-2"></i>Enviar Mensaje a WhatsApp
         </a>
         <p style="margin-top: 1.5rem; font-size: 0.85rem; color: var(--color-text-muted);">
           Horario de Atención: Lunes a Viernes 9:00 am - 6:00 pm | Sábados 9:00 am - 2:00 pm
@@ -1153,10 +1155,10 @@
         <div class="footer-contact">
           <h4>Contacto</h4>
           <ul>
-            <li>📍 Av. Venezuela 6113, Lima, Perú</li>
-            <li>📞 WhatsApp: +51 987 346 934</li>
-            <li>✉️ Correo: kolymedical26@gmail.com</li>
-            <li>🕒 Lun-Vie: 9am - 6pm | Sáb: 9am - 2pm</li>
+            <li class="align-icon-text" style="align-items: flex-start;"><i data-lucide="map-pin" class="icon-inline" style="flex-shrink: 0; margin-top: 2px;"></i> Av. Venezuela 6113, Lima, Perú</li>
+            <li class="align-icon-text"><i data-lucide="phone" class="icon-inline"></i> WhatsApp: +51 987 346 934</li>
+            <li class="align-icon-text"><i data-lucide="mail" class="icon-inline"></i> Correo: kolymedical26@gmail.com</li>
+            <li class="align-icon-text"><i data-lucide="clock" class="icon-inline"></i> Lun-Vie: 9am - 6pm | Sáb: 9am - 2pm</li>
           </ul>
         </div>
       </div>
@@ -1171,12 +1173,12 @@
 
   <!-- BUZÓN DE SUGERENCIAS (Botón flotante + Modal) -->
   <button class="suggestion-fab" id="suggestion-fab" title="Buzón de Sugerencias">
-    📢
+    <i data-lucide="megaphone" style="width: 22px; height: 22px;"></i>
   </button>
   <div class="suggestion-modal" id="suggestion-modal">
     <div class="suggestion-modal-content">
       <div class="suggestion-modal-header">
-        <h3>📢 Buzón de Sugerencias</h3>
+        <h3 class="align-icon-text"><i data-lucide="megaphone" class="icon-inline" style="color: var(--color-primary);"></i> Buzón de Sugerencias</h3>
         <button class="suggestion-close" id="suggestion-close">&times;</button>
       </div>
       <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 1rem;">Tu opinión nos ayuda a
@@ -1194,7 +1196,7 @@
         <button type="submit" class="btn btn-primary" style="width: 100%;">Enviar Sugerencia</button>
       </form>
       <div id="suggestion-success" style="display:none; text-align:center; padding: 2rem;">
-        <span style="font-size: 3rem;">✅</span>
+        <div style="color: var(--color-accent); display: flex; justify-content: center; margin-bottom: 1rem;"><i data-lucide="check-circle" style="width: 50px; height: 50px;"></i></div>
         <p style="margin-top: 1rem; font-weight: 600; color: var(--color-primary);">¡Gracias por tu sugerencia!</p>
         <p style="font-size: 0.85rem; color: var(--color-text-muted);">Tu opinión es muy valiosa para nosotros.</p>
       </div>

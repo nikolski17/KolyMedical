@@ -2458,3 +2458,32 @@ ul {
   background-color: #12141a !important;
   color: #ffffff !important;
 }
+
+/* ==========================================================================
+   LUCIDE ICONS STYLING & ALIGNMENT
+   ========================================================================== */
+.icon-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  width: 1.15em;
+  height: 1.15em;
+  stroke-width: 2px;
+  position: relative;
+  top: -1px; /* Pequeño ajuste para centrado óptico */
+}
+
+/* Margen por defecto para iconos al lado de textos */
+.icon-inline.mr-2 {
+  margin-right: 0.5rem;
+}
+.icon-inline.ml-2 {
+  margin-left: 0.5rem;
+}
+
+.align-icon-text {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}

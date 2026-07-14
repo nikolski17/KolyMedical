@@ -843,6 +843,11 @@ document.addEventListener('DOMContentLoaded', () => {
     initAdminThemeToggle();
     initLoginParticles();
   }
+
+  // Inicializar iconos de Lucide
+  if (window.lucide) {
+    window.lucide.createIcons();
+  }
 });
 
 // =============================================
@@ -1008,7 +1013,7 @@ function initPublicWeb() {
         }
         selectModality.value = 'Presencial';
         selectModality.disabled = true;
-        modalityNote.textContent = '⚠️ El estudio FibroScan se realiza únicamente de forma presencial por el Dr. Ruslan Golovliov.';
+        modalityNote.innerHTML = '<i data-lucide="alert-triangle" class="icon-inline mr-1" style="color:var(--color-warning);"></i> El estudio FibroScan se realiza únicamente de forma presencial por el Dr. Ruslan Golovliov.';
         modalityNote.style.display = 'block';
       } else if (serviceVal === 'curacion_heridas') {
         // Servicio a domicilio: no cuenta con médico a cargo
@@ -1026,7 +1031,7 @@ function initPublicWeb() {
         }
         selectModality.value = 'A Domicilio';
         selectModality.disabled = true;
-        modalityNote.innerHTML = '🏡 Servicio a domicilio (S/ 350). No cuenta con médico asignado. Indica tu dirección exacta; la reserva se coordina <strong>únicamente por WhatsApp</strong>.';
+        modalityNote.innerHTML = '<i data-lucide="home" class="icon-inline mr-1"></i> Servicio a domicilio (S/ 350). No cuenta con médico asignado. Indica tu dirección exacta; la reserva se coordina <strong>únicamente por WhatsApp</strong>.';
         modalityNote.style.display = 'block';
         if (addressGroup) addressGroup.style.display = 'block';
       } else {
@@ -1040,6 +1045,7 @@ function initPublicWeb() {
         selectModality.disabled = false;
         modalityNote.style.display = 'none';
       }
+      if (window.lucide) window.lucide.createIcons();
     } else {
       selectModality.disabled = false;
       modalityNote.style.display = 'none';
@@ -1247,7 +1253,7 @@ function initPublicWeb() {
     const modalBody = document.querySelector('.modal-content');
     modalBody.innerHTML = `
       <div style="padding: 3rem 2rem; text-align: center;">
-        <span style="font-size: 4rem; color: var(--color-accent); display: block; margin-bottom: 1.5rem;">🎉</span>
+        <div style="color: var(--color-accent); display: flex; justify-content: center; margin-bottom: 1.5rem;"><i data-lucide="check-circle" style="width: 60px; height: 60px;"></i></div>
         <h2 style="color: var(--color-primary); font-weight: 700; margin-bottom: 1rem;">¡Cita Reservada con Éxito!</h2>
         <p style="color: var(--color-text-muted); font-size: 0.95rem; margin-bottom: 2rem; max-width: 450px; margin-left: auto; margin-right: auto;">
           Tu solicitud ha sido guardada en nuestro sistema. Para agilizar el proceso y recibir recordatorios automáticos, confirma tu reserva directamente por WhatsApp.
@@ -1262,6 +1268,7 @@ function initPublicWeb() {
         </div>
       </div>
     `;
+    if (window.lucide) window.lucide.createIcons();
   }
 
   // Curación de heridas a domicilio: la web solo permite coordinar por WhatsApp.
@@ -1764,8 +1771,12 @@ function renderUsersTable() {
       const hasSig = SignatureDB.has(u.specialistId);
       firmaCell = `
         <div style="display:flex; align-items:center; gap:0.4rem;">
-          <span title="${hasSig ? 'Firma cargada' : 'Sin firma'}" style="font-size:0.9rem;">${hasSig ? '✅' : '❌'}</span>
-          <button class="btn btn-secondary btn-sign-user" data-username="${u.username}" style="padding:0.2rem 0.5rem; font-size:0.75rem;">✍️ Firma</button>
+          <span title="${hasSig ? 'Firma cargada' : 'Sin firma'}" style="display: inline-flex; align-items: center;">
+            ${hasSig ? '<i data-lucide="check" class="icon-inline" style="color:var(--color-accent); width:16px; height:16px; top:0;"></i>' : '<i data-lucide="x" class="icon-inline" style="color:var(--color-danger); width:16px; height:16px; top:0;"></i>'}
+          </span>
+          <button class="btn btn-secondary btn-sign-user align-icon-text" data-username="${u.username}" style="padding:0.2rem 0.5rem; font-size:0.75rem;">
+            <i data-lucide="pen-tool" class="icon-inline" style="width:12px; height:12px; top:0;"></i> Firma
+          </button>
         </div>`;
     }
 
@@ -1777,8 +1788,12 @@ function renderUsersTable() {
       <td>${firmaCell}</td>
       <td>
         <div style="display:flex; gap:0.5rem;">
-          <button class="btn btn-secondary btn-edit-user" data-username="${u.username}" style="padding:0.2rem 0.5rem; font-size:0.8rem;">✏️</button>
-          <button class="btn btn-secondary btn-delete-user" data-username="${u.username}" style="padding:0.2rem 0.5rem; font-size:0.8rem; color:var(--color-danger); border-color:var(--color-danger);" ${u.username === 'admin' ? 'disabled' : ''}>🗑️</button>
+          <button class="btn btn-secondary btn-edit-user align-icon-text" data-username="${u.username}" style="padding:0.2rem 0.5rem; font-size:0.8rem; justify-content:center;">
+            <i data-lucide="edit" class="icon-inline" style="width:14px; height:14px; top:0;"></i>
+          </button>
+          <button class="btn btn-secondary btn-delete-user align-icon-text" data-username="${u.username}" style="padding:0.2rem 0.5rem; font-size:0.8rem; color:var(--color-danger); border-color:var(--color-danger); justify-content:center;" ${u.username === 'admin' ? 'disabled' : ''}>
+            <i data-lucide="trash-2" class="icon-inline" style="width:14px; height:14px; top:0;"></i>
+          </button>
         </div>
       </td>
     `;
@@ -1797,6 +1812,9 @@ function renderUsersTable() {
 
     tbody.appendChild(tr);
   });
+  if (window.lucide) {
+    window.lucide.createIcons();
+  }
 }
 
 // Modal para cargar / previsualizar / quitar la firma de un médico (solo Super Admin).
@@ -2719,7 +2737,9 @@ function showAppointmentDetail(apt) {
       ${historyHtml}
 
       <div style="display:flex; gap:1rem; margin-top:2rem; justify-content:space-between; flex-wrap:wrap;">
-        <button class="btn btn-accent" id="detail-open-record-btn" style="font-size:0.85rem;">📋 Abrir expediente clínico</button>
+        <button class="btn btn-accent align-icon-text" id="detail-open-record-btn" style="font-size:0.85rem;">
+          <i data-lucide="clipboard-list" class="icon-inline"></i> Abrir expediente clínico
+        </button>
         <div style="display:flex; gap:1rem;">
           <button class="btn btn-secondary" id="detail-close-btn">Cerrar</button>
           <button class="btn btn-primary" id="detail-save-btn">Guardar Cambios</button>
@@ -2728,6 +2748,9 @@ function showAppointmentDetail(apt) {
     </div>
   `;
   document.body.appendChild(detailModal);
+  if (window.lucide) {
+    window.lucide.createIcons();
+  }
 
   document.getElementById('detail-open-record-btn').addEventListener('click', async () => {
     detailModal.remove();
@@ -2819,8 +2842,13 @@ function renderAppointmentsTable() {
     // Celda de teléfono: enlace + recordatorio de WhatsApp solo si el rol lo permite.
     const phoneCellHtml = canViewWA
       ? `<div style="display:flex; flex-direction:column; gap:0.25rem;">
-          <a href="https://wa.me/51${apt.patientPhone}" target="_blank" style="color:var(--color-accent); font-weight:600;">${apt.patientPhone} 💬</a>
-          <button class="btn btn-secondary btn-reminder-wa" data-id="${apt.id}" style="padding:0.15rem 0.3rem; font-size:0.7rem; border-color:var(--color-accent); color:var(--color-accent); width:fit-content; height:fit-content; margin-top:0.1rem;">🔔 Recordar</button>
+          <a href="https://wa.me/51${apt.patientPhone}" target="_blank" style="color:var(--color-accent); font-weight:600; display:inline-flex; align-items:center;">
+            ${apt.patientPhone}
+            <i data-lucide="message-square" class="icon-inline ml-2" style="width:14px; height:14px; color:#25D366; top:0;"></i>
+          </a>
+          <button class="btn btn-secondary btn-reminder-wa align-icon-text" data-id="${apt.id}" style="padding:0.15rem 0.3rem; font-size:0.7rem; border-color:var(--color-accent); color:var(--color-accent); width:fit-content; height:fit-content; margin-top:0.1rem;">
+            <i data-lucide="bell" class="icon-inline" style="width:12px; height:12px; top:0;"></i> Recordar
+          </button>
         </div>`
       : `<span style="font-weight:600; color:var(--color-primary-dark);">${apt.patientPhone}</span>`;
 
@@ -2864,6 +2892,9 @@ function renderAppointmentsTable() {
 
     tbody.appendChild(tr);
   });
+  if (window.lucide) {
+    window.lucide.createIcons();
+  }
 }
 
 /* ==========================================================================
@@ -2918,7 +2949,9 @@ function renderUpcomingConsultations() {
       <td>${isToday ? '<span style="color:var(--color-accent); font-weight:700;">Hoy</span>' : apt.date}<br><span style="font-weight:600; color:var(--color-primary-dark);">${apt.time}</span></td>
       <td><span class="status-badge status-${apt.status === 'confirmada' ? 'confirmada' : apt.status === 'realizada' ? 'realizada' : 'confirmada'}">${apt.status}</span></td>
       <td style="text-align:center;">
-        <button class="btn btn-accent btn-open-record" data-id="${apt.id}" title="Abrir historia clínica" style="padding:0.35rem 0.6rem; font-size:0.8rem;">📋 Expediente</button>
+        <button class="btn btn-accent btn-open-record align-icon-text" data-id="${apt.id}" title="Abrir historia clínica" style="padding:0.35rem 0.6rem; font-size:0.8rem; justify-content:center;">
+          <i data-lucide="clipboard-list" class="icon-inline" style="width:14px; height:14px; top:0;"></i> Expediente
+        </button>
       </td>
     `;
     tr.querySelector('.btn-open-record').addEventListener('click', () => openRecordFromAppointment(apt));
@@ -3002,7 +3035,10 @@ function openClinicalRecord(recordId, opts) {
   modal.style.zIndex = '3500';
 
   const phoneHtml = canViewWA
-    ? `<a href="https://wa.me/51${record.patientPhone}" target="_blank" style="color:var(--color-accent); font-weight:600;">${record.patientPhone} 💬</a>`
+    ? `<a href="https://wa.me/51${record.patientPhone}" target="_blank" style="color:var(--color-accent); font-weight:600; display:inline-flex; align-items:center;">
+        ${record.patientPhone}
+        <i data-lucide="message-square" class="icon-inline ml-1" style="width:14px; height:14px; color:#25D366; top:0;"></i>
+       </a>`
     : (isDoctor ? '<span style="color:var(--color-text-muted); font-style:italic;">Oculto (uso comercial)</span>'
                 : `<span style="font-weight:600;">${record.patientPhone || '—'}</span>`);
 
@@ -3030,7 +3066,9 @@ function openClinicalRecord(recordId, opts) {
 
         ${canEditClinical ? `
         <details style="margin-bottom:1.5rem;">
-          <summary style="cursor:pointer; font-weight:600; color:var(--color-primary); font-size:0.9rem;">✏️ Editar datos de filiación</summary>
+          <summary style="cursor:pointer; font-weight:600; color:var(--color-primary); font-size:0.9rem; display:inline-flex; align-items:center;">
+            <i data-lucide="edit" class="icon-inline mr-2"></i> Editar datos de filiación
+          </summary>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-top:0.75rem;">
             <div><label style="font-size:0.8rem;">DNI / Cédula</label><input type="text" id="cr-dni" class="form-control" value="${record.dni || ''}" placeholder="DNI del paciente"></div>
             <div><label style="font-size:0.8rem;">Fecha de nacimiento</label><input type="date" id="cr-birthdate" class="form-control" value="${record.birthDate || ''}"></div>
@@ -3046,7 +3084,7 @@ function openClinicalRecord(recordId, opts) {
           </div>
           <button class="btn btn-secondary" id="cr-save-filiacion" style="margin-top:0.75rem; font-size:0.8rem;">Guardar filiación</button>
         </details>` : ''}
-
+ 
         ${isDoctor || currentUser.role === 'Administrador' ? `
         <!-- Antecedentes -->
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
@@ -3061,24 +3099,28 @@ function openClinicalRecord(recordId, opts) {
             ${canEditClinical ? '<button class="btn btn-secondary cr-add-history" data-kind="personal" style="margin-top:0.5rem; font-size:0.75rem;">+ Agregar (CIE-10)</button>' : ''}
           </div>
         </div>` : ''}
-
+ 
         ${isDoctor || currentUser.role === 'Administrador' ? `
         <!-- Nueva nota de evolución -->
         <div id="cr-new-note-box" style="border:2px solid var(--color-accent); border-radius:var(--border-radius-sm); padding:1rem; margin-bottom:1.5rem; background:rgba(0,168,150,0.03);">
-          <h4 style="color:var(--color-primary); font-size:0.95rem; margin-bottom:0.75rem;">📝 Nueva nota de evolución</h4>
+          <h4 style="color:var(--color-primary); font-size:0.95rem; margin-bottom:0.75rem; display:inline-flex; align-items:center;">
+            <i data-lucide="pen-tool" class="icon-inline mr-2"></i> Nueva nota de evolución
+          </h4>
           <div style="margin-bottom:0.75rem;">
             <label style="font-size:0.8rem; font-weight:600;">Diagnóstico(s) CIE-10</label>
             <div id="cr-note-diag-chips">${historyChipsHtml([], 'diag', true)}</div>
             <button class="btn btn-secondary cr-add-diag" style="margin-top:0.5rem; font-size:0.75rem;">+ Agregar diagnóstico (CIE-10)</button>
           </div>
           <textarea id="cr-note-text" class="form-control" rows="4" placeholder="Motivo de consulta, examen físico, evolución, plan de tratamiento..." style="font-size:0.9rem;"></textarea>
-          <button class="btn btn-accent" id="cr-save-note" style="margin-top:0.75rem;">💾 Guardar nota</button>
+          <button class="btn btn-accent align-icon-text" id="cr-save-note" style="margin-top:0.75rem;">
+            <i data-lucide="save" class="icon-inline"></i> Guardar nota
+          </button>
         </div>` : ''}
-
+ 
         <!-- Historial de consultas -->
         <h4 style="color:var(--color-primary); font-size:0.95rem; margin-bottom:0.5rem;">Historial de consultas</h4>
         <div id="cr-notes-timeline" style="margin-bottom:1.5rem;"></div>
-
+ 
         ${isDoctor || currentUser.role === 'Administrador' ? `
         <!-- Recetas / órdenes -->
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
@@ -3086,17 +3128,22 @@ function openClinicalRecord(recordId, opts) {
           <button class="btn btn-primary" id="cr-new-prescription" style="font-size:0.8rem;">+ Nueva receta / orden</button>
         </div>
         <div id="cr-prescriptions-list" style="margin-bottom:1rem;"></div>` : ''}
-
+ 
         ${isAdminComm ? `
         <!-- Ventas / pagos (solo Admin/Comercial) -->
         <details style="margin-top:1rem;">
-          <summary style="cursor:pointer; font-weight:600; color:var(--color-primary); font-size:0.9rem;">💰 Ventas y pagos (uso administrativo)</summary>
+          <summary style="cursor:pointer; font-weight:600; color:var(--color-primary); font-size:0.9rem; display:inline-flex; align-items:center;">
+            <i data-lucide="dollar-sign" class="icon-inline mr-2"></i> Ventas y pagos (uso administrativo)
+          </summary>
           <p style="font-size:0.85rem; color:var(--color-text-muted); margin-top:0.5rem;">La gestión de ventas y pagos del paciente se administra desde el listado de citas. Total de consultas registradas para este paciente: <strong>${DB.getAppointments().filter(a => a.patientPhone === record.patientPhone).length}</strong>.</p>
         </details>` : ''}
       </div>
     </div>
   `;
   document.body.appendChild(modal);
+  if (window.lucide) {
+    window.lucide.createIcons();
+  }
 
   // Estado temporal para la nota nueva (diagnósticos seleccionados)
   const noteDiagnoses = [];
@@ -3891,11 +3938,16 @@ function openPrescriptionBuilder(record) {
 
       <div style="display:flex; justify-content:flex-end; gap:0.75rem;">
         <button class="btn btn-secondary" id="pr-cancel">Cancelar</button>
-        <button class="btn btn-accent" id="pr-generate">📄 Generar PDF</button>
+        <button class="btn btn-accent align-icon-text" id="pr-generate">
+          <i data-lucide="file-text" class="icon-inline"></i> Generar PDF
+        </button>
       </div>
     </div>
   `;
   document.body.appendChild(modal);
+  if (window.lucide) {
+    window.lucide.createIcons();
+  }
 
   const itemsBox = modal.querySelector('#pr-items');
   const rows = []; // {tipo, data, el}
@@ -3906,7 +3958,9 @@ function openPrescriptionBuilder(record) {
     if (row.tipo === 'medicamento') {
       el.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
-          <span style="font-size:0.75rem; font-weight:700; color:var(--color-accent); text-transform:uppercase;">💊 Medicamento</span>
+          <span style="font-size:0.75rem; font-weight:700; color:var(--color-accent); text-transform:uppercase; display:inline-flex; align-items:center;">
+            <i data-lucide="pill" class="icon-inline mr-1" style="width: 14px; height: 14px; top:0;"></i> Medicamento
+          </span>
           <button class="pr-remove" style="color:var(--color-danger); font-weight:700;">Quitar</button>
         </div>
         <div class="pr-med-display" style="font-size:0.88rem; margin-bottom:0.4rem; color:var(--color-text-muted);">Ningún medicamento seleccionado.</div>
@@ -3919,7 +3973,9 @@ function openPrescriptionBuilder(record) {
     } else {
       el.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
-          <span style="font-size:0.75rem; font-weight:700; color:var(--color-primary); text-transform:uppercase;">🔬 Estudio</span>
+          <span style="font-size:0.75rem; font-weight:700; color:var(--color-primary); text-transform:uppercase; display:inline-flex; align-items:center;">
+            <i data-lucide="microscope" class="icon-inline mr-1" style="width: 14px; height: 14px; top:0;"></i> Estudio
+          </span>
           <button class="pr-remove" style="color:var(--color-danger); font-weight:700;">Quitar</button>
         </div>
         <div class="pr-study-display" style="font-size:0.88rem; margin-bottom:0.4rem; color:var(--color-text-muted);">Ningún estudio seleccionado.</div>
@@ -3927,6 +3983,9 @@ function openPrescriptionBuilder(record) {
         <input type="text" class="form-control pr-study-note" placeholder="Indicación clínica (opcional: en ayunas, con contraste...)" style="font-size:0.8rem;">`;
     }
     itemsBox.appendChild(el);
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
     row.el = el;
 
     el.querySelector('.pr-remove').addEventListener('click', () => {
