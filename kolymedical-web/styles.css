@@ -1349,7 +1349,7 @@ ul {
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .hero-grid {
     grid-template-columns: 1fr;
     gap: 2rem;
@@ -2495,4 +2495,55 @@ ul {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+/* ==========================================================================
+   PANTALLAS INTERMEDIAS (PREVENCIÓN DE COLISIÓN DE LOGO)
+   ========================================================================== */
+@media (min-width: 1025px) and (max-width: 1200px) {
+  .logo-container img {
+    height: 36px !important;
+  }
+  .nav-links {
+    gap: 0.9rem !important;
+  }
+  .nav-link {
+    font-size: 0.85rem !important;
+  }
+  .header .container {
+    height: 70px !important;
+  }
+}
+
+/* ==========================================================================
+   DISEÑO GLASSMORPHISM PREMIUM
+   ========================================================================== */
+.sidebar {
+  background: rgba(26, 43, 58, 0.82) !important;
+  backdrop-filter: blur(15px) !important;
+  -webkit-backdrop-filter: blur(15px) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.admin-card {
+  background: rgba(255, 255, 255, 0.72) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(61, 90, 115, 0.08) !important;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04) !important;
+}
+
+.admin-header {
+  background: rgba(255, 255, 255, 0.72) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-bottom: 1px solid rgba(61, 90, 115, 0.08) !important;
+}
+
+.modal-content {
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.1) !important;
 }

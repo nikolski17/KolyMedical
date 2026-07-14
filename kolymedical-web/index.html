@@ -1003,6 +1003,35 @@
           </ul>
           <button class="btn btn-primary open-booking-modal" style="width: 100%;">Reservar Consulta</button>
         </div>
+
+        <!-- Tarifa 5: Curación de Heridas (A Domicilio) -->
+        <div class="price-card">
+          <h3>Curación de Heridas Crónicas</h3>
+          <div class="price-amount"><span class="price-currency">S/</span> 350</div>
+          <span class="price-period">Por Visita a Domicilio</span>
+          <ul class="price-features">
+            <li>Curación profesional y especializada</li>
+            <li>Materiales estériles de alta gama</li>
+            <li>Evaluación y seguimiento clínico</li>
+            <li style="color:var(--color-primary-dark); font-weight:600;">* Si el domicilio queda fuera de la zona de cobertura, aplica recargo de S/ 30 por visita.</li>
+          </ul>
+          <button class="btn btn-primary open-booking-modal" style="width: 100%;">Reservar servicio</button>
+        </div>
+
+        <!-- Tarifa 6: Convenio de Laboratorio -->
+        <div class="price-card">
+          <h3>Análisis de Laboratorio</h3>
+          <div class="price-amount" style="font-size:1.8rem; margin: 1.25rem 0;">A convenir</div>
+          <span class="price-period">Evaluación de cotización</span>
+          <ul class="price-features">
+            <li style="color:var(--color-primary-dark); font-weight:600;">* ¿Tu laboratorio cotizó más de S/ 400 o S/ 500? Mejoramos el precio con nuestros convenios.</li>
+            <li>Programación de toma de muestras a domicilio por laboratoristas expertos.</li>
+            <li>Resultados rápidos e integrados a tu historia clínica.</li>
+          </ul>
+          <a href="https://wa.me/51987346934?text=Hola%20KolyMedical,%20deseo%20evaluar%20una%20cotizaci%C3%B3n%20de%20laboratorio." target="_blank" class="btn btn-primary align-icon-text" style="width: 100%; justify-content: center; text-decoration: none; display: inline-flex; align-items: center; height: var(--input-height);">
+            <i data-lucide="message-circle" class="icon-inline mr-1" style="width:16px; height:16px;"></i> Evaluar Ahorro
+          </a>
+        </div>
       </div>
     </div>
   </section>
@@ -1225,7 +1254,7 @@
 
     // Restaurar navegación al cambiar resolución
     window.addEventListener('resize', () => {
-      if (window.innerWidth > 768) {
+      if (window.innerWidth > 1024) {
         navLinks.style.display = 'flex';
         navLinks.style.flexDirection = 'row';
         navLinks.style.position = 'static';

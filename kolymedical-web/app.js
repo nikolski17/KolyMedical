@@ -1246,8 +1246,22 @@ function initPublicWeb() {
     const patientAge = parseInt(document.getElementById('booking-age').value);
     const patientPhone = document.getElementById('booking-phone').value.trim();
 
-    const trackers = ['Brayan', 'Andrea'];
-    const randomTracker = trackers[Math.floor(Math.random() * trackers.length)];
+    let assignedTracker = 'Brayan'; // Default fallback
+    const trackers = DB_Users.getUsers().filter(u => u.role === 'Comercial' && u.trackedBy).map(u => u.trackedBy);
+    const uniqueTrackers = [...new Set(trackers)];
+    if (uniqueTrackers.length > 0) {
+      const allApts = DB.getAppointments();
+      let minTracker = uniqueTrackers[0];
+      let minCount = Infinity;
+      uniqueTrackers.forEach(t => {
+        const count = allApts.filter(a => a.trackedBy === t).length;
+        if (count < minCount) {
+          minCount = count;
+          minTracker = t;
+        }
+      });
+      assignedTracker = minTracker;
+    }
 
     const newApt = {
       patientName,
@@ -1259,7 +1273,7 @@ function initPublicWeb() {
       time,
       modality,
       status: 'pendiente',
-      trackedBy: randomTracker
+      trackedBy: assignedTracker
     };
 
     DB.saveAppointment(newApt);
@@ -1512,6 +1526,28 @@ function renderDashboard() {
   const menuUsers = document.getElementById('menu-users');
   const menuAvailability = document.getElementById('menu-availability');
   const roleText = document.getElementById('sidebar-user-role');
+
+  // Dinamizar menú lateral según el rol (Comercial vs Historias Clínicas)
+  const listMenuItem = document.querySelector('.sidebar-item[data-view="list"]');
+  if (listMenuItem) {
+    const isCommercial = currentUser && currentUser.role === 'Comercial';
+    const svgIcon = listMenuItem.querySelector('svg');
+    listMenuItem.innerHTML = '';
+    if (svgIcon) listMenuItem.appendChild(svgIcon);
+    listMenuItem.appendChild(document.createTextNode(isCommercial ? ' Listado de Pacientes' : ' Historias Clínicas'));
+  }
+
+  // Dinamizar el selector de agentes del agendamiento interno
+  const trackerSelect = document.getElementById('admin-booking-tracker');
+  if (trackerSelect) {
+    const trackers = DB_Users.getUsers().filter(u => u.role === 'Comercial' && u.trackedBy).map(u => u.trackedBy);
+    const uniqueTrackers = [...new Set(trackers)];
+    if (uniqueTrackers.length > 0) {
+      trackerSelect.innerHTML = uniqueTrackers.map(t => `<option value="${t}">${t}</option>`).join('');
+    } else {
+      trackerSelect.innerHTML = '<option value="Brayan">Brayan</option><option value="Andrea">Andrea</option>';
+    }
+  }
 
   // Mostrar rol dinámicamente arriba del menú
   if (roleText && currentUser) {
@@ -1960,6 +1996,7 @@ function initUserManagementForm() {
   const roleSelect = document.getElementById('user-role');
   const usernameInput = document.getElementById('user-username');
   const specGroup = document.getElementById('user-specialty-group');
+  const priceGroup = document.getElementById('user-price-group');
   const etiquetaGroup = document.getElementById('user-etiqueta-group');
   const etiquetaInput = document.getElementById('user-etiqueta');
 
@@ -1971,13 +2008,16 @@ function initUserManagementForm() {
     if (isSpecialistRole(role)) {
       specGroup.style.display = 'block';
       etiquetaGroup.style.display = 'block';
+      if (priceGroup) priceGroup.style.display = 'block';
       if (!etiquetaInput.value || !editId) {
         etiquetaInput.value = generateSpecialistId(username, editId);
       }
     } else {
       specGroup.style.display = 'none';
       etiquetaGroup.style.display = 'none';
+      if (priceGroup) priceGroup.style.display = 'none';
       document.getElementById('user-specialty').value = '';
+      if (priceGroup) document.getElementById('user-price').value = '';
       etiquetaInput.value = '';
     }
   }
@@ -2000,6 +2040,7 @@ function initUserManagementForm() {
     const editId = document.getElementById('user-edit-id').value;
     const specialty = document.getElementById('user-specialty').value.trim();
     const specialistId = etiquetaInput.value.trim();
+    const priceVal = priceGroup ? parseInt(document.getElementById('user-price').value, 10) : 100;
 
     const newUser = {
       username,
@@ -2044,13 +2085,15 @@ function initUserManagementForm() {
       // Registrar o actualizar en SERVICES
       const serviceId = `service_${specId}`;
       const serviceIndex = SERVICES.findIndex(s => s.specialistId === specId);
+      const servicePrice = isNaN(priceVal) ? 100 : priceVal;
       if (serviceIndex !== -1) {
         SERVICES[serviceIndex].name = `Consulta — ${fullname} (${specialty || role})`;
+        SERVICES[serviceIndex].price = servicePrice;
       } else {
         SERVICES.push({
           id: serviceId,
           name: `Consulta — ${fullname} (${specialty || role})`,
-          price: 100,
+          price: servicePrice,
           specialistId: specId,
           duration: 30
         });
@@ -2114,19 +2157,29 @@ function editUserAccount(user) {
   document.getElementById('user-role').value = user.role;
 
   const specGroup = document.getElementById('user-specialty-group');
+  const priceGroup = document.getElementById('user-price-group');
   const etiquetaGroup = document.getElementById('user-etiqueta-group');
   const spec = user.specialistId ? SPECIALISTS.find(s => s.id === user.specialistId) : null;
 
   if (isSpecialistRole(user.role)) {
     specGroup.style.display = 'block';
     etiquetaGroup.style.display = 'block';
+    if (priceGroup) priceGroup.style.display = 'block';
     document.getElementById('user-specialty').value = spec ? spec.specialty : '';
     document.getElementById('user-etiqueta').value = user.specialistId || '';
+    
+    // Rellenar precio
+    const service = SERVICES.find(s => s.specialistId === user.specialistId);
+    if (priceGroup && service) {
+      document.getElementById('user-price').value = service.price;
+    }
   } else {
     specGroup.style.display = 'none';
     etiquetaGroup.style.display = 'none';
+    if (priceGroup) priceGroup.style.display = 'none';
     document.getElementById('user-specialty').value = '';
     document.getElementById('user-etiqueta').value = '';
+    if (priceGroup) document.getElementById('user-price').value = '';
   }
 
   document.getElementById('btn-cancel-user-edit').style.display = 'block';
@@ -2137,6 +2190,9 @@ function resetUserForm() {
   document.getElementById('user-edit-id').value = '';
   document.getElementById('admin-user-form').reset();
   document.getElementById('user-specialty-group').style.display = 'none';
+  if (document.getElementById('user-price-group')) {
+    document.getElementById('user-price-group').style.display = 'none';
+  }
   document.getElementById('user-etiqueta-group').style.display = 'none';
   document.getElementById('btn-cancel-user-edit').style.display = 'none';
 }
@@ -2172,16 +2228,21 @@ function updateStats() {
   document.getElementById('stat-completed').textContent = realizadas;
   document.getElementById('stat-income').textContent = `S/ ${ingresos}`;
 
-  // Conteo de rendimiento comercial
+  // Conteo de rendimiento comercial dinámico
   const allAppointments = DB.getAppointments();
-  const brayanCount = allAppointments.filter(a => a.trackedBy === 'Brayan').length;
-  const andreaCount = allAppointments.filter(a => a.trackedBy === 'Andrea').length;
-
-  const perfBrayanEl = document.getElementById('perf-brayan');
-  if (perfBrayanEl) perfBrayanEl.textContent = `${brayanCount} cita${brayanCount === 1 ? '' : 's'}`;
-
-  const perfAndreaEl = document.getElementById('perf-andrea');
-  if (perfAndreaEl) perfAndreaEl.textContent = `${andreaCount} cita${andreaCount === 1 ? '' : 's'}`;
+  const trackers = DB_Users.getUsers().filter(u => u.role === 'Comercial' && u.trackedBy);
+  const container = document.getElementById('commercial-performance-container');
+  if (container) {
+    container.innerHTML = trackers.map(u => {
+      const count = allAppointments.filter(a => a.trackedBy === u.trackedBy).length;
+      return `
+        <div style="background: rgba(61, 90, 115, 0.05); padding: 1.25rem; border-radius: var(--border-radius-sm); text-align: center; border: 1px solid rgba(61,90,115,0.08);">
+          <h4 style="color: var(--color-primary-dark); font-size: 0.9rem; margin-bottom: 0.5rem; font-weight: 600;">${u.fullname}</h4>
+          <div style="font-size: 1.8rem; font-weight: 700; color: var(--color-primary);">${count} cita${count === 1 ? '' : 's'}</div>
+        </div>
+      `;
+    }).join('');
+  }
 }
 
 // 📅 Renderizar Calendario Visual Interactivo

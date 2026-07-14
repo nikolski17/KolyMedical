@@ -231,15 +231,8 @@
           <div class="admin-card-header">
             <h3>Rendimiento Comercial (Citas Agendadas)</h3>
           </div>
-          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; padding: 1rem 0;">
-            <div style="background: rgba(61, 90, 115, 0.05); padding: 1.25rem; border-radius: var(--border-radius-sm); text-align: center; border: 1px solid rgba(61,90,115,0.08);">
-              <h4 style="color: var(--color-primary-dark); font-size: 0.9rem; margin-bottom: 0.5rem; font-weight: 600;">Brayan García</h4>
-              <div style="font-size: 1.8rem; font-weight: 700; color: var(--color-primary);" id="perf-brayan">0 citas</div>
-            </div>
-            <div style="background: rgba(61, 90, 115, 0.05); padding: 1.25rem; border-radius: var(--border-radius-sm); text-align: center; border: 1px solid rgba(61,90,115,0.08);">
-              <h4 style="color: var(--color-primary-dark); font-size: 0.9rem; margin-bottom: 0.5rem; font-weight: 600;">Andrea Mendoza</h4>
-              <div style="font-size: 1.8rem; font-weight: 700; color: var(--color-primary);" id="perf-andrea">0 citas</div>
-            </div>
+          <div id="commercial-performance-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; padding: 1rem 0;">
+            <!-- Se renderiza dinámicamente desde app.js -->
           </div>
         </section>
 
@@ -464,6 +457,10 @@
                 <input type="text" id="user-specialty" class="form-control"
                   placeholder="Ej. Cardiología, Medicina Interna...">
               </div>
+              <div class="form-group" id="user-price-group" style="display:none;">
+                <label for="user-price">Costo por Consulta / Servicio (S/):</label>
+                <input type="number" id="user-price" class="form-control" placeholder="Ej. 100" min="0">
+              </div>
               <div class="form-group" id="user-etiqueta-group" style="display:none;">
                 <label>Etiqueta del especialista (ID de recursos):</label>
                 <input type="text" id="user-etiqueta" class="form-control" readonly
@@ -646,69 +643,185 @@
       if (!tbody) return;
 
       tbody.innerHTML = '';
-      const records = ClinicalDB.getRecords();
+      
+      const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
+      const isCommercial = currentUser && currentUser.role === 'Comercial';
+      
+      const tableCardHeader = document.querySelector('#view-list .admin-card-header h2');
+      const searchInput = document.getElementById('admin-search');
+      const tableHeadersRow = document.querySelector('#view-list .admin-table thead tr');
 
-      const searchQuery = searchEl.value.toLowerCase();
-
-      const filteredRecords = records.filter(r => {
-        const matchesDni = r.dni && r.dni.toLowerCase().includes(searchQuery);
-        const matchesSearch = (r.patientName || '').toLowerCase().includes(searchQuery) ||
-                              (r.patientPhone || '').includes(searchQuery) ||
-                              (r.id || '').toLowerCase().includes(searchQuery) ||
-                              matchesDni;
-        return matchesSearch;
-      });
-
-      // Ordenar por fecha de registro (más recientes primero)
-      filteredRecords.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-      if (filteredRecords.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--color-text-muted); padding:2rem;">No se encontraron historias clínicas.</td></tr>';
-        return;
-      }
-
-      filteredRecords.forEach(rec => {
-        // Calcular edad
-        let ageText = '—';
-        if (rec.birthDate) {
-          const b = new Date(rec.birthDate + 'T00:00:00');
-          const now = new Date();
-          let age = now.getFullYear() - b.getFullYear();
-          const m = now.getMonth() - b.getMonth();
-          if (m < 0 || (m === 0 && now.getDate() < b.getDate())) {
-            age--;
-          }
-          ageText = `${age} años`;
-        } else if (rec.patientAge) {
-          ageText = `${rec.patientAge} años`;
+      if (isCommercial) {
+        if (tableCardHeader) tableCardHeader.textContent = 'Listado General de Pacientes';
+        if (searchInput) searchInput.placeholder = 'Buscar paciente por nombre o teléfono...';
+        if (tableHeadersRow) {
+          tableHeadersRow.innerHTML = `
+            <th>Paciente</th>
+            <th>Teléfono</th>
+            <th>Servicio / Tratamiento</th>
+            <th>Médico Especialista</th>
+            <th>Fecha y Hora</th>
+            <th>Modalidad</th>
+            <th>Acciones</th>
+          `;
         }
-
-        const dateStr = rec.createdAt ? new Date(rec.createdAt).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><strong>${rec.patientName}</strong><br><span style="font-size:0.75rem; color:var(--color-text-muted);">${rec.patientPhone || '—'}</span></td>
-          <td><span style="font-family:monospace; font-weight:600; color:var(--color-primary-dark);">${rec.id}</span></td>
-          <td>${rec.dni || '—'}</td>
-          <td>${ageText} / ${rec.sex || '—'}</td>
-          <td><span style="color:var(--color-danger); font-weight:600;">${rec.allergies || 'Ninguna registrada'}</span></td>
-          <td>${dateStr}</td>
-          <td>
-            <div style="display:flex; gap:0.5rem; align-items:center;">
-              <button class="btn btn-accent btn-view-record-detailed align-icon-text" data-id="${rec.id}" style="padding:0.3rem 0.6rem; display:inline-flex; align-items:center; justify-content:center;" title="Ver historia clínica">
-                <i data-lucide="clipboard-list" class="icon-inline mr-1" style="width: 16px; height: 16px; top: 0;"></i> Ver Historia
-              </button>
-            </div>
-          </td>
-        `;
-
-        // Abrir expediente clínico en el listado detallado
-        tr.querySelector('.btn-view-record-detailed').addEventListener('click', () => {
-          openClinicalRecord(rec.id);
+        
+        let appointments = DB.getAppointments();
+        if (currentUser.trackedBy) {
+          appointments = appointments.filter(a => a.trackedBy === currentUser.trackedBy);
+        }
+        
+        const searchQuery = searchEl.value.toLowerCase();
+        const filteredApts = appointments.filter(apt => {
+          const record = ClinicalDB.getRecordByPatient ? ClinicalDB.getRecordByPatient(apt.patientPhone, apt.patientName) : null;
+          const matchesDni = record && record.dni && record.dni.toLowerCase().includes(searchQuery);
+          const matchesSearch = apt.patientName.toLowerCase().includes(searchQuery) || apt.patientPhone.includes(searchQuery) || matchesDni;
+          return matchesSearch;
         });
 
-        tbody.appendChild(tr);
-      });
+        filteredApts.sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`));
+
+        if (filteredApts.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--color-text-muted); padding:2rem;">No se encontraron citas.</td></tr>';
+          return;
+        }
+
+        filteredApts.forEach(apt => {
+          const service = SERVICES.find(s => s.id === apt.serviceId);
+          const doctor = (apt.serviceId === 'curacion_heridas' || !apt.specialistId) ? null : SPECIALISTS.find(d => d.id === apt.specialistId);
+
+          const phoneHtml = `
+            <div style="display:flex; flex-direction:column; gap:0.25rem;">
+              <a href="https://wa.me/51${apt.patientPhone}" target="_blank" style="color:var(--color-accent); font-weight:600; display:inline-flex; align-items:center;">
+                ${apt.patientPhone}
+                <i data-lucide="message-square" class="icon-inline ml-2" style="width:14px; height:14px; color:#25D366; top:0;"></i>
+              </a>
+              <button class="btn btn-secondary btn-reminder-wa align-icon-text" data-id="${apt.id}" style="padding:0.15rem 0.3rem; font-size:0.7rem; border-color:var(--color-accent); color:var(--color-accent); width:fit-content; height:fit-content; margin-top:0.1rem;">
+                <i data-lucide="bell" class="icon-inline" style="width:12px; height:12px; top:0;"></i> Recordar
+              </button>
+            </div>
+          `;
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><strong>${apt.patientName}</strong><br><span style="font-size:0.75rem; color:var(--color-text-muted);">${apt.patientAge} años | Seg: ${apt.trackedBy || 'Sin asignar'}</span></td>
+            <td>${phoneHtml}</td>
+            <td>${service ? service.name : 'N/A'}</td>
+            <td>${doctor ? doctor.name : 'N/A'}</td>
+            <td>${apt.date}<br><span style="font-weight:600; color:var(--color-primary-dark);">${apt.time}</span></td>
+            <td><span class="status-badge status-${apt.modality === 'Virtual' ? 'confirmada' : 'realizada'}">${apt.modality}</span></td>
+            <td>
+              <div style="display:flex; gap:0.5rem; align-items:center;">
+                <select class="form-control status-select-detailed" data-id="${apt.id}" style="padding: 0.3rem 0.5rem; font-size:0.85rem; width:130px;">
+                  <option value="pendiente" ${apt.status === 'pendiente' ? 'selected' : ''}>Pendiente</option>
+                  <option value="confirmada" ${apt.status === 'confirmada' ? 'selected' : ''}>Confirmada</option>
+                  <option value="realizada" ${apt.status === 'realizada' ? 'selected' : ''}>Realizada</option>
+                  <option value="cancelada" ${apt.status === 'cancelada' ? 'selected' : ''}>Cancelada</option>
+                </select>
+                <button class="btn btn-accent btn-view-record-detailed align-icon-text" data-id="${apt.id}" style="padding:0.3rem 0.6rem; display:inline-flex; align-items:center; justify-content:center;" title="Ver historia clínica">
+                  <i data-lucide="clipboard-list" class="icon-inline" style="width: 16px; height: 16px; top: 0;"></i>
+                </button>
+              </div>
+            </td>
+          `;
+
+          tr.querySelector('.btn-view-record-detailed').addEventListener('click', async () => {
+            const record = await ClinicalDB.ensureRecordFromAppointment(apt);
+            openClinicalRecord(record.id);
+          });
+
+          tr.querySelector('.status-select-detailed').addEventListener('change', (e) => {
+            const newStatus = e.target.value;
+            DB.updateAppointmentStatus(apt.id, newStatus);
+            updateStats();
+            renderCalendarWidget();
+            renderAppointmentsTable();
+            renderDetailedTable();
+          });
+
+          tr.querySelector('.btn-reminder-wa').addEventListener('click', (e) => {
+            e.preventDefault();
+            sendWhatsAppReminder(apt);
+          });
+
+          tbody.appendChild(tr);
+        });
+
+      } else {
+        if (tableCardHeader) tableCardHeader.textContent = 'Buscador de Historias Clínicas';
+        if (searchInput) searchInput.placeholder = 'Buscar por nombre, DNI o número de historia clínica...';
+        if (tableHeadersRow) {
+          tableHeadersRow.innerHTML = `
+            <th>Paciente</th>
+            <th>N° Expediente</th>
+            <th>DNI / Cédula</th>
+            <th>Edad / Sexo</th>
+            <th>Alergias</th>
+            <th>Fecha de Registro</th>
+            <th>Acciones</th>
+          `;
+        }
+
+        const records = ClinicalDB.getRecords();
+        const searchQuery = searchEl.value.toLowerCase();
+
+        const filteredRecords = records.filter(r => {
+          const matchesDni = r.dni && r.dni.toLowerCase().includes(searchQuery);
+          const matchesSearch = (r.patientName || '').toLowerCase().includes(searchQuery) ||
+                                (r.patientPhone || '').includes(searchQuery) ||
+                                (r.id || '').toLowerCase().includes(searchQuery) ||
+                                matchesDni;
+          return matchesSearch;
+        });
+
+        filteredRecords.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        if (filteredRecords.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--color-text-muted); padding:2rem;">No se encontraron historias clínicas.</td></tr>';
+          return;
+        }
+
+        filteredRecords.forEach(rec => {
+          let ageText = '—';
+          if (rec.birthDate) {
+            const b = new Date(rec.birthDate + 'T00:00:00');
+            const now = new Date();
+            let age = now.getFullYear() - b.getFullYear();
+            const m = now.getMonth() - b.getMonth();
+            if (m < 0 || (m === 0 && now.getDate() < b.getDate())) {
+              age--;
+            }
+            ageText = `${age} años`;
+          } else if (rec.patientAge) {
+            ageText = `${rec.patientAge} años`;
+          }
+
+          const dateStr = rec.createdAt ? new Date(rec.createdAt).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><strong>${rec.patientName}</strong><br><span style="font-size:0.75rem; color:var(--color-text-muted);">${rec.patientPhone || '—'}</span></td>
+            <td><span style="font-family:monospace; font-weight:600; color:var(--color-primary-dark);">${rec.id}</span></td>
+            <td>${rec.dni || '—'}</td>
+            <td>${ageText} / ${rec.sex || '—'}</td>
+            <td><span style="color:var(--color-danger); font-weight:600;">${rec.allergies || 'Ninguna registrada'}</span></td>
+            <td>${dateStr}</td>
+            <td>
+              <div style="display:flex; gap:0.5rem; align-items:center;">
+                <button class="btn btn-accent btn-view-record-detailed align-icon-text" data-id="${rec.id}" style="padding:0.3rem 0.6rem; display:inline-flex; align-items:center; justify-content:center;" title="Ver historia clínica">
+                  <i data-lucide="clipboard-list" class="icon-inline mr-1" style="width: 16px; height: 16px; top: 0;"></i> Ver Historia
+                </button>
+              </div>
+            </td>
+          `;
+
+          tr.querySelector('.btn-view-record-detailed').addEventListener('click', () => {
+            openClinicalRecord(rec.id);
+          });
+
+          tbody.appendChild(tr);
+        });
+      }
 
       if (window.lucide) {
         window.lucide.createIcons();
