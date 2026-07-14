@@ -1065,6 +1065,12 @@ function initPublicWeb() {
     const service = SERVICES.find(s => s.id === serviceVal);
     const doctor = SPECIALISTS.find(d => d.id === service.specialistId);
 
+    if (serviceVal === 'fibroscan') {
+      timeGrid.innerHTML = '<p style="color: var(--color-primary-light); font-size: 0.85rem; padding: 0.5rem; grid-column: span 4;">El estudio se programa solo para el día seleccionado. El asesor comercial se comunicará contigo para coordinar la hora exacta.</p>';
+      document.getElementById('booking-selected-time').value = 'Por coordinar';
+      return;
+    }
+
     if (!doctor) {
       timeGrid.innerHTML = '<p style="color: var(--color-primary-light); font-size: 0.85rem; padding: 0.5rem; grid-column: span 4;">Este servicio se coordina por WhatsApp y no requiere selección de horario.</p>';
       return;
@@ -3313,6 +3319,12 @@ function initAdminBookingForm() {
 
     const service = SERVICES.find(s => s.id === serviceVal);
     const doctor = SPECIALISTS.find(d => d.id === service.specialistId);
+
+    if (serviceVal === 'fibroscan') {
+      timeGrid.innerHTML = '<p style="color: var(--color-primary-light); font-size: 0.8rem; padding: 0.25rem; grid-column: span 4;">El estudio se programa solo para el día seleccionado. El asesor comercial coordinará la hora exacta con el paciente.</p>';
+      document.getElementById('admin-booking-time').value = 'Por coordinar';
+      return;
+    }
 
     if (!doctor) {
       timeGrid.innerHTML = '<p style="color: var(--color-primary-light); font-size: 0.8rem; padding: 0.25rem; grid-column: span 4;">Servicio a domicilio: se coordina por WhatsApp, no requiere horario ni médico.</p>';
