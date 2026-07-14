@@ -13,7 +13,8 @@
   --color-primary-rgb: 61, 90, 115;
   --color-primary-light: #5B84B1;
   --color-primary-dark: #273A4C;
-  --color-accent: #00A896; /* Color complementario para destacar botones/estados activos (verde médico) */
+  --color-accent: #00A896;
+  /* Color complementario para destacar botones/estados activos (verde médico) */
   --color-accent-light: #02C39A;
   --color-bg-light: #F4F7F6;
   --color-bg-card: #FFFFFF;
@@ -24,17 +25,17 @@
   --color-warning: #FFBF00;
   --color-danger: #E63946;
   --color-border: #E0E7E9;
-  
+
   --font-family: 'Montserrat', sans-serif;
-  
+
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 8px 16px rgba(61, 90, 115, 0.1);
   --shadow-lg: 0 16px 32px rgba(61, 90, 115, 0.15);
-  
+
   --border-radius-sm: 8px;
   --border-radius-md: 12px;
   --border-radius-lg: 20px;
-  
+
   --transition-fast: 0.2s ease;
   --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -61,7 +62,10 @@ a {
   transition: var(--transition-fast);
 }
 
-button, input, select, textarea {
+button,
+input,
+select,
+textarea {
   font-family: var(--font-family);
   font-size: 1rem;
 }
@@ -169,6 +173,23 @@ ul {
   box-shadow: var(--shadow-md);
 }
 
+/* Botón "Panel Médico": gemelo azul del botón verde "Reservar Cita" */
+.btn-panel {
+  background-color: var(--color-primary);
+  color: var(--color-text-light);
+  font-weight: 700;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.btn-panel:hover {
+  background-color: var(--color-primary);
+  /* mantiene el mismo azul al pasar el cursor */
+  color: var(--color-text-light);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
 /* 3. Header y Footer */
 .header {
   background-color: rgba(255, 255, 255, 0.9);
@@ -217,7 +238,7 @@ ul {
 .nav-links {
   display: flex;
   align-items: center;
-  gap: 2rem;
+  gap: 1.75rem;
 }
 
 .nav-link {
@@ -225,6 +246,7 @@ ul {
   color: var(--color-primary);
   position: relative;
   padding: 0.5rem 0;
+  white-space: nowrap;
 }
 
 .nav-link::after {
@@ -496,7 +518,8 @@ ul {
   box-sizing: border-box;
 }
 
-.service-img.icon-img, .accordion-img {
+.service-img.icon-img,
+.accordion-img {
   width: 100%;
   height: 120px;
   object-fit: contain;
@@ -520,8 +543,9 @@ ul {
 }
 
 .pricing-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 2rem;
   max-width: 1000px;
   margin: 0 auto;
@@ -536,6 +560,8 @@ ul {
   transition: var(--transition-normal);
   border: 1px solid var(--color-border);
   position: relative;
+  width: calc(33.333% - 1.34rem);
+  min-width: 280px;
 }
 
 .price-card.popular {
@@ -815,7 +841,8 @@ ul {
   max-width: 320px;
 }
 
-.footer-links h4, .footer-contact h4 {
+.footer-links h4,
+.footer-contact h4 {
   font-size: 1.1rem;
   font-weight: 600;
   margin-bottom: 1.2rem;
@@ -878,15 +905,18 @@ ul {
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 0.8rem 1rem;
+  padding: 0.7rem 0.9rem;
   border-radius: var(--border-radius-sm);
   color: rgba(255, 255, 255, 0.7);
   font-weight: 500;
+  font-size: 0.82rem;
+  letter-spacing: 0.3px;
   margin-bottom: 0.5rem;
   transition: var(--transition-fast);
 }
 
-.sidebar-item:hover, .sidebar-item.active {
+.sidebar-item:hover,
+.sidebar-item.active {
   color: var(--color-text-light);
   background-color: rgba(255, 255, 255, 0.1);
 }
@@ -897,7 +927,8 @@ ul {
   transition: var(--transition-fast);
 }
 
-.sidebar-item:hover .sidebar-icon, .sidebar-item.active .sidebar-icon {
+.sidebar-item:hover .sidebar-icon,
+.sidebar-item.active .sidebar-icon {
   stroke: var(--color-text-light);
 }
 
@@ -1181,23 +1212,30 @@ ul {
   color: var(--color-text-muted);
 }
 
-/* Login Card */
+/* Login Card Glassmorphism Premium */
 .login-container {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 100%);
+  background-color: #07090b;
+  background-image: radial-gradient(circle at 50% 50%, #152233 0%, #07090b 80%);
   padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
 }
 
 .login-card {
-  background-color: #FFFFFF;
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-radius: var(--border-radius-lg);
   padding: 3rem 2.5rem;
   width: 100%;
   max-width: 400px;
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  z-index: 2;
 }
 
 .login-logo {
@@ -1206,29 +1244,87 @@ ul {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 2rem;
-  color: var(--color-primary);
+  color: #ffffff;
 }
 
 .login-logo .logo-icon {
-  width: 60px;
-  height: 60px;
+  width: 70px;
+  height: 70px;
 }
 
 .login-logo h2 {
   font-size: 1.5rem;
   font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+}
+
+.login-card .form-group label {
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.login-card .form-control {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+  border-radius: var(--border-radius-sm);
+  padding: 0.8rem 1rem;
+  font-size: 0.9rem;
+}
+
+.login-card .form-control:focus {
+  border-color: rgba(0, 168, 150, 0.4) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  box-shadow: 0 0 12px rgba(0, 168, 150, 0.15) !important;
+}
+
+.login-card .btn-primary {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%) !important;
+  border: none !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.5px !important;
+  transition: all 0.3s ease !important;
+  padding: 0.9rem 1.5rem !important;
+  color: #ffffff !important;
+}
+
+.login-card .btn-primary:hover {
+  box-shadow: 0 0 20px rgba(0, 168, 150, 0.3) !important;
+  transform: translateY(-1px) !important;
 }
 
 /* Animaciones */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes pulse {
-  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 168, 150, 0.4); }
-  70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(0, 168, 150, 0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 168, 150, 0); }
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(0, 168, 150, 0.4);
+  }
+
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 8px rgba(0, 168, 150, 0);
+  }
+
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(0, 168, 150, 0);
+  }
 }
 
 /* 11. Adaptabilidad Móvil */
@@ -1236,12 +1332,15 @@ ul {
   .method-timeline {
     grid-template-columns: repeat(3, 1fr);
   }
-  .pricing-grid {
-    grid-template-columns: repeat(2, 1fr);
+
+  .price-card {
+    width: calc(50% - 1rem);
   }
+
   .price-card.popular {
     transform: none;
   }
+
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -1252,40 +1351,54 @@ ul {
     grid-template-columns: 1fr;
     gap: 2rem;
   }
+
   .hero-content {
     text-align: center;
   }
+
   .hero-buttons {
     justify-content: center;
   }
+
   .hero-content p {
     margin: 0 auto 2rem auto;
   }
+
   .nav-links {
-    display: none; /* Se activaría menú móvil mediante JS */
+    display: none;
+    /* Se activaría menú móvil mediante JS */
   }
+
   .menu-toggle {
     display: block;
   }
+
   .method-timeline {
     grid-template-columns: 1fr;
   }
-  .pricing-grid {
-    grid-template-columns: 1fr;
+
+  .price-card {
+    width: 100%;
   }
+
   .footer-grid {
     grid-template-columns: 1fr;
     gap: 2rem;
   }
+
   .admin-layout {
     grid-template-columns: 1fr;
   }
+
   .admin-sidebar {
-    display: none; /* Se oculta sidebar en móvil o se adapta */
+    display: none;
+    /* Se oculta sidebar en móvil o se adapta */
   }
+
   .stats-grid {
     grid-template-columns: 1fr;
   }
+
   .table-controls {
     flex-direction: column;
   }
@@ -1343,7 +1456,7 @@ ul {
   width: 130px;
   height: 130px;
   margin: 0 auto 1.2rem;
-  border-radius: 50%;
+  border-radius: var(--border-radius-md);
   padding: 3px;
   background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
   position: relative;
@@ -1352,7 +1465,7 @@ ul {
 .staff-photo {
   width: 100%;
   height: 100%;
-  border-radius: 50%;
+  border-radius: var(--border-radius-md);
   object-fit: cover;
   border: 3px solid #fff;
   display: block;
@@ -1361,7 +1474,7 @@ ul {
 .staff-photo-placeholder {
   width: 100%;
   height: 100%;
-  border-radius: 50%;
+  border-radius: var(--border-radius-md);
   background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary));
   display: flex;
   align-items: center;
@@ -1421,17 +1534,21 @@ ul {
   transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   will-change: transform;
 }
+
 .carousel-track {
   display: flex;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
-  scrollbar-width: none; /* Hide scrollbar Firefox */
+  scrollbar-width: none;
+  /* Hide scrollbar Firefox */
   gap: 15px;
   padding-bottom: 10px;
 }
+
 .carousel-track::-webkit-scrollbar {
-  display: none; /* Hide scrollbar Chrome/Safari */
+  display: none;
+  /* Hide scrollbar Chrome/Safari */
 }
 
 .carousel-slide {
@@ -1455,7 +1572,7 @@ ul {
   left: 0;
   right: 0;
   padding: 1.5rem 2rem;
-  background: linear-gradient(transparent, rgba(0,0,0,0.7));
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
   border-radius: 0 0 var(--border-radius-md) var(--border-radius-md);
 }
 
@@ -1532,10 +1649,12 @@ ul {
     grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
   }
+
   .staff-photo-wrapper {
     width: 100px;
     height: 100px;
   }
+
   .staff-card {
     padding: 1.5rem 1rem;
   }
@@ -1546,13 +1665,16 @@ ul {
     grid-template-columns: 1fr 1fr;
     gap: 0.8rem;
   }
+
   .staff-photo-wrapper {
     width: 80px;
     height: 80px;
   }
+
   .staff-card h3 {
     font-size: 0.9rem;
   }
+
   .carousel-slide {
     flex: 0 0 100%;
   }
@@ -1592,6 +1714,7 @@ ul {
     padding-bottom: 0.75rem;
     -webkit-overflow-scrolling: touch;
   }
+
   .protocol-tab {
     flex-shrink: 0;
   }
@@ -1652,6 +1775,7 @@ ul {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1759,9 +1883,11 @@ ul {
   .protocol-grid {
     grid-template-columns: 1fr;
   }
+
   .benefits-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
   .protocol-tab {
     padding: 0.7rem 1.2rem;
     font-size: 0.85rem;
@@ -1805,8 +1931,15 @@ ul {
 }
 
 @keyframes fabPulse {
-  0%, 100% { box-shadow: 0 4px 15px rgba(61, 90, 115, 0.4); }
-  50% { box-shadow: 0 4px 25px rgba(61, 90, 115, 0.7); }
+
+  0%,
+  100% {
+    box-shadow: 0 4px 15px rgba(61, 90, 115, 0.4);
+  }
+
+  50% {
+    box-shadow: 0 4px 25px rgba(61, 90, 115, 0.7);
+  }
 }
 
 .suggestion-modal {
@@ -1938,4 +2071,390 @@ ul {
   .support-specialties-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ==========================================================================
+   ESTILOS DE MODO OSCURO PARA EL PANEL ADMINISTRATIVO (.dark-theme)
+   ========================================================================== */
+.admin-layout.dark-theme .admin-main {
+  background-color: #07090b !important;
+  background-image: radial-gradient(circle at 50% 0%, #152233 0%, #07090b 85%) !important;
+  color: #ffffff !important;
+  position: relative !important;
+}
+
+.admin-layout.dark-theme .admin-sidebar {
+  background-color: #0c0e12 !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.admin-layout.dark-theme .admin-title h1,
+.admin-layout.dark-theme .admin-card-header h2,
+.admin-layout.dark-theme .stat-number,
+.admin-layout.dark-theme h2,
+.admin-layout.dark-theme h3 {
+  color: #ffffff !important;
+}
+
+.admin-layout.dark-theme .admin-title p,
+.admin-layout.dark-theme .stat-info h3,
+.admin-layout.dark-theme .form-group label {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* Tarjetas y Contenedores */
+.admin-layout.dark-theme .admin-card,
+.admin-layout.dark-theme .stat-card,
+.admin-layout.dark-theme #sidebar-quote-box {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.02) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  color: #ffffff !important;
+}
+
+/* Tablas */
+.admin-layout.dark-theme .admin-table th {
+  color: rgba(255, 255, 255, 0.6) !important;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1) !important;
+  background-color: rgba(255, 255, 255, 0.01) !important;
+}
+
+.admin-layout.dark-theme .admin-table td {
+  color: #ffffff !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.admin-layout.dark-theme .admin-table tr:hover {
+  background-color: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* Formularios y Inputs */
+.admin-layout.dark-theme .form-control,
+.admin-layout.dark-theme .form-group input,
+.admin-layout.dark-theme .form-group select,
+.admin-layout.dark-theme .form-group textarea {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+}
+
+.admin-layout.dark-theme .form-control:focus,
+.admin-layout.dark-theme .form-group input:focus,
+.admin-layout.dark-theme .form-group select:focus,
+.admin-layout.dark-theme .form-group textarea:focus {
+  border-color: rgba(0, 168, 150, 0.3) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  box-shadow: 0 0 10px rgba(0, 168, 150, 0.1) !important;
+}
+
+/* Calendario */
+.admin-layout.dark-theme .calendar-cell {
+  background-color: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  color: #ffffff !important;
+}
+
+.admin-layout.dark-theme .calendar-cell.other-month {
+  background-color: rgba(255, 255, 255, 0.005) !important;
+  color: rgba(255, 255, 255, 0.25) !important;
+}
+
+.admin-layout.dark-theme .calendar-cell:hover {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.admin-layout.dark-theme .calendar-day-header {
+  background-color: #3d5a73 !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.admin-layout.dark-theme .calendar-nav-btn {
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background-color: rgba(255, 255, 255, 0.02) !important;
+}
+
+.admin-layout.dark-theme .calendar-nav-btn:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Modales y Detalles de Historial */
+.admin-layout.dark-theme .modal-content,
+.admin-layout.dark-theme .note-entry {
+  background-color: #12141a !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+
+.admin-layout.dark-theme .note-meta {
+  color: #7ea8d8 !important;
+}
+
+.admin-layout.dark-theme .note-content {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* ==========================================================================
+   REFINAMIENTO DE TRAZOS DE CALENDARIO Y MODO OSCURO (SIN FONDO GRIS CLARO)
+   ========================================================================== */
+.admin-layout.dark-theme .calendar-grid {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.admin-layout.dark-theme .calendar-cell {
+  background-color: #0c0e12 !important;
+  color: #ffffff !important;
+}
+
+.admin-layout.dark-theme .calendar-cell.other-month {
+  background-color: #07090b !important;
+  color: rgba(255, 255, 255, 0.25) !important;
+}
+
+/* ==========================================================================
+   ESTILOS DE CALENDARIO TIPO GOOGLE CALENDAR (TIMELINE DIARIO/SEMANAL)
+   ========================================================================== */
+/* Contenedor principal con scrollbar */
+.timeline-container {
+  overflow-y: auto;
+  max-height: 620px;
+  position: relative;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  background-color: #FFFFFF;
+}
+
+.admin-layout.dark-theme .timeline-container {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  background-color: #07090b !important;
+}
+
+/* Cabecera superior pegajosa */
+.timeline-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: grid;
+  background-color: #f8fafb;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-primary-dark);
+}
+
+.admin-layout.dark-theme .timeline-header {
+  background-color: #0f1218 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+
+.timeline-header-cell {
+  padding: 0.75rem 0.25rem;
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid var(--color-border);
+}
+
+.admin-layout.dark-theme .timeline-header-cell {
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.timeline-header-cell.today {
+  color: var(--color-accent) !important;
+}
+
+.timeline-header-cell.today .day-number-circle {
+  background-color: var(--color-accent);
+  color: #ffffff;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+}
+
+/* Cuadrícula de Tiempo con 720 filas */
+.timeline-grid {
+  display: grid;
+  position: relative;
+  grid-template-rows: repeat(720, 1fr);
+  background-color: transparent;
+}
+
+/* Líneas discontinuas horizontales de hora */
+.timeline-hour-line {
+  grid-column: 1 / -1;
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.06);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.admin-layout.dark-theme .timeline-hour-line {
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Etiquetas de horas a la izquierda */
+.timeline-hour-label {
+  grid-column: 1;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-align: right;
+  padding-right: 12px;
+  margin-top: -6px; /* Centrar con la línea */
+  pointer-events: none;
+  z-index: 2;
+}
+
+.admin-layout.dark-theme .timeline-hour-label {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Tarjetas de Citas Translúcidas */
+.timeline-apt-card {
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.3;
+  cursor: pointer;
+  z-index: 3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border: 1px solid rgba(61, 90, 115, 0.15);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.timeline-apt-card:hover {
+  transform: translateY(-1px) scale(1.01);
+  z-index: 4;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+.admin-layout.dark-theme .timeline-apt-card {
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
+}
+
+.timeline-apt-card.modality-virtual {
+  background-color: rgba(126, 168, 216, 0.15) !important;
+  border-left: 4px solid #3d5a73 !important;
+  color: var(--color-primary-dark) !important;
+}
+
+.timeline-apt-card.modality-presencial {
+  background-color: rgba(0, 168, 150, 0.12) !important;
+  border-left: 4px solid #00a896 !important;
+  color: var(--color-primary-dark) !important;
+}
+
+.admin-layout.dark-theme .timeline-apt-card.modality-virtual {
+  background-color: rgba(126, 168, 216, 0.22) !important;
+  border-left: 4px solid #7ea8d8 !important;
+  color: #eef2f5 !important;
+}
+
+.admin-layout.dark-theme .timeline-apt-card.modality-presencial {
+  background-color: rgba(0, 168, 150, 0.2) !important;
+  border-left: 4px solid #00a896 !important;
+  color: #ffffff !important;
+}
+
+/* Línea indicadora roja de hora actual */
+.timeline-current-time-line {
+  position: absolute;
+  left: 80px;
+  right: 0;
+  height: 2px;
+  background-color: #ff3b30;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.timeline-current-time-line::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #ff3b30;
+}
+
+/* Toggle de Vistas de Calendario */
+.calendar-view-toggles {
+  display: flex;
+  gap: 0.25rem;
+  background: rgba(0, 0, 0, 0.04);
+  padding: 0.2rem;
+  border-radius: 30px;
+  border: 1px solid var(--color-border);
+}
+
+.admin-layout.dark-theme .calendar-view-toggles {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.cal-view-btn {
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  padding: 0.35rem 0.9rem;
+  border-radius: 20px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cal-view-btn.active {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.admin-layout.dark-theme .cal-view-btn.active {
+  background: #3d5a73 !important;
+  color: #ffffff !important;
+}
+
+.cal-view-btn:hover:not(.active) {
+  color: var(--color-primary);
+}
+
+.admin-layout.dark-theme .cal-view-btn:hover:not(.active) {
+  color: #ffffff !important;
+}
+
+/* ==========================================================================
+   CORRECCIÓN DE BUSCADORES Y SELECT DROPDOWNS EN MODO OSCURO
+   ========================================================================== */
+.admin-layout.dark-theme .search-input {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+}
+
+.admin-layout.dark-theme .search-input:focus {
+  border-color: rgba(0, 168, 150, 0.4) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  box-shadow: 0 0 10px rgba(0, 168, 150, 0.1) !important;
+}
+
+/* Forzar que las opciones del elemento select sean oscuras en el navegador */
+.admin-layout.dark-theme select,
+.admin-layout.dark-theme select option {
+  background-color: #12141a !important;
+  color: #ffffff !important;
 }

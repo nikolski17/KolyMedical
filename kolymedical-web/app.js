@@ -13,13 +13,14 @@ const INITIAL_SPECIALISTS = [
   { id: 'melendes', name: 'Lic. Ricardo Melendes', specialty: 'Psicología Clínica', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '16:00', slotDuration: 45 }
 ];
 
-const SERVICES = [
+let SERVICES = [];
+const INITIAL_SERVICES = [
   { id: 'med_reg', name: 'Consulta — Medicina Regenerativa', price: 100, specialistId: 'pedraza', duration: 60 },
   { id: 'nutricion', name: 'Consulta — Nutrición Clínica', price: 150, specialistId: 'amelia', duration: 30 },
   { id: 'gastro', name: 'Consulta — Gastroenterología', price: 100, specialistId: 'morales', duration: 60 },
   { id: 'otorrino', name: 'Consulta — Otorrinolaringología', price: 100, specialistId: 'montes', duration: 60 },
   { id: 'fibroscan', name: 'Estudio — FibroScan', price: 650, specialistId: 'ruslan', duration: 30 },
-  { id: 'curacion_heridas', name: 'Curación de Heridas Crónicas (A Domicilio)', price: 150, specialistId: 'pedraza', duration: 60 },
+  { id: 'curacion_heridas', name: 'Curación de Heridas Crónicas (A Domicilio)', price: 350, specialistId: null, duration: 60 },
   { id: 'psicologia', name: 'Consulta — Psicología Clínica', price: 100, specialistId: 'melendes', duration: 60 }
 ];
 
@@ -111,6 +112,10 @@ window.safeSessionStorage = safeSessionStorage;
 // Memoria caché local para consultas sincrónicas instantáneas
 let localAppointmentsCache = [];
 let localUsersCache = [];
+// Módulo Historia Clínica: cachés locales (offline-first, se sincronizan con Supabase)
+let localRecordsCache = [];      // clinical_records
+let localNotesCache = [];        // evolution_notes
+let localPrescriptionsCache = []; // prescriptions
 
 // Inicializar caché local desde LocalStorage para soporte offline
 try {
@@ -122,10 +127,28 @@ try {
 
   const cachedSpecialists = safeLocalStorage.getItem('kolymedical_specialists');
   SPECIALISTS = cachedSpecialists ? JSON.parse(cachedSpecialists) : INITIAL_SPECIALISTS;
+
+  const cachedServices = safeLocalStorage.getItem('kolymedical_services');
+  SERVICES = cachedServices ? JSON.parse(cachedServices) : INITIAL_SERVICES;
 } catch (e) {
   localAppointmentsCache = INITIAL_APPOINTMENTS;
   localUsersCache = INITIAL_USERS;
   SPECIALISTS = INITIAL_SPECIALISTS;
+  SERVICES = INITIAL_SERVICES;
+}
+
+// Inicializar cachés del módulo clínico por separado (no deben tumbar los datos base si fallan)
+try {
+  const cachedRecords = safeLocalStorage.getItem('kolymedical_clinical_records');
+  localRecordsCache = cachedRecords ? JSON.parse(cachedRecords) : [];
+  const cachedNotes = safeLocalStorage.getItem('kolymedical_evolution_notes');
+  localNotesCache = cachedNotes ? JSON.parse(cachedNotes) : [];
+  const cachedPrescriptions = safeLocalStorage.getItem('kolymedical_prescriptions');
+  localPrescriptionsCache = cachedPrescriptions ? JSON.parse(cachedPrescriptions) : [];
+} catch (e) {
+  localRecordsCache = [];
+  localNotesCache = [];
+  localPrescriptionsCache = [];
 }
 
 // Funciones de Mapeo de datos (PostgreSQL snake_case <-> Frontend camelCase)
@@ -141,7 +164,8 @@ function mapAptToDb(apt) {
     time: apt.time,
     modality: apt.modality,
     status: apt.status,
-    tracked_by: apt.trackedBy
+    tracked_by: apt.trackedBy,
+    clinical_notes: apt.clinicalNotes || null
   };
 }
 
@@ -157,7 +181,8 @@ function mapAptFromDb(dbApt) {
     time: dbApt.time,
     modality: dbApt.modality,
     status: dbApt.status,
-    trackedBy: dbApt.tracked_by
+    trackedBy: dbApt.tracked_by,
+    clinicalNotes: dbApt.clinical_notes || null
   };
 }
 
@@ -257,6 +282,54 @@ const DB = {
     return true;
   },
 
+  updateAppointmentNotes: async function (id, notes) {
+    const index = localAppointmentsCache.findIndex(a => a.id === id);
+    if (index !== -1) {
+      localAppointmentsCache[index].clinicalNotes = notes;
+      safeLocalStorage.setItem('kolymedical_appointments', JSON.stringify(localAppointmentsCache));
+      
+      if (supabaseClient) {
+        try {
+          const { error } = await supabaseClient
+            .from('appointments')
+            .update({ clinical_notes: notes })
+            .eq('id', id);
+          if (error) console.error('Error al actualizar notas en Supabase:', error);
+        } catch (err) {
+          console.error('Error de red al conectar con Supabase:', err);
+        }
+      }
+      return true;
+    }
+    return false;
+  },
+
+  saveSuggestion: function(name, text) {
+    let stored = safeLocalStorage.getItem('kolymedical_suggestions');
+    let suggestions = stored ? JSON.parse(stored) : [];
+    suggestions.push({
+      id: 'sug-' + Date.now(),
+      name: name,
+      text: text,
+      date: new Date().toISOString().split('T')[0]
+    });
+    safeLocalStorage.setItem('kolymedical_suggestions', JSON.stringify(suggestions));
+  },
+
+  getSuggestions: function() {
+    let stored = safeLocalStorage.getItem('kolymedical_suggestions');
+    return stored ? JSON.parse(stored) : [];
+  },
+
+  deleteSuggestion: function(id) {
+    let stored = safeLocalStorage.getItem('kolymedical_suggestions');
+    if (stored) {
+      let suggestions = JSON.parse(stored);
+      suggestions = suggestions.filter(s => s.id !== id);
+      safeLocalStorage.setItem('kolymedical_suggestions', JSON.stringify(suggestions));
+    }
+  },
+
   syncWithCloud: async function (callback) {
     if (!supabaseClient) {
       if (callback) callback();
@@ -299,6 +372,425 @@ const DB = {
       .subscribe();
   }
 };
+
+/* ==========================================================================
+   🩺 MÓDULO HISTORIA CLÍNICA — Capa de datos (Supabase-primero → localStorage)
+   Tablas Supabase asociadas: clinical_records, evolution_notes, prescriptions.
+   Todas las operaciones actualizan primero la caché local (respuesta instantánea)
+   y luego intentan persistir en Supabase; si falla, el dato queda offline.
+   ========================================================================== */
+
+// Normaliza texto para búsquedas/coincidencias (minúsculas, sin tildes).
+function normalizeText(str) {
+  return (str || '')
+    .toString()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '');
+}
+
+// Mapeos snake_case (Postgres) <-> camelCase (frontend)
+function mapRecordToDb(r) {
+  return {
+    id: r.id,
+    patient_name: r.patientName,
+    patient_phone: r.patientPhone,
+    dni: r.dni || null,
+    birth_date: r.birthDate || null,
+    patient_age: r.patientAge || null,
+    sex: r.sex || null,
+    blood_type: r.bloodType || null,
+    allergies: r.allergies || null,
+    family_history: r.familyHistory || [],
+    personal_history: r.personalHistory || [],
+    created_at: r.createdAt || new Date().toISOString()
+  };
+}
+function mapRecordFromDb(d) {
+  return {
+    id: d.id,
+    patientName: d.patient_name,
+    patientPhone: d.patient_phone,
+    dni: d.dni || '',
+    birthDate: d.birth_date || '',
+    patientAge: d.patient_age || '',
+    sex: d.sex || '',
+    bloodType: d.blood_type || '',
+    allergies: d.allergies || '',
+    familyHistory: d.family_history || [],
+    personalHistory: d.personal_history || [],
+    createdAt: d.created_at
+  };
+}
+function mapNoteToDb(n) {
+  return {
+    id: n.id,
+    record_id: n.recordId,
+    specialist_id: n.specialistId || null,
+    appointment_id: n.appointmentId || null,
+    diagnosis_codes: n.diagnosisCodes || [],
+    note: n.note || '',
+    vitals: n.vitals || null,
+    created_at: n.createdAt || new Date().toISOString()
+  };
+}
+function mapNoteFromDb(d) {
+  return {
+    id: d.id,
+    recordId: d.record_id,
+    specialistId: d.specialist_id || '',
+    appointmentId: d.appointment_id || '',
+    diagnosisCodes: d.diagnosis_codes || [],
+    note: d.note || '',
+    vitals: d.vitals || null,
+    createdAt: d.created_at
+  };
+}
+function mapPrescriptionToDb(p) {
+  return {
+    id: p.id,
+    record_id: p.recordId,
+    specialist_id: p.specialistId || null,
+    diagnosis: p.diagnosis || '',
+    items: p.items || [],
+    indications: p.indications || '',
+    created_at: p.createdAt || new Date().toISOString()
+  };
+}
+function mapPrescriptionFromDb(d) {
+  return {
+    id: d.id,
+    recordId: d.record_id,
+    specialistId: d.specialist_id || '',
+    diagnosis: d.diagnosis || '',
+    items: d.items || [],
+    indications: d.indications || '',
+    createdAt: d.created_at
+  };
+}
+
+const ClinicalDB = {
+  // ---------- Expedientes (clinical_records) ----------
+  getRecords: function () {
+    return localRecordsCache;
+  },
+
+  // Busca el expediente de un paciente por teléfono (identificador natural) o nombre.
+  getRecordByPatient: function (patientPhone, patientName) {
+    const phone = (patientPhone || '').trim();
+    const name = normalizeText(patientName);
+    return localRecordsCache.find(r =>
+      (phone && r.patientPhone === phone) ||
+      (name && normalizeText(r.patientName) === name)
+    ) || null;
+  },
+
+  getRecordById: function (id) {
+    return localRecordsCache.find(r => r.id === id) || null;
+  },
+
+  // Genera un número de expediente legible: EXP-AAAA-NNNN
+  generateRecordId: function () {
+    const year = new Date().getFullYear();
+    const countThisYear = localRecordsCache.filter(r => (r.id || '').indexOf('EXP-' + year) === 0).length;
+    const seq = (countThisYear + 1).toString().padStart(4, '0');
+    return `EXP-${year}-${seq}`;
+  },
+
+  saveRecord: async function (record) {
+    if (!record.id) record.id = this.generateRecordId();
+    if (!record.createdAt) record.createdAt = new Date().toISOString();
+
+    const index = localRecordsCache.findIndex(r => r.id === record.id);
+    if (index !== -1) {
+      localRecordsCache[index] = record;
+    } else {
+      localRecordsCache.push(record);
+    }
+    safeLocalStorage.setItem('kolymedical_clinical_records', JSON.stringify(localRecordsCache));
+
+    if (supabaseClient) {
+      try {
+        const { error } = await supabaseClient
+          .from('clinical_records')
+          .upsert([mapRecordToDb(record)]);
+        if (error) console.error('Error al guardar expediente en Supabase:', error);
+      } catch (err) {
+        console.error('Error de red al guardar expediente:', err);
+      }
+    }
+    return record;
+  },
+
+  // Crea el expediente base a partir de los datos de una cita, si aún no existe.
+  ensureRecordFromAppointment: async function (apt) {
+    let record = this.getRecordByPatient(apt.patientPhone, apt.patientName);
+    if (record) return record;
+    record = {
+      id: this.generateRecordId(),
+      patientName: apt.patientName,
+      patientPhone: apt.patientPhone,
+      birthDate: '',
+      patientAge: apt.patientAge || '',
+      sex: '',
+      bloodType: '',
+      allergies: '',
+      familyHistory: [],
+      personalHistory: [],
+      createdAt: new Date().toISOString()
+    };
+    await this.saveRecord(record);
+    return record;
+  },
+
+  // ---------- Notas de evolución (evolution_notes) ----------
+  getNotesByRecord: function (recordId) {
+    return localNotesCache
+      .filter(n => n.recordId === recordId)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // más reciente arriba
+  },
+
+  saveEvolutionNote: async function (note) {
+    if (!note.id) note.id = 'note-' + Date.now();
+    if (!note.createdAt) note.createdAt = new Date().toISOString();
+
+    localNotesCache.push(note);
+    safeLocalStorage.setItem('kolymedical_evolution_notes', JSON.stringify(localNotesCache));
+
+    if (supabaseClient) {
+      try {
+        const { error } = await supabaseClient
+          .from('evolution_notes')
+          .insert([mapNoteToDb(note)]);
+        if (error) console.error('Error al guardar nota de evolución en Supabase:', error);
+      } catch (err) {
+        console.error('Error de red al guardar nota de evolución:', err);
+      }
+    }
+    return note;
+  },
+
+  // ---------- Recetas / órdenes (prescriptions) ----------
+  getPrescriptionsByRecord: function (recordId) {
+    return localPrescriptionsCache
+      .filter(p => p.recordId === recordId)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  },
+
+  getPrescriptionById: function (id) {
+    return localPrescriptionsCache.find(p => p.id === id) || null;
+  },
+
+  savePrescription: async function (prescription) {
+    if (!prescription.id) prescription.id = 'presc-' + Date.now();
+    if (!prescription.createdAt) prescription.createdAt = new Date().toISOString();
+
+    localPrescriptionsCache.push(prescription);
+    safeLocalStorage.setItem('kolymedical_prescriptions', JSON.stringify(localPrescriptionsCache));
+
+    if (supabaseClient) {
+      try {
+        const { error } = await supabaseClient
+          .from('prescriptions')
+          .insert([mapPrescriptionToDb(prescription)]);
+        if (error) console.error('Error al guardar receta en Supabase:', error);
+      } catch (err) {
+        console.error('Error de red al guardar receta:', err);
+      }
+    }
+    return prescription;
+  },
+
+  // ---------- Sincronización con la nube ----------
+  syncWithCloud: async function (callback) {
+    if (!supabaseClient) {
+      if (callback) callback();
+      return;
+    }
+    try {
+      const [recRes, noteRes, prescRes] = await Promise.all([
+        supabaseClient.from('clinical_records').select('*'),
+        supabaseClient.from('evolution_notes').select('*'),
+        supabaseClient.from('prescriptions').select('*')
+      ]);
+      if (recRes.data) {
+        localRecordsCache = recRes.data.map(mapRecordFromDb);
+        safeLocalStorage.setItem('kolymedical_clinical_records', JSON.stringify(localRecordsCache));
+      }
+      if (noteRes.data) {
+        localNotesCache = noteRes.data.map(mapNoteFromDb);
+        safeLocalStorage.setItem('kolymedical_evolution_notes', JSON.stringify(localNotesCache));
+      }
+      if (prescRes.data) {
+        localPrescriptionsCache = prescRes.data.map(mapPrescriptionFromDb);
+        safeLocalStorage.setItem('kolymedical_prescriptions', JSON.stringify(localPrescriptionsCache));
+      }
+      if (callback) callback();
+    } catch (err) {
+      console.error('Error al sincronizar el módulo clínico con Supabase:', err);
+    }
+  }
+};
+window.ClinicalDB = ClinicalDB;
+
+/* ==========================================================================
+   ✍️ FIRMAS DE MÉDICOS — administradas por el Super Administrador.
+   Se guardan como imagen (dataURL base64) por specialistId. Persisten en
+   localStorage y, si Supabase está configurado, en la tabla 'signatures'.
+   El PDF de receta las embebe automáticamente sobre la línea de firma.
+   ========================================================================== */
+let localSignaturesCache = {};
+try {
+  const cachedSig = safeLocalStorage.getItem('kolymedical_signatures');
+  localSignaturesCache = cachedSig ? JSON.parse(cachedSig) : {};
+} catch (e) {
+  localSignaturesCache = {};
+}
+
+const SignatureDB = {
+  get: function (specialistId) {
+    if (!specialistId) return null;
+    return localSignaturesCache[specialistId] || null;
+  },
+
+  has: function (specialistId) {
+    return !!(specialistId && localSignaturesCache[specialistId]);
+  },
+
+  save: async function (specialistId, dataUrl) {
+    if (!specialistId) return false;
+    localSignaturesCache[specialistId] = dataUrl;
+    safeLocalStorage.setItem('kolymedical_signatures', JSON.stringify(localSignaturesCache));
+    if (supabaseClient) {
+      try {
+        const { error } = await supabaseClient
+          .from('signatures')
+          .upsert([{ specialist_id: specialistId, image_data: dataUrl, updated_at: new Date().toISOString() }]);
+        if (error) console.error('Error al guardar firma en Supabase:', error);
+      } catch (err) {
+        console.error('Error de red al guardar firma:', err);
+      }
+    }
+    return true;
+  },
+
+  remove: async function (specialistId) {
+    if (!specialistId) return false;
+    delete localSignaturesCache[specialistId];
+    safeLocalStorage.setItem('kolymedical_signatures', JSON.stringify(localSignaturesCache));
+    if (supabaseClient) {
+      try {
+        await supabaseClient.from('signatures').delete().eq('specialist_id', specialistId);
+      } catch (err) {
+        console.error('Error de red al eliminar firma:', err);
+      }
+    }
+    return true;
+  },
+
+  syncWithCloud: async function () {
+    if (!supabaseClient) return;
+    try {
+      const { data, error } = await supabaseClient.from('signatures').select('*');
+      if (error) { console.error('Error al consultar firmas en Supabase:', error); return; }
+      if (data) {
+        data.forEach(row => { localSignaturesCache[row.specialist_id] = row.image_data; });
+        safeLocalStorage.setItem('kolymedical_signatures', JSON.stringify(localSignaturesCache));
+      }
+    } catch (err) {
+      console.error('Error de conexión al sincronizar firmas:', err);
+    }
+  }
+};
+window.SignatureDB = SignatureDB;
+
+/* ==========================================================================
+   📚 CATÁLOGOS ESTÁTICOS (CIE-10, medicamentos, estudios) con carga diferida
+   No se cargan al iniciar la app: sólo la primera vez que el médico abre el
+   selector correspondiente. Se conservan en memoria durante la sesión y se
+   apoya en la caché HTTP del navegador para visitas posteriores.
+   ========================================================================== */
+const Catalogs = {
+  cie10: null,
+  medicamentos: null,
+  estudios: null,
+  _loading: {},
+
+  _load: async function (key, url) {
+    if (this[key]) return this[key];
+    if (this._loading[key]) return this._loading[key];
+    this._loading[key] = (async () => {
+      try {
+        const res = await fetch(url, { cache: 'force-cache' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        this[key] = data;
+        return data;
+      } catch (err) {
+        console.error('No se pudo cargar el catálogo ' + key + ' (' + url + '):', err);
+        this[key] = (key === 'estudios') ? {} : [];
+        return this[key];
+      } finally {
+        this._loading[key] = null;
+      }
+    })();
+    return this._loading[key];
+  },
+
+  loadCie10: function () { return this._load('cie10', 'data/cie10.json'); },
+  loadMedicamentos: function () { return this._load('medicamentos', 'data/medicamentos.json'); },
+  loadEstudios: function () { return this._load('estudios', 'data/estudios.json'); },
+
+  // Búsqueda liviana en cliente (Array.filter). Devuelve máx `limit` resultados.
+  searchCie10: function (query, limit) {
+    limit = limit || 30;
+    const q = normalizeText(query).trim();
+    if (!q || !this.cie10) return [];
+    const results = [];
+    for (let i = 0; i < this.cie10.length; i++) {
+      const item = this.cie10[i];
+      if (normalizeText(item.code).includes(q) || normalizeText(item.description).includes(q)) {
+        results.push(item);
+        if (results.length >= limit) break;
+      }
+    }
+    return results;
+  },
+
+  searchMedicamentos: function (query, limit) {
+    limit = limit || 30;
+    const q = normalizeText(query).trim();
+    if (!q || !this.medicamentos) return [];
+    const results = [];
+    for (let i = 0; i < this.medicamentos.length; i++) {
+      const m = this.medicamentos[i];
+      const hay = normalizeText(m.nombre_comercial + ' ' + m.nombre_generico + ' ' + m.concentracion);
+      if (hay.includes(q)) {
+        results.push(m);
+        if (results.length >= limit) break;
+      }
+    }
+    return results;
+  },
+
+  // Busca estudios agrupados por categoría; devuelve [{categoria, nombre}], máx `limit`.
+  searchEstudios: function (query, limit) {
+    limit = limit || 40;
+    const q = normalizeText(query).trim();
+    if (!this.estudios) return [];
+    const results = [];
+    for (const categoria in this.estudios) {
+      for (const nombre of this.estudios[categoria]) {
+        if (!q || normalizeText(nombre).includes(q) || normalizeText(categoria).includes(q)) {
+          results.push({ categoria: categoria, nombre: nombre });
+          if (results.length >= limit) return results;
+        }
+      }
+    }
+    return results;
+  }
+};
+window.Catalogs = Catalogs;
 
 // Funciones auxiliares para disponibilidad dinámica
 function parseTimeToMinutes(timeStr) {
@@ -348,6 +840,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Inicialización en el Panel de Administración (admin.html)
   if (document.getElementById('admin-dashboard')) {
     initAdminDashboard();
+    initAdminThemeToggle();
+    initLoginParticles();
   }
 });
 
@@ -489,6 +983,8 @@ function initPublicWeb() {
     const modalityNote = document.getElementById('booking-modality-note');
 
     selectDoctor.innerHTML = '<option value="">-- Selecciona Especialista --</option>';
+    const addressGroup = document.getElementById('booking-address-group');
+    if (addressGroup) addressGroup.style.display = 'none';
 
     if (serviceVal) {
       const service = SERVICES.find(s => s.id === serviceVal);
@@ -515,6 +1011,8 @@ function initPublicWeb() {
         modalityNote.textContent = '⚠️ El estudio FibroScan se realiza únicamente de forma presencial por el Dr. Ruslan Golovliov.';
         modalityNote.style.display = 'block';
       } else if (serviceVal === 'curacion_heridas') {
+        // Servicio a domicilio: no cuenta con médico a cargo
+        selectDoctor.innerHTML = '<option value="">No requiere médico asignado</option>';
         // Asegurar que exista opción "A Domicilio"
         let hasDomicilio = false;
         for (let i = 0; i < selectModality.options.length; i++) {
@@ -528,8 +1026,9 @@ function initPublicWeb() {
         }
         selectModality.value = 'A Domicilio';
         selectModality.disabled = true;
-        modalityNote.textContent = '🏡 Servicio coordinado a domicilio. La enfermera/médico asistirá a la dirección provista.';
+        modalityNote.innerHTML = '🏡 Servicio a domicilio (S/ 350). No cuenta con médico asignado. Indica tu dirección exacta; la reserva se coordina <strong>únicamente por WhatsApp</strong>.';
         modalityNote.style.display = 'block';
+        if (addressGroup) addressGroup.style.display = 'block';
       } else {
         // Quitar opción temporal
         for (let i = 0; i < selectModality.options.length; i++) {
@@ -565,6 +1064,11 @@ function initPublicWeb() {
 
     const service = SERVICES.find(s => s.id === serviceVal);
     const doctor = SPECIALISTS.find(d => d.id === service.specialistId);
+
+    if (!doctor) {
+      timeGrid.innerHTML = '<p style="color: var(--color-primary-light); font-size: 0.85rem; padding: 0.5rem; grid-column: span 4;">Este servicio se coordina por WhatsApp y no requiere selección de horario.</p>';
+      return;
+    }
 
     const availableHours = getDoctorAvailableSlots(doctor, dateVal);
     if (availableHours.length === 0) {
@@ -617,13 +1121,25 @@ function initPublicWeb() {
     }
   }
 
+  function isHomeCareBooking() {
+    return document.getElementById('booking-service').value === 'curacion_heridas';
+  }
+
   btnNext.addEventListener('click', () => {
-    if (validateStep(currentStep)) {
-      if (currentStep < formSteps.length - 1) {
-        currentStep++;
-        updateSteps();
+    if (!validateStep(currentStep)) return;
+    const lastStep = formSteps.length - 1;
+    if (currentStep < lastStep) {
+      // Curación a domicilio: se omite el paso de fecha/hora (solo WhatsApp)
+      if (isHomeCareBooking() && currentStep === 0) {
+        currentStep = 2;
       } else {
-        // Enviar Reserva
+        currentStep++;
+      }
+      updateSteps();
+    } else {
+      if (isHomeCareBooking()) {
+        sendHomeCareWhatsApp();
+      } else {
         savePatientBooking();
       }
     }
@@ -631,7 +1147,12 @@ function initPublicWeb() {
 
   btnPrev.addEventListener('click', () => {
     if (currentStep > 0) {
-      currentStep--;
+      // Regreso simétrico: si venimos del contacto en curación, volver al paso 1
+      if (isHomeCareBooking() && currentStep === 2) {
+        currentStep = 0;
+      } else {
+        currentStep--;
+      }
       updateSteps();
     }
   });
@@ -641,7 +1162,8 @@ function initPublicWeb() {
       const service = document.getElementById('booking-service').value;
       const doctor = document.getElementById('booking-doctor').value;
       const modality = document.getElementById('booking-modality').value;
-      if (!service || !doctor || !modality) {
+      const homeCare = service === 'curacion_heridas';
+      if (!service || (!homeCare && !doctor) || !modality) {
         alert('Por favor complete todos los datos del paso 1.');
         return false;
       }
@@ -659,6 +1181,13 @@ function initPublicWeb() {
       if (!name || !age || !phone) {
         alert('Por favor ingrese sus datos personales de contacto.');
         return false;
+      }
+      if (isHomeCareBooking()) {
+        const address = document.getElementById('booking-address').value.trim();
+        if (!address) {
+          alert('Para el servicio a domicilio, ingrese su dirección exacta.');
+          return false;
+        }
       }
     }
     return true;
@@ -729,6 +1258,45 @@ function initPublicWeb() {
     `;
   }
 
+  // Curación de heridas a domicilio: la web solo permite coordinar por WhatsApp.
+  function sendHomeCareWhatsApp() {
+    const patientName = document.getElementById('booking-name').value.trim();
+    const patientAge = parseInt(document.getElementById('booking-age').value);
+    const patientPhone = document.getElementById('booking-phone').value.trim();
+    const address = document.getElementById('booking-address').value.trim();
+    const service = SERVICES.find(s => s.id === 'curacion_heridas');
+
+    const textMsg = encodeURIComponent(
+      `*Solicitud de Curación de Heridas a Domicilio - KolyMedical*\n\n` +
+      `Hola KolyMedical, deseo coordinar el servicio a domicilio:\n` +
+      `- *Paciente:* ${patientName} (${patientAge} años)\n` +
+      `- *Servicio:* ${service.name}\n` +
+      `- *Costo:* S/ ${service.price}\n` +
+      `- *Dirección exacta:* ${address}\n` +
+      `- *Teléfono:* ${patientPhone}`
+    );
+    const wsUrl = `https://wa.me/51987346934?text=${textMsg}`;
+
+    const modalBody = document.querySelector('.modal-content');
+    modalBody.innerHTML = `
+      <div style="padding: 3rem 2rem; text-align: center;">
+        <span style="font-size: 4rem; color: var(--color-accent); display: block; margin-bottom: 1.5rem;">🏡</span>
+        <h2 style="color: var(--color-primary); font-weight: 700; margin-bottom: 1rem;">Coordina tu servicio a domicilio</h2>
+        <p style="color: var(--color-text-muted); font-size: 0.95rem; margin-bottom: 2rem; max-width: 450px; margin-left: auto; margin-right: auto;">
+          Este servicio se coordina únicamente por WhatsApp. Envíanos tu solicitud con tu dirección exacta y un asesor confirmará la disponibilidad y el horario de la visita.
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 1rem; align-items: center;">
+          <a href="${wsUrl}" target="_blank" class="btn btn-accent" style="width: 100%; max-width: 320px;">
+             Enviar solicitud por WhatsApp
+          </a>
+          <button onclick="location.reload()" class="btn btn-secondary" style="width: 100%; max-width: 320px;">
+            Regresar a la Página
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
   function resetBookingForm() {
     document.getElementById('booking-service').value = '';
     document.getElementById('booking-doctor').innerHTML = '<option value="">-- Selecciona Especialista --</option>';
@@ -741,6 +1309,10 @@ function initPublicWeb() {
     document.getElementById('booking-name').value = '';
     document.getElementById('booking-age').value = '';
     document.getElementById('booking-phone').value = '';
+    const addressField = document.getElementById('booking-address');
+    if (addressField) addressField.value = '';
+    const addressGroupReset = document.getElementById('booking-address-group');
+    if (addressGroupReset) addressGroupReset.style.display = 'none';
     currentStep = 0;
     updateSteps();
   }
@@ -750,6 +1322,7 @@ function initPublicWeb() {
    👥 PANEL DE ADMINISTRACIÓN / TRABAJADORES (admin.html)
    ========================================================================== */
 let calendarCurrentDate = new Date();
+let calendarViewMode = localStorage.getItem('kolymedical_calendar_view') || 'month';
 
 // -----------------------------------------------------
 // 👥 GESTIÓN DE USUARIOS / TRABAJADORES (Super Admin)
@@ -908,15 +1481,23 @@ function renderDashboard() {
   }
 
   // Tareas de roles:
+  const menuSuggestions = document.getElementById('menu-suggestions');
   if (currentUser && currentUser.role === 'Administrador') {
     if (menuUsers) menuUsers.style.display = 'block';
     if (menuAvailability) menuAvailability.style.display = 'block';
+    if (menuSuggestions) menuSuggestions.style.display = 'block';
   } else if (currentUser && currentUser.specialistId) {
     if (menuUsers) menuUsers.style.display = 'none';
     if (menuAvailability) menuAvailability.style.display = 'block';
+    if (menuSuggestions) menuSuggestions.style.display = 'none';
+  } else if (currentUser && currentUser.role === 'Comercial') {
+    if (menuUsers) menuUsers.style.display = 'none';
+    if (menuAvailability) menuAvailability.style.display = 'none';
+    if (menuSuggestions) menuSuggestions.style.display = 'block';
   } else {
     if (menuUsers) menuUsers.style.display = 'none';
     if (menuAvailability) menuAvailability.style.display = 'none';
+    if (menuSuggestions) menuSuggestions.style.display = 'none';
   }
 
   // 🔒 "Ingresos Proyectados" y "Agendar Cita Interna" solo para Administrador y Comercial.
@@ -934,6 +1515,10 @@ function renderDashboard() {
     if (bookingGrid) {
       bookingGrid.style.gridTemplateColumns = canManageBusiness ? '1.2fr 0.8fr' : '1fr';
     }
+  }
+  const perfCard = document.getElementById('commercial-performance-card');
+  if (perfCard) {
+    perfCard.style.display = canManageBusiness ? 'block' : 'none';
   }
 
   // Vincular engranaje de perfil al lado del nombre de la marca
@@ -982,6 +1567,8 @@ function renderDashboard() {
         renderProfileView();
       } else if (viewName === 'availability') {
         renderAvailabilityView();
+      } else if (viewName === 'suggestions') {
+        renderSuggestionsTable();
       }
     });
   });
@@ -1138,6 +1725,23 @@ function initAvailabilityManagement() {
 // -----------------------------------------------------
 // 👥 VISTA: GESTIÓN DE PERSONAL (Super Admin)
 // -----------------------------------------------------
+// ¿El rol corresponde a un especialista (con etiqueta, disponibilidad y firma)?
+function isSpecialistRole(role) {
+  return !!role && role !== 'Administrador' && role !== 'Comercial' && role !== 'Recepcionista';
+}
+
+// Genera una etiqueta (specialistId) única a partir del nombre de usuario.
+function generateSpecialistId(username, excludeId) {
+  let base = (username || 'medico').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
+  if (!base) base = 'medico';
+  let candidate = base;
+  let n = 1;
+  while (SPECIALISTS.some(s => s.id === candidate && candidate !== excludeId)) {
+    candidate = base + (++n);
+  }
+  return candidate;
+}
+
 function renderUsersTable() {
   const tbody = document.getElementById('users-table-body');
   if (!tbody) return;
@@ -1145,12 +1749,26 @@ function renderUsersTable() {
 
   const users = DB_Users.getUsers();
   users.forEach(u => {
+    const spec = u.specialistId ? SPECIALISTS.find(s => s.id === u.specialistId) : null;
+    const roleLabel = spec && spec.specialty ? `${u.role} · ${spec.specialty}` : u.role;
+
+    // Celda de firma: solo aplica a especialistas; muestra estado y botón de carga.
+    let firmaCell = '<span style="color:var(--color-text-muted); font-size:0.8rem;">—</span>';
+    if (u.specialistId) {
+      const hasSig = SignatureDB.has(u.specialistId);
+      firmaCell = `
+        <div style="display:flex; align-items:center; gap:0.4rem;">
+          <span title="${hasSig ? 'Firma cargada' : 'Sin firma'}" style="font-size:0.9rem;">${hasSig ? '✅' : '❌'}</span>
+          <button class="btn btn-secondary btn-sign-user" data-username="${u.username}" style="padding:0.2rem 0.5rem; font-size:0.75rem;">✍️ Firma</button>
+        </div>`;
+    }
+
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><strong>${u.username}</strong></td>
+      <td><strong>${u.username}</strong>${u.specialistId ? `<br><code style="font-size:0.7rem; color:var(--color-text-muted);">${u.specialistId}</code>` : ''}</td>
       <td>${u.fullname}</td>
-      <td><span class="status-badge ${u.role === 'Administrador' ? 'status-realizada' : 'status-confirmada'}">${u.role}</span></td>
-      <td><code>••••••</code></td>
+      <td><span class="status-badge ${u.role === 'Administrador' ? 'status-realizada' : 'status-confirmada'}">${roleLabel}</span></td>
+      <td>${firmaCell}</td>
       <td>
         <div style="display:flex; gap:0.5rem;">
           <button class="btn btn-secondary btn-edit-user" data-username="${u.username}" style="padding:0.2rem 0.5rem; font-size:0.8rem;">✏️</button>
@@ -1159,12 +1777,120 @@ function renderUsersTable() {
       </td>
     `;
 
-    // Botones de acción
     tr.querySelector('.btn-edit-user').addEventListener('click', () => editUserAccount(u));
     tr.querySelector('.btn-delete-user').addEventListener('click', () => {
       if (confirm(`¿Está seguro de eliminar la cuenta del trabajador ${u.fullname}?`)) {
         DB_Users.deleteUser(u.username);
         renderUsersTable();
+      }
+    });
+    const signBtn = tr.querySelector('.btn-sign-user');
+    if (signBtn) {
+      signBtn.addEventListener('click', () => openSignatureManager(u));
+    }
+
+    tbody.appendChild(tr);
+  });
+}
+
+// Modal para cargar / previsualizar / quitar la firma de un médico (solo Super Admin).
+function openSignatureManager(user) {
+  if (!user.specialistId) {
+    alert('Este usuario no es un especialista con etiqueta, no puede tener firma.');
+    return;
+  }
+  const prev = document.getElementById('signature-modal');
+  if (prev) prev.remove();
+
+  const existing = SignatureDB.get(user.specialistId);
+  const modal = document.createElement('div');
+  modal.className = 'modal active';
+  modal.id = 'signature-modal';
+  modal.style.zIndex = '4200';
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width:480px; width:94%; padding:1.5rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+        <h3 style="color:var(--color-primary); font-weight:700; margin:0; font-size:1.1rem;">Firma de ${user.fullname}</h3>
+        <button id="sig-close" style="font-size:1.5rem; line-height:1; color:var(--color-text-muted);">&times;</button>
+      </div>
+      <p style="font-size:0.82rem; color:var(--color-text-muted); margin-bottom:1rem;">Etiqueta: <code>${user.specialistId}</code>. Sube una imagen PNG/JPG de la firma (fondo transparente recomendado). Aparecerá en las recetas y órdenes de este médico.</p>
+      <div id="sig-preview" style="border:1px dashed var(--color-border); border-radius:var(--border-radius-sm); padding:1rem; text-align:center; margin-bottom:1rem; min-height:90px; display:flex; align-items:center; justify-content:center; background:#fff;">
+        ${existing ? `<img src="${existing}" alt="Firma" style="max-height:120px; max-width:100%;">` : '<span style="color:var(--color-text-muted); font-size:0.85rem;">Sin firma cargada.</span>'}
+      </div>
+      <input type="file" id="sig-file" accept="image/png,image/jpeg" style="font-size:0.85rem; margin-bottom:1rem;">
+      <div style="display:flex; justify-content:space-between; gap:0.75rem;">
+        <button class="btn btn-secondary" id="sig-remove" ${existing ? '' : 'disabled'} style="color:var(--color-danger); border-color:var(--color-danger);">Quitar firma</button>
+        <button class="btn btn-accent" id="sig-save" disabled>Guardar firma</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  let pendingDataUrl = null;
+  const fileInput = modal.querySelector('#sig-file');
+  const saveBtn = modal.querySelector('#sig-save');
+  const preview = modal.querySelector('#sig-preview');
+
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) return;
+    if (file.size > 1024 * 1024) {
+      alert('La imagen es muy grande (máx. 1 MB). Usa una firma más ligera.');
+      fileInput.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      pendingDataUrl = reader.result;
+      preview.innerHTML = `<img src="${pendingDataUrl}" alt="Firma" style="max-height:120px; max-width:100%;">`;
+      saveBtn.disabled = false;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  modal.querySelector('#sig-close').addEventListener('click', () => modal.remove());
+  saveBtn.addEventListener('click', async () => {
+    if (!pendingDataUrl) return;
+    await SignatureDB.save(user.specialistId, pendingDataUrl);
+    modal.remove();
+    renderUsersTable();
+    alert('Firma guardada. Se incluirá en las próximas recetas de este médico.');
+  });
+  modal.querySelector('#sig-remove').addEventListener('click', async () => {
+    if (confirm('¿Quitar la firma de este médico?')) {
+      await SignatureDB.remove(user.specialistId);
+      modal.remove();
+      renderUsersTable();
+    }
+  });
+}
+
+function renderSuggestionsTable() {
+  const tbody = document.getElementById('suggestions-table-body');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  const suggestions = DB.getSuggestions();
+  if (suggestions.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--color-text-muted); padding:2rem;">No hay sugerencias en el buzón.</td></tr>';
+    return;
+  }
+
+  suggestions.forEach(s => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${s.date}</td>
+      <td><strong>${s.name}</strong></td>
+      <td>${s.text}</td>
+      <td style="text-align: center;">
+        <button class="btn btn-secondary btn-delete-suggestion" data-id="${s.id}" style="padding:0.2rem 0.5rem; font-size:0.8rem; color:var(--color-danger); border-color:var(--color-danger);">🗑️</button>
+      </td>
+    `;
+
+    tr.querySelector('.btn-delete-suggestion').addEventListener('click', () => {
+      if (confirm('¿Está seguro de eliminar esta sugerencia permanentemente?')) {
+        DB.deleteSuggestion(s.id);
+        renderSuggestionsTable();
       }
     });
 
@@ -1176,13 +1902,49 @@ function initUserManagementForm() {
   const form = document.getElementById('admin-user-form');
   if (!form) return;
 
+  const roleSelect = document.getElementById('user-role');
+  const usernameInput = document.getElementById('user-username');
+  const specGroup = document.getElementById('user-specialty-group');
+  const etiquetaGroup = document.getElementById('user-etiqueta-group');
+  const etiquetaInput = document.getElementById('user-etiqueta');
+
+  function updateVisibility() {
+    const role = roleSelect.value;
+    const username = usernameInput.value.trim();
+    const editId = document.getElementById('user-edit-id').value;
+
+    if (isSpecialistRole(role)) {
+      specGroup.style.display = 'block';
+      etiquetaGroup.style.display = 'block';
+      if (!etiquetaInput.value || !editId) {
+        etiquetaInput.value = generateSpecialistId(username, editId);
+      }
+    } else {
+      specGroup.style.display = 'none';
+      etiquetaGroup.style.display = 'none';
+      document.getElementById('user-specialty').value = '';
+      etiquetaInput.value = '';
+    }
+  }
+
+  roleSelect.addEventListener('change', updateVisibility);
+  usernameInput.addEventListener('input', () => {
+    const role = roleSelect.value;
+    const editId = document.getElementById('user-edit-id').value;
+    if (isSpecialistRole(role)) {
+      etiquetaInput.value = generateSpecialistId(usernameInput.value.trim(), editId);
+    }
+  });
+
   form.addEventListener('submit', (e) => {
     e.preventDefault();
-    const username = document.getElementById('user-username').value.trim();
+    const username = usernameInput.value.trim();
     const fullname = document.getElementById('user-fullname').value.trim();
     const password = document.getElementById('user-password').value;
-    const role = document.getElementById('user-role').value;
+    const role = roleSelect.value;
     const editId = document.getElementById('user-edit-id').value;
+    const specialty = document.getElementById('user-specialty').value.trim();
+    const specialistId = etiquetaInput.value.trim();
 
     const newUser = {
       username,
@@ -1193,13 +1955,96 @@ function initUserManagementForm() {
 
     // Si estamos editando y cambiamos de usuario
     if (editId && editId !== username) {
+      const oldUser = DB_Users.getUsers().find(u => u.username === editId);
+      // Eliminar el viejo de los especialistas y servicios si era especialista
+      if (oldUser && oldUser.specialistId) {
+        SPECIALISTS = SPECIALISTS.filter(s => s.id !== oldUser.specialistId);
+        SERVICES = SERVICES.filter(s => s.specialistId !== oldUser.specialistId);
+      }
       DB_Users.deleteUser(editId); // Eliminar el viejo para evitar duplicados si cambia de login
+    }
+
+    if (isSpecialistRole(role)) {
+      const specId = specialistId || generateSpecialistId(username, editId);
+      newUser.specialistId = specId;
+
+      // Registrar o actualizar en SPECIALISTS
+      const specIndex = SPECIALISTS.findIndex(s => s.id === specId);
+      if (specIndex !== -1) {
+        SPECIALISTS[specIndex].name = fullname;
+        SPECIALISTS[specIndex].specialty = specialty || role;
+      } else {
+        SPECIALISTS.push({
+          id: specId,
+          name: fullname,
+          specialty: specialty || role,
+          workDays: [1, 2, 3, 4, 5, 6],
+          workStart: '09:00',
+          workEnd: '17:00',
+          slotDuration: 30
+        });
+      }
+      safeLocalStorage.setItem('kolymedical_specialists', JSON.stringify(SPECIALISTS));
+
+      // Registrar o actualizar en SERVICES
+      const serviceId = `service_${specId}`;
+      const serviceIndex = SERVICES.findIndex(s => s.specialistId === specId);
+      if (serviceIndex !== -1) {
+        SERVICES[serviceIndex].name = `Consulta — ${fullname} (${specialty || role})`;
+      } else {
+        SERVICES.push({
+          id: serviceId,
+          name: `Consulta — ${fullname} (${specialty || role})`,
+          price: 100,
+          specialistId: specId,
+          duration: 30
+        });
+      }
+      safeLocalStorage.setItem('kolymedical_services', JSON.stringify(SERVICES));
+    } else {
+      // Si se editó y se cambió de rol especialista a no especialista, remover de los recursos
+      if (editId) {
+        const oldUser = DB_Users.getUsers().find(u => u.username === editId);
+        if (oldUser && oldUser.specialistId) {
+          SPECIALISTS = SPECIALISTS.filter(s => s.id !== oldUser.specialistId);
+          SERVICES = SERVICES.filter(s => s.specialistId !== oldUser.specialistId);
+          safeLocalStorage.setItem('kolymedical_specialists', JSON.stringify(SPECIALISTS));
+          safeLocalStorage.setItem('kolymedical_services', JSON.stringify(SERVICES));
+        }
+      }
     }
 
     DB_Users.saveUser(newUser);
     alert('Usuario guardado con éxito.');
     resetUserForm();
     renderUsersTable();
+    
+    // Refrescar selectores de la UI
+    const filterDocSelect = document.getElementById('admin-filter-doctor');
+    if (filterDocSelect) {
+      filterDocSelect.innerHTML = '<option value="">-- Filtrar por Especialista (Todos) --</option>';
+      SPECIALISTS.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d.id;
+        opt.textContent = d.name;
+        filterDocSelect.appendChild(opt);
+      });
+    }
+
+    const adminBookingService = document.getElementById('admin-booking-service');
+    if (adminBookingService) {
+      adminBookingService.innerHTML = '<option value="">-- Selecciona Servicio --</option>';
+      SERVICES.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = `${s.name} — S/ ${s.price}`;
+        adminBookingService.appendChild(opt);
+      });
+    }
+
+    if (typeof renderAvailabilityView === 'function') {
+      renderAvailabilityView();
+    }
   });
 
   document.getElementById('btn-cancel-user-edit').addEventListener('click', resetUserForm);
@@ -1212,6 +2057,23 @@ function editUserAccount(user) {
   document.getElementById('user-fullname').value = user.fullname;
   document.getElementById('user-password').value = user.password;
   document.getElementById('user-role').value = user.role;
+
+  const specGroup = document.getElementById('user-specialty-group');
+  const etiquetaGroup = document.getElementById('user-etiqueta-group');
+  const spec = user.specialistId ? SPECIALISTS.find(s => s.id === user.specialistId) : null;
+
+  if (isSpecialistRole(user.role)) {
+    specGroup.style.display = 'block';
+    etiquetaGroup.style.display = 'block';
+    document.getElementById('user-specialty').value = spec ? spec.specialty : '';
+    document.getElementById('user-etiqueta').value = user.specialistId || '';
+  } else {
+    specGroup.style.display = 'none';
+    etiquetaGroup.style.display = 'none';
+    document.getElementById('user-specialty').value = '';
+    document.getElementById('user-etiqueta').value = '';
+  }
+
   document.getElementById('btn-cancel-user-edit').style.display = 'block';
 }
 
@@ -1219,6 +2081,8 @@ function resetUserForm() {
   document.getElementById('user-form-title').textContent = 'Registrar Nuevo Trabajador';
   document.getElementById('user-edit-id').value = '';
   document.getElementById('admin-user-form').reset();
+  document.getElementById('user-specialty-group').style.display = 'none';
+  document.getElementById('user-etiqueta-group').style.display = 'none';
   document.getElementById('btn-cancel-user-edit').style.display = 'none';
 }
 
@@ -1230,7 +2094,7 @@ function updateStats() {
   const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
   if (currentUser) {
     if (currentUser.specialistId) {
-      appointments = appointments.filter(a => a.specialistId === currentUser.specialistId);
+      appointments = appointments.filter(a => a.specialistId === currentUser.specialistId && a.serviceId !== 'curacion_heridas');
     } else if (currentUser.role === 'Comercial' && currentUser.trackedBy) {
       appointments = appointments.filter(a => a.trackedBy === currentUser.trackedBy);
     }
@@ -1252,136 +2116,478 @@ function updateStats() {
   document.getElementById('stat-pending').textContent = pendientes;
   document.getElementById('stat-completed').textContent = realizadas;
   document.getElementById('stat-income').textContent = `S/ ${ingresos}`;
+
+  // Conteo de rendimiento comercial
+  const allAppointments = DB.getAppointments();
+  const brayanCount = allAppointments.filter(a => a.trackedBy === 'Brayan').length;
+  const andreaCount = allAppointments.filter(a => a.trackedBy === 'Andrea').length;
+
+  const perfBrayanEl = document.getElementById('perf-brayan');
+  if (perfBrayanEl) perfBrayanEl.textContent = `${brayanCount} cita${brayanCount === 1 ? '' : 's'}`;
+
+  const perfAndreaEl = document.getElementById('perf-andrea');
+  if (perfAndreaEl) perfAndreaEl.textContent = `${andreaCount} cita${andreaCount === 1 ? '' : 's'}`;
 }
 
 // 📅 Renderizar Calendario Visual Interactivo
+function timeToMinutesOffset(timeStr) {
+  if (!timeStr) return 0;
+  const parts = timeStr.trim().split(':');
+  const hours = parseInt(parts[0], 10);
+  const minutes = parseInt(parts[1], 10);
+  const totalMin = hours * 60 + minutes;
+  return totalMin - 480; // Minutos transcurridos desde las 08:00 (480 minutos)
+}
+
 function renderCalendarWidget() {
   const container = document.getElementById('calendar-widget-container');
+  if (!container) return;
   container.innerHTML = '';
 
   const year = calendarCurrentDate.getFullYear();
   const month = calendarCurrentDate.getMonth();
 
-  // Nombre de los meses
   const monthsNames = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
   ];
 
-  // Estructura del Widget
+  // A. CABECERA: TÍTULO, BOTONES DE NAVEGACIÓN Y ALTERNANCIA DE VISTA
   const header = document.createElement('div');
   header.className = 'calendar-header';
-  header.innerHTML = `
-    <button class="calendar-nav-btn" id="cal-btn-prev">◀ Anterior</button>
-    <h3 style="font-weight:700; color:var(--color-primary);">${monthsNames[month]} ${year}</h3>
-    <button class="calendar-nav-btn" id="cal-btn-next">Siguiente ▶</button>
+  header.style.display = 'flex';
+  header.style.justifyContent = 'space-between';
+  header.style.alignItems = 'center';
+  header.style.flexWrap = 'wrap';
+  header.style.gap = '1rem';
+  header.style.marginBottom = '1.5rem';
+
+  // Lado izquierdo: Navegación y título
+  const navGroup = document.createElement('div');
+  navGroup.style.display = 'flex';
+  navGroup.style.alignItems = 'center';
+  navGroup.style.gap = '1rem';
+
+  const prevBtn = document.createElement('button');
+  prevBtn.className = 'calendar-nav-btn';
+  prevBtn.id = 'cal-btn-prev';
+  prevBtn.textContent = '◀ Anterior';
+
+  // Título dinámico
+  const title = document.createElement('h3');
+  title.style.fontWeight = '700';
+  title.style.margin = '0';
+  title.style.fontSize = '1.15rem';
+
+  let headerText = '';
+  if (calendarViewMode === 'month') {
+    headerText = `${monthsNames[month]} ${year}`;
+  } else if (calendarViewMode === 'week') {
+    const currentDay = calendarCurrentDate.getDay();
+    const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+    const mon = new Date(calendarCurrentDate);
+    mon.setDate(calendarCurrentDate.getDate() + distanceToMonday);
+    const sun = new Date(mon);
+    sun.setDate(mon.getDate() + 6);
+    
+    const formatLabel = (d) => `${d.getDate()} de ${monthsNames[d.getMonth()]}`;
+    headerText = `Semana del ${formatLabel(mon)} al ${formatLabel(sun)}, ${sun.getFullYear()}`;
+  } else if (calendarViewMode === 'day') {
+    const dayOfWeekNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    headerText = `${dayOfWeekNames[calendarCurrentDate.getDay()]} ${calendarCurrentDate.getDate()} de ${monthsNames[month]}, ${year}`;
+  }
+  title.textContent = headerText;
+
+  const nextBtn = document.createElement('button');
+  nextBtn.className = 'calendar-nav-btn';
+  nextBtn.id = 'cal-btn-next';
+  nextBtn.textContent = 'Siguiente ▶';
+
+  navGroup.appendChild(prevBtn);
+  navGroup.appendChild(title);
+  navGroup.appendChild(nextBtn);
+
+  // Lado derecho: Selector de vista (Mes, Semana, Día)
+  const toggles = document.createElement('div');
+  toggles.className = 'calendar-view-toggles';
+  toggles.innerHTML = `
+    <button class="cal-view-btn ${calendarViewMode === 'month' ? 'active' : ''}" id="cal-view-month">Mes</button>
+    <button class="cal-view-btn ${calendarViewMode === 'week' ? 'active' : ''}" id="cal-view-week">Semana</button>
+    <button class="cal-view-btn ${calendarViewMode === 'day' ? 'active' : ''}" id="cal-view-day">Día</button>
   `;
+
+  header.appendChild(navGroup);
+  header.appendChild(toggles);
   container.appendChild(header);
 
-  // Registrar eventos de navegación de meses
-  document.getElementById('cal-btn-prev').addEventListener('click', () => {
-    calendarCurrentDate.setMonth(calendarCurrentDate.getMonth() - 1);
+  // Registrar eventos de navegación según modo de vista
+  prevBtn.addEventListener('click', () => {
+    if (calendarViewMode === 'month') {
+      calendarCurrentDate.setMonth(calendarCurrentDate.getMonth() - 1);
+    } else if (calendarViewMode === 'week') {
+      calendarCurrentDate.setDate(calendarCurrentDate.getDate() - 7);
+    } else if (calendarViewMode === 'day') {
+      calendarCurrentDate.setDate(calendarCurrentDate.getDate() - 1);
+    }
     renderCalendarWidget();
   });
-  document.getElementById('cal-btn-next').addEventListener('click', () => {
-    calendarCurrentDate.setMonth(calendarCurrentDate.getMonth() + 1);
+
+  nextBtn.addEventListener('click', () => {
+    if (calendarViewMode === 'month') {
+      calendarCurrentDate.setMonth(calendarCurrentDate.getMonth() + 1);
+    } else if (calendarViewMode === 'week') {
+      calendarCurrentDate.setDate(calendarCurrentDate.getDate() + 7);
+    } else if (calendarViewMode === 'day') {
+      calendarCurrentDate.setDate(calendarCurrentDate.getDate() + 1);
+    }
     renderCalendarWidget();
   });
 
-  const grid = document.createElement('div');
-  grid.className = 'calendar-grid';
-
-  // Días de la semana cabecera
-  const daysHeader = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-  daysHeader.forEach(day => {
-    const cell = document.createElement('div');
-    cell.className = 'calendar-day-header';
-    cell.textContent = day;
-    grid.appendChild(cell);
+  // Registrar eventos de cambio de vista
+  toggles.querySelector('#cal-view-month').addEventListener('click', () => {
+    calendarViewMode = 'month';
+    localStorage.setItem('kolymedical_calendar_view', 'month');
+    renderCalendarWidget();
+  });
+  toggles.querySelector('#cal-view-week').addEventListener('click', () => {
+    calendarViewMode = 'week';
+    localStorage.setItem('kolymedical_calendar_view', 'week');
+    renderCalendarWidget();
+  });
+  toggles.querySelector('#cal-view-day').addEventListener('click', () => {
+    calendarViewMode = 'day';
+    localStorage.setItem('kolymedical_calendar_view', 'day');
+    renderCalendarWidget();
   });
 
-  // Obtener primer día del mes y número total de días
-  const firstDayIndex = new Date(year, month, 1).getDay(); // 0 = Domingo, 1 = Lunes...
-  const totalDays = new Date(year, month + 1, 0).getDate();
-  const prevMonthTotalDays = new Date(year, month, 0).getDate();
-
-  // Adaptar index para que comience en Lunes (0 = Lunes, 6 = Domingo)
-  let startOffset = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
-
-  // Celdas del mes anterior (grisáceas)
-  for (let i = startOffset; i > 0; i--) {
-    const day = prevMonthTotalDays - i + 1;
-    const cell = document.createElement('div');
-    cell.className = 'calendar-cell other-month';
-    cell.innerHTML = `<div class="calendar-cell-date">${day}</div>`;
-    grid.appendChild(cell);
-  }
-
-  // Celdas del mes actual
+  // B. OBTENER Y FILTRAR CITAS
   let appointments = DB.getAppointments();
-
-  // Filtrar citas si el usuario es Médico / Especialista o Comercial
   const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
   if (currentUser) {
     if (currentUser.specialistId) {
-      appointments = appointments.filter(a => a.specialistId === currentUser.specialistId);
+      appointments = appointments.filter(a => a.specialistId === currentUser.specialistId && a.serviceId !== 'curacion_heridas');
     } else if (currentUser.role === 'Comercial' && currentUser.trackedBy) {
       appointments = appointments.filter(a => a.trackedBy === currentUser.trackedBy);
     }
   }
 
-  for (let day = 1; day <= totalDays; day++) {
-    const cell = document.createElement('div');
-    cell.className = 'calendar-cell';
+  // C. DIBUJAR LA VISTA DE ACUERDO AL MODO ACTIVO
+  if (calendarViewMode === 'month') {
+    // ------------------ VISTA MENSUAL ------------------
+    const grid = document.createElement('div');
+    grid.className = 'calendar-grid';
 
-    const formattedDay = day < 10 ? '0' + day : day;
-    const formattedMonth = (month + 1) < 10 ? '0' + (month + 1) : (month + 1);
-    const dateString = `${year}-${formattedMonth}-${formattedDay}`;
+    const daysHeader = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+    daysHeader.forEach(day => {
+      const cell = document.createElement('div');
+      cell.className = 'calendar-day-header';
+      cell.textContent = day;
+      grid.appendChild(cell);
+    });
 
-    // Dibujar número del día
-    const dateHeader = document.createElement('div');
-    dateHeader.className = 'calendar-cell-date';
-    dateHeader.textContent = day;
-    cell.appendChild(dateHeader);
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    const prevMonthTotalDays = new Date(year, month, 0).getDate();
+    let startOffset = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
 
-    // Listar citas para este día
-    const dayApts = appointments.filter(a => a.date === dateString && a.status !== 'cancelada');
+    // Mes anterior
+    for (let i = startOffset; i > 0; i--) {
+      const day = prevMonthTotalDays - i + 1;
+      const cell = document.createElement('div');
+      cell.className = 'calendar-cell other-month';
+      cell.innerHTML = `<div class="calendar-cell-date">${day}</div>`;
+      grid.appendChild(cell);
+    }
 
-    if (dayApts.length > 0) {
-      const aptsContainer = document.createElement('div');
-      aptsContainer.className = 'calendar-appointments';
+    // Mes actual
+    for (let day = 1; day <= totalDays; day++) {
+      const cell = document.createElement('div');
+      cell.className = 'calendar-cell';
+
+      const formattedDay = day < 10 ? '0' + day : day;
+      const formattedMonth = (month + 1) < 10 ? '0' + (month + 1) : (month + 1);
+      const dateString = `${year}-${formattedMonth}-${formattedDay}`;
+
+      const dateHeader = document.createElement('div');
+      dateHeader.className = 'calendar-cell-date';
+      dateHeader.textContent = day;
+      cell.appendChild(dateHeader);
+
+      const dayApts = appointments.filter(a => a.date === dateString && a.status !== 'cancelada');
+      if (dayApts.length > 0) {
+        const aptsContainer = document.createElement('div');
+        aptsContainer.className = 'calendar-appointments';
+
+        dayApts.forEach(apt => {
+          const badge = document.createElement('div');
+          const doc = SPECIALISTS.find(d => d.id === apt.specialistId);
+          badge.className = `calendar-apt-badge ${apt.modality === 'Virtual' ? 'badge-virtual' : 'badge-presencial'}`;
+          badge.title = `${apt.time} - ${apt.patientName} (${doc ? doc.name : ''})`;
+          badge.textContent = `${apt.time} ${apt.patientName}`;
+          badge.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showAppointmentDetail(apt);
+          });
+          aptsContainer.appendChild(badge);
+        });
+        cell.appendChild(aptsContainer);
+      }
+      grid.appendChild(cell);
+    }
+
+    // Mes siguiente
+    const totalCellsRendered = startOffset + totalDays;
+    const remainingCells = 42 - totalCellsRendered;
+    for (let day = 1; day <= remainingCells; day++) {
+      const cell = document.createElement('div');
+      cell.className = 'calendar-cell other-month';
+      cell.innerHTML = `<div class="calendar-cell-date">${day}</div>`;
+      grid.appendChild(cell);
+    }
+
+    container.appendChild(grid);
+
+  } else if (calendarViewMode === 'week') {
+    // ------------------ VISTA SEMANAL ------------------
+    const timelineContainer = document.createElement('div');
+    timelineContainer.className = 'timeline-container';
+
+    // 1. Cabecera con los 7 días
+    const timelineHeader = document.createElement('div');
+    timelineHeader.className = 'timeline-header';
+    timelineHeader.style.gridTemplateColumns = '80px repeat(7, 1fr)';
+
+    // Esquina izquierda (vacía para columna de horas)
+    const corner = document.createElement('div');
+    corner.className = 'timeline-header-cell';
+    corner.innerHTML = '<span style="font-size:0.65rem;opacity:0.6;">GMT-05</span>';
+    timelineHeader.appendChild(corner);
+
+    // Calcular fechas de la semana
+    const currentDay = calendarCurrentDate.getDay();
+    const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+    const monday = new Date(calendarCurrentDate);
+    monday.setDate(calendarCurrentDate.getDate() + distanceToMonday);
+
+    const weekDays = [];
+    const daysHeader = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'];
+    const todayStr = new Date().toDateString();
+
+    for (let i = 0; i < 7; i++) {
+      const dayDate = new Date(monday);
+      dayDate.setDate(monday.getDate() + i);
+      weekDays.push(dayDate);
+
+      const headerCell = document.createElement('div');
+      headerCell.className = 'timeline-header-cell';
+      const isToday = dayDate.toDateString() === todayStr;
+      if (isToday) {
+        headerCell.classList.add('today');
+      }
+
+      headerCell.innerHTML = `
+        <span style="font-size:0.72rem;opacity:0.8;">${daysHeader[i]}</span>
+        <div class="day-number-circle">${dayDate.getDate()}</div>
+      `;
+      timelineHeader.appendChild(headerCell);
+    }
+    timelineContainer.appendChild(timelineHeader);
+
+    // 2. Grilla con escala de horas y tarjetas
+    const timelineGrid = document.createElement('div');
+    timelineGrid.className = 'timeline-grid';
+    timelineGrid.style.gridTemplateColumns = '80px repeat(7, 1fr)';
+
+    // Inyectar líneas horizontales para las horas (8 AM a 8 PM = 12 horas)
+    const startHour = 8;
+    const endHour = 20;
+
+    for (let h = startHour; h <= endHour; h++) {
+      const hourIndex = h - startHour;
+      const rowStart = hourIndex * 60 + 1;
+
+      // Línea divisoria
+      const line = document.createElement('div');
+      line.className = 'timeline-hour-line';
+      line.style.gridRow = `${rowStart} / span 1`;
+      timelineGrid.appendChild(line);
+
+      // Etiqueta de la hora (columna 1)
+      const label = document.createElement('div');
+      label.className = 'timeline-hour-label';
+      label.style.gridRow = `${rowStart} / span 30`; // Ajustar tamaño de celda de texto
+      
+      const formatHour = h === 12 ? '12 PM' : h > 12 ? `${h - 12} PM` : `${h} AM`;
+      label.textContent = formatHour;
+      timelineGrid.appendChild(label);
+    }
+
+    // Inyectar citas en las columnas correspondientes (columnas 2 a 8)
+    weekDays.forEach((dayDate, dayIdx) => {
+      const colIndex = dayIdx + 2; // Columna 1 es la etiqueta de horas
+      const formattedDay = dayDate.getDate() < 10 ? '0' + dayDate.getDate() : dayDate.getDate();
+      const formattedMonth = (dayDate.getMonth() + 1) < 10 ? '0' + (dayDate.getMonth() + 1) : (dayDate.getMonth() + 1);
+      const dateString = `${dayDate.getFullYear()}-${formattedMonth}-${formattedDay}`;
+
+      const dayApts = appointments.filter(a => a.date === dateString && a.status !== 'cancelada');
 
       dayApts.forEach(apt => {
-        const badge = document.createElement('div');
-        const doc = SPECIALISTS.find(d => d.id === apt.specialistId);
-        badge.className = `calendar-apt-badge ${apt.modality === 'Virtual' ? 'badge-virtual' : 'badge-presencial'}`;
-        badge.title = `${apt.time} - ${apt.patientName} (${doc ? doc.name : ''})`;
-        badge.textContent = `${apt.time} ${apt.patientName}`;
+        let startRow = timeToMinutesOffset(apt.time);
+        let endRow = startRow + 60; // 60 minutos por defecto
 
-        badge.addEventListener('click', (e) => {
-          e.stopPropagation();
+        if (startRow < 0) startRow = 0;
+        if (endRow > 720) endRow = 720;
+        if (startRow >= 720) return;
+
+        const doc = SPECIALISTS.find(d => d.id === apt.specialistId);
+        const card = document.createElement('div');
+        card.className = `timeline-apt-card ${apt.modality === 'Virtual' ? 'modality-virtual' : 'modality-presencial'}`;
+        card.style.gridColumn = colIndex;
+        card.style.gridRow = `${startRow + 1} / ${endRow + 1}`;
+        card.innerHTML = `
+          <div style="font-weight: 700;">${apt.time}</div>
+          <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${apt.patientName}</div>
+          <div style="font-size: 0.65rem; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${doc ? doc.name : ''}</div>
+        `;
+
+        card.addEventListener('click', () => {
           showAppointmentDetail(apt);
         });
 
-        aptsContainer.appendChild(badge);
+        timelineGrid.appendChild(card);
       });
-      cell.appendChild(aptsContainer);
+    });
+
+    // Inyectar línea roja indicadora de la hora actual (si pertenece a la semana activa)
+    const now = new Date();
+    const activeWeekStart = weekDays[0];
+    const activeWeekEnd = weekDays[6];
+    const isThisWeek = now >= activeWeekStart && now <= new Date(activeWeekEnd.getTime() + 24 * 60 * 60 * 1000);
+
+    if (isThisWeek) {
+      const nowMin = now.getHours() * 60 + now.getMinutes();
+      const currentOffset = nowMin - 480; // Offset desde las 08:00
+      if (currentOffset >= 0 && currentOffset <= 720) {
+        const todayDayIdx = now.getDay() === 0 ? 6 : now.getDay() - 1;
+        const redLine = document.createElement('div');
+        redLine.className = 'timeline-current-time-line';
+        redLine.style.gridColumn = `${todayDayIdx + 2} / span 1`;
+        redLine.style.gridRow = `${currentOffset + 1} / span 1`;
+        timelineGrid.appendChild(redLine);
+      }
     }
 
-    grid.appendChild(cell);
-  }
+    timelineContainer.appendChild(timelineGrid);
+    container.appendChild(timelineContainer);
 
-  // Celdas del mes siguiente para rellenar la grilla (hasta 42 celdas total)
-  const totalCellsRendered = startOffset + totalDays;
-  const remainingCells = 42 - totalCellsRendered;
-  for (let day = 1; day <= remainingCells; day++) {
-    const cell = document.createElement('div');
-    cell.className = 'calendar-cell other-month';
-    cell.innerHTML = `<div class="calendar-cell-date">${day}</div>`;
-    grid.appendChild(cell);
-  }
+  } else if (calendarViewMode === 'day') {
+    // ------------------ VISTA DIARIA ------------------
+    const timelineContainer = document.createElement('div');
+    timelineContainer.className = 'timeline-container';
 
-  container.appendChild(grid);
+    // 1. Cabecera con el día único
+    const timelineHeader = document.createElement('div');
+    timelineHeader.className = 'timeline-header';
+    timelineHeader.style.gridTemplateColumns = '80px 1fr';
+
+    const corner = document.createElement('div');
+    corner.className = 'timeline-header-cell';
+    corner.innerHTML = '<span style="font-size:0.65rem;opacity:0.6;">GMT-05</span>';
+    timelineHeader.appendChild(corner);
+
+    const headerCell = document.createElement('div');
+    headerCell.className = 'timeline-header-cell';
+    const isToday = calendarCurrentDate.toDateString() === new Date().toDateString();
+    if (isToday) {
+      headerCell.classList.add('today');
+    }
+
+    const dayOfWeekNamesShort = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    headerCell.innerHTML = `
+      <span style="font-size:0.75rem;opacity:0.8;">${dayOfWeekNamesShort[calendarCurrentDate.getDay()]}</span>
+      <div class="day-number-circle">${calendarCurrentDate.getDate()}</div>
+    `;
+    timelineHeader.appendChild(headerCell);
+    timelineContainer.appendChild(timelineHeader);
+
+    // 2. Grilla con escala de horas y tarjetas
+    const timelineGrid = document.createElement('div');
+    timelineGrid.className = 'timeline-grid';
+    timelineGrid.style.gridTemplateColumns = '80px 1fr';
+
+    const startHour = 8;
+    const endHour = 20;
+
+    for (let h = startHour; h <= endHour; h++) {
+      const hourIndex = h - startHour;
+      const rowStart = hourIndex * 60 + 1;
+
+      // Línea divisoria
+      const line = document.createElement('div');
+      line.className = 'timeline-hour-line';
+      line.style.gridRow = `${rowStart} / span 1`;
+      timelineGrid.appendChild(line);
+
+      // Etiqueta de la hora
+      const label = document.createElement('div');
+      label.className = 'timeline-hour-label';
+      label.style.gridRow = `${rowStart} / span 30`;
+      
+      const formatHour = h === 12 ? '12 PM' : h > 12 ? `${h - 12} PM` : `${h} AM`;
+      label.textContent = formatHour;
+      timelineGrid.appendChild(label);
+    }
+
+    // Filtrar citas del día seleccionado
+    const formattedDay = calendarCurrentDate.getDate() < 10 ? '0' + calendarCurrentDate.getDate() : calendarCurrentDate.getDate();
+    const formattedMonth = (calendarCurrentDate.getMonth() + 1) < 10 ? '0' + (calendarCurrentDate.getMonth() + 1) : (calendarCurrentDate.getMonth() + 1);
+    const dateString = `${calendarCurrentDate.getFullYear()}-${formattedMonth}-${formattedDay}`;
+
+    const dayApts = appointments.filter(a => a.date === dateString && a.status !== 'cancelada');
+
+    dayApts.forEach(apt => {
+      let startRow = timeToMinutesOffset(apt.time);
+      let endRow = startRow + 60;
+
+      if (startRow < 0) startRow = 0;
+      if (endRow > 720) endRow = 720;
+      if (startRow >= 720) return;
+
+      const doc = SPECIALISTS.find(d => d.id === apt.specialistId);
+      const card = document.createElement('div');
+      card.className = `timeline-apt-card ${apt.modality === 'Virtual' ? 'modality-virtual' : 'modality-presencial'}`;
+      card.style.gridColumn = 2; // Columna única de contenido
+      card.style.gridRow = `${startRow + 1} / ${endRow + 1}`;
+      card.innerHTML = `
+        <div style="font-weight: 700; font-size: 0.78rem;">${apt.time}</div>
+        <div style="font-size: 0.78rem; font-weight: 700; margin-bottom: 2px;">${apt.patientName}</div>
+        <div style="font-size: 0.68rem; opacity: 0.9;">Especialista: ${doc ? doc.name : 'No asignado'}</div>
+      `;
+
+      card.addEventListener('click', () => {
+        showAppointmentDetail(apt);
+      });
+
+      timelineGrid.appendChild(card);
+    });
+
+    // Inyectar línea roja indicadora de la hora actual (si el día seleccionado es hoy)
+    if (isToday) {
+      const now = new Date();
+      const nowMin = now.getHours() * 60 + now.getMinutes();
+      const currentOffset = nowMin - 480;
+      if (currentOffset >= 0 && currentOffset <= 720) {
+        const redLine = document.createElement('div');
+        redLine.className = 'timeline-current-time-line';
+        redLine.style.gridColumn = '2 / span 1';
+        redLine.style.gridRow = `${currentOffset + 1} / span 1`;
+        timelineGrid.appendChild(redLine);
+      }
+    }
+
+    timelineContainer.appendChild(timelineGrid);
+    container.appendChild(timelineContainer);
+  }
 }
 
 // 🔐 Roles con permiso de gestión comercial/administrativa (Administrador y Comercial).
@@ -1402,9 +2608,10 @@ function canViewPatientWhatsApp() {
 }
 
 // Mostrar Detalle de Cita en un Modal flotante simple
+// Mostrar Detalle de Cita en un Modal flotante simple con Historia Clínica
 function showAppointmentDetail(apt) {
   const service = SERVICES.find(s => s.id === apt.serviceId);
-  const doctor = SPECIALISTS.find(d => d.id === apt.specialistId);
+  const doctor = (apt.serviceId === 'curacion_heridas' || !apt.specialistId) ? null : SPECIALISTS.find(d => d.id === apt.specialistId);
   const agentInfo = AGENT_CONTACTS[apt.trackedBy] ? `${AGENT_CONTACTS[apt.trackedBy].name} (Cel: ${AGENT_CONTACTS[apt.trackedBy].phone})` : (apt.trackedBy || 'Sin asignar');
 
   // Teléfono: enlace de WhatsApp solo para Administrador/Comercial; texto plano para especialistas.
@@ -1412,44 +2619,131 @@ function showAppointmentDetail(apt) {
     ? `<a href="https://wa.me/51${apt.patientPhone}" target="_blank" style="color:var(--color-accent); font-weight:600;">${apt.patientPhone} 💬</a>`
     : `<span style="font-weight:600; color:var(--color-primary-dark);">${apt.patientPhone}</span>`;
 
+  const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
+  const canEditNotes = currentUser && (currentUser.role === 'Administrador' || currentUser.specialistId === apt.specialistId);
+
+  // Notas clínicas de esta cita
+  let notesHtml = '';
+  if (canEditNotes) {
+    notesHtml = `
+      <div class="form-group" style="margin-top: 1rem;">
+        <label style="font-weight:600; color:var(--color-primary-dark);">Notas Clínicas (Evolución Médica):</label>
+        <textarea class="form-control" id="detail-apt-notes" rows="4" placeholder="Ingrese diagnóstico, tratamiento, evolución o insumos..." style="font-size: 0.9rem; line-height: 1.4;">${apt.clinicalNotes || ''}</textarea>
+      </div>
+    `;
+  } else {
+    notesHtml = `
+      <div class="form-group" style="margin-top: 1rem;">
+        <label style="font-weight:600; color:var(--color-primary-dark);">Notas Clínicas:</label>
+        <div style="background:#f8fafb; padding:0.75rem; border-radius:var(--border-radius-sm); border:1px solid var(--color-border); font-size:0.9rem; color:var(--color-text-dark); max-height:120px; overflow-y:auto; white-space:pre-line;">
+          ${apt.clinicalNotes || '<em>Sin notas registradas por el especialista.</em>'}
+        </div>
+      </div>
+    `;
+  }
+
+  // Buscar historial clínico (citas previas del mismo paciente que tengan notas)
+  const allApts = DB.getAppointments();
+  const patientHistory = allApts.filter(a =>
+    a.id !== apt.id &&
+    (a.patientPhone === apt.patientPhone || a.patientName.toLowerCase() === apt.patientName.toLowerCase()) &&
+    a.clinicalNotes
+  );
+
+  let historyHtml = '';
+  if (patientHistory.length > 0) {
+    historyHtml += `
+      <div style="margin-top: 1.5rem; border-top: 1px dashed var(--color-border); padding-top: 1rem;">
+        <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.9rem; display:block; margin-bottom:0.5rem;">Historial Clínico Compartido (Consultas Previas):</label>
+        <div style="max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem;">
+    `;
+    patientHistory.forEach(h => {
+      const spec = SPECIALISTS.find(d => d.id === h.specialistId);
+      historyHtml += `
+        <div style="background: rgba(61,90,115,0.03); border:1px solid rgba(61,90,115,0.08); padding:0.6rem; border-radius:var(--border-radius-sm);">
+          <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--color-accent); font-weight:600; margin-bottom:0.25rem;">
+            <span>${spec ? spec.name : 'Especialista'}</span>
+            <span>${h.date}</span>
+          </div>
+          <p style="font-size:0.8rem; margin:0; color:var(--color-text-dark); white-space:pre-line; line-height: 1.4;">${h.clinicalNotes}</p>
+        </div>
+      `;
+    });
+    historyHtml += `
+        </div>
+      </div>
+    `;
+  } else {
+    historyHtml += `
+      <div style="margin-top: 1.5rem; border-top: 1px dashed var(--color-border); padding-top: 1rem;">
+        <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.9rem; display:block; margin-bottom:0.3rem;">Historial Clínico Compartido:</label>
+        <p style="font-size:0.8rem; color:var(--color-text-muted); margin:0; font-style:italic;">No hay consultas previas con notas registradas para este paciente.</p>
+      </div>
+    `;
+  }
+
   // Crear modal de detalle dinámicamente
   const detailModal = document.createElement('div');
   detailModal.className = 'modal active';
   detailModal.style.zIndex = '3000';
   detailModal.innerHTML = `
-    <div class="modal-content" style="max-width: 450px; padding: 2rem;">
+    <div class="modal-content" style="max-width: 500px; padding: 2rem; max-height: 90vh; overflow-y: auto;">
       <h3 style="color:var(--color-primary); font-weight:700; margin-bottom:1.5rem; border-bottom:1px solid var(--color-border); padding-bottom:0.5rem;">Detalle de la Cita</h3>
-      <p style="margin-bottom:0.8rem;"><strong>Paciente:</strong> ${apt.patientName} (${apt.patientAge} años)</p>
-      <p style="margin-bottom:0.8rem;"><strong>Teléfono:</strong> ${phoneDetailHtml}</p>
-      <p style="margin-bottom:0.8rem;"><strong>Agente/Comercial:</strong> ${agentInfo}</p>
-      <p style="margin-bottom:0.8rem;"><strong>Servicio:</strong> ${service ? service.name : 'N/A'}</p>
-      <p style="margin-bottom:0.8rem;"><strong>Especialista:</strong> ${doctor ? doctor.name : 'N/A'}</p>
-      <p style="margin-bottom:0.8rem;"><strong>Fecha y Hora:</strong> ${apt.date} a las ${apt.time}</p>
-      <p style="margin-bottom:1.5rem;"><strong>Modalidad:</strong> ${apt.modality}</p>
-      <div class="form-group">
-        <label>Estado de Cita:</label>
-        <select class="form-control" id="detail-apt-status">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 1rem; font-size: 0.9rem;">
+        <p style="margin:0;"><strong>Paciente:</strong> <br>${apt.patientName} (${apt.patientAge} años)</p>
+        <p style="margin:0;"><strong>Teléfono:</strong> <br>${phoneDetailHtml}</p>
+        <p style="margin:0;"><strong>Comercial:</strong> <br>${agentInfo}</p>
+        <p style="margin:0;"><strong>Modalidad:</strong> <br>${apt.modality}</p>
+        <p style="margin:0;"><strong>Servicio:</strong> <br>${service ? service.name : 'N/A'}</p>
+        <p style="margin:0;"><strong>Especialista:</strong> <br>${doctor ? doctor.name : 'N/A'}</p>
+        <p style="margin:0; grid-column: span 2;"><strong>Fecha y Hora:</strong> <br>${apt.date} a las ${apt.time}</p>
+      </div>
+      
+      <div class="form-group" style="margin-top: 1rem;">
+        <label style="font-weight:600; color:var(--color-primary-dark);">Estado de Cita:</label>
+        <select class="form-control" id="detail-apt-status" style="font-size: 0.9rem;">
           <option value="pendiente" ${apt.status === 'pendiente' ? 'selected' : ''}>Pendiente</option>
           <option value="confirmada" ${apt.status === 'confirmada' ? 'selected' : ''}>Confirmada</option>
           <option value="realizada" ${apt.status === 'realizada' ? 'selected' : ''}>Realizada</option>
           <option value="cancelada" ${apt.status === 'cancelada' ? 'selected' : ''}>Cancelada</option>
         </select>
       </div>
-      <div style="display:flex; gap:1rem; margin-top:2rem; justify-content:flex-end;">
-        <button class="btn btn-secondary" id="detail-close-btn">Cerrar</button>
-        <button class="btn btn-primary" id="detail-save-btn">Guardar Estado</button>
+
+      ${notesHtml}
+      ${historyHtml}
+
+      <div style="display:flex; gap:1rem; margin-top:2rem; justify-content:space-between; flex-wrap:wrap;">
+        <button class="btn btn-accent" id="detail-open-record-btn" style="font-size:0.85rem;">📋 Abrir expediente clínico</button>
+        <div style="display:flex; gap:1rem;">
+          <button class="btn btn-secondary" id="detail-close-btn">Cerrar</button>
+          <button class="btn btn-primary" id="detail-save-btn">Guardar Cambios</button>
+        </div>
       </div>
     </div>
   `;
   document.body.appendChild(detailModal);
 
+  document.getElementById('detail-open-record-btn').addEventListener('click', async () => {
+    detailModal.remove();
+    const record = await ClinicalDB.ensureRecordFromAppointment(apt);
+    const cu = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
+    openClinicalRecord(record.id, { appointmentId: apt.id, focusNote: !!(cu && cu.specialistId) });
+  });
+
   document.getElementById('detail-close-btn').addEventListener('click', () => {
     detailModal.remove();
   });
 
-  document.getElementById('detail-save-btn').addEventListener('click', () => {
+  document.getElementById('detail-save-btn').addEventListener('click', async () => {
     const newStatus = document.getElementById('detail-apt-status').value;
-    DB.updateAppointmentStatus(apt.id, newStatus);
+    await DB.updateAppointmentStatus(apt.id, newStatus);
+
+    const notesArea = document.getElementById('detail-apt-notes');
+    if (notesArea) {
+      const newNotes = notesArea.value.trim();
+      await DB.updateAppointmentNotes(apt.id, newNotes);
+    }
+
     detailModal.remove();
     updateStats();
     renderCalendarWidget();
@@ -1462,15 +2756,29 @@ function renderAppointmentsTable() {
   const tbody = document.getElementById('appointments-table-body');
   if (!tbody) return;
 
+  const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
+
+  // 🩺 Rol Médico / Especialista: la tabla del panel muestra "Próximas Consultas"
+  // (sólo citas futuras y no canceladas, orden ascendente) con acceso al expediente.
+  if (currentUser && currentUser.specialistId) {
+    renderUpcomingConsultations();
+    return;
+  }
+
+  // Admin / Comercial: restaurar título y cabecera estándar por si venían del rol médico.
+  const titleEl = document.getElementById('dashboard-apts-title');
+  if (titleEl) titleEl.textContent = 'Últimas Citas Agendadas';
+  const headEl = document.getElementById('appointments-table-head');
+  if (headEl) {
+    headEl.innerHTML = '<tr><th>Paciente</th><th>Teléfono</th><th>Servicio</th><th>Especialista</th><th>Fecha / Hora</th><th>Estado</th></tr>';
+  }
+
   tbody.innerHTML = '';
   let appointments = DB.getAppointments();
 
-  // Filtrar citas si el usuario es Médico / Especialista o Comercial
-  const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
+  // Filtrar citas si el usuario es Comercial
   if (currentUser) {
-    if (currentUser.specialistId) {
-      appointments = appointments.filter(a => a.specialistId === currentUser.specialistId);
-    } else if (currentUser.role === 'Comercial' && currentUser.trackedBy) {
+    if (currentUser.role === 'Comercial' && currentUser.trackedBy) {
       appointments = appointments.filter(a => a.trackedBy === currentUser.trackedBy);
     }
   }
@@ -1480,7 +2788,9 @@ function renderAppointmentsTable() {
   const filterDoc = document.getElementById('admin-filter-doctor').value;
 
   const filteredApts = appointments.filter(apt => {
-    const matchesSearch = apt.patientName.toLowerCase().includes(searchQuery) || apt.patientPhone.includes(searchQuery);
+    const record = ClinicalDB.getRecordByPatient(apt.patientPhone, apt.patientName);
+    const matchesDni = record && record.dni && record.dni.toLowerCase().includes(searchQuery);
+    const matchesSearch = apt.patientName.toLowerCase().includes(searchQuery) || apt.patientPhone.includes(searchQuery) || matchesDni;
     const matchesDoctor = !filterDoc || apt.specialistId === filterDoc;
     return matchesSearch && matchesDoctor;
   });
@@ -1498,7 +2808,7 @@ function renderAppointmentsTable() {
 
   filteredApts.forEach(apt => {
     const service = SERVICES.find(s => s.id === apt.serviceId);
-    const doctor = SPECIALISTS.find(d => d.id === apt.specialistId);
+    const doctor = (apt.serviceId === 'curacion_heridas' || !apt.specialistId) ? null : SPECIALISTS.find(d => d.id === apt.specialistId);
 
     // Celda de teléfono: enlace + recordatorio de WhatsApp solo si el rol lo permite.
     const phoneCellHtml = canViewWA
@@ -1547,6 +2857,403 @@ function renderAppointmentsTable() {
     }
 
     tbody.appendChild(tr);
+  });
+}
+
+/* ==========================================================================
+   🩺 PANEL MÉDICO — PRÓXIMAS CONSULTAS + EXPEDIENTE CLÍNICO
+   ========================================================================== */
+
+// Devuelve un objeto Date de la cita (fecha + hora).
+function appointmentDateTime(apt) {
+  return new Date(`${apt.date}T${apt.time || '00:00'}`);
+}
+
+// Reemplaza la tabla del panel del médico por las "Próximas Consultas".
+function renderUpcomingConsultations() {
+  const tbody = document.getElementById('appointments-table-body');
+  if (!tbody) return;
+  const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
+  if (!currentUser || !currentUser.specialistId) return;
+
+  // Título y cabecera propios del médico (sin columna Teléfono/WhatsApp).
+  const titleEl = document.getElementById('dashboard-apts-title');
+  if (titleEl) titleEl.textContent = 'Próximas Consultas';
+  const headEl = document.getElementById('appointments-table-head');
+  if (headEl) {
+    headEl.innerHTML = '<tr><th>Paciente</th><th>Servicio</th><th>Fecha / Hora</th><th>Estado</th><th style="text-align:center;">Expediente</th></tr>';
+  }
+
+  const now = new Date();
+  let apts = DB.getAppointments()
+    .filter(a => a.specialistId === currentUser.specialistId && a.serviceId !== 'curacion_heridas')
+    .filter(a => a.status !== 'cancelada')
+    .filter(a => appointmentDateTime(a) >= new Date(now.getFullYear(), now.getMonth(), now.getDate())) // hoy o futuro
+    .sort((a, b) => appointmentDateTime(a) - appointmentDateTime(b)); // ascendente: más próxima primero
+
+  // Paginación simple "Ver más"
+  const shown = window.__upcomingShown || 10;
+  const pageApts = apts.slice(0, shown);
+
+  tbody.innerHTML = '';
+  if (pageApts.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--color-text-muted); padding:1.5rem;">No tienes consultas próximas programadas.</td></tr>';
+    return;
+  }
+
+  pageApts.forEach(apt => {
+    const service = SERVICES.find(s => s.id === apt.serviceId);
+    const dt = appointmentDateTime(apt);
+    const isToday = dt.toDateString() === now.toDateString();
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${apt.patientName}</strong><br><span style="font-size:0.75rem; color:var(--color-text-muted);">${apt.patientAge || '—'} años</span></td>
+      <td>${service ? service.name : 'N/A'}</td>
+      <td>${isToday ? '<span style="color:var(--color-accent); font-weight:700;">Hoy</span>' : apt.date}<br><span style="font-weight:600; color:var(--color-primary-dark);">${apt.time}</span></td>
+      <td><span class="status-badge status-${apt.status === 'confirmada' ? 'confirmada' : apt.status === 'realizada' ? 'realizada' : 'confirmada'}">${apt.status}</span></td>
+      <td style="text-align:center;">
+        <button class="btn btn-accent btn-open-record" data-id="${apt.id}" title="Abrir historia clínica" style="padding:0.35rem 0.6rem; font-size:0.8rem;">📋 Expediente</button>
+      </td>
+    `;
+    tr.querySelector('.btn-open-record').addEventListener('click', () => openRecordFromAppointment(apt));
+    tbody.appendChild(tr);
+  });
+
+  // Fila "Ver más" si hay más consultas
+  if (apts.length > shown) {
+    const trMore = document.createElement('tr');
+    trMore.innerHTML = `<td colspan="5" style="text-align:center; padding:0.75rem;">
+      <button class="btn btn-secondary" id="btn-upcoming-more" style="font-size:0.8rem;">Ver más (${apts.length - shown} restantes)</button>
+    </td>`;
+    trMore.querySelector('#btn-upcoming-more').addEventListener('click', () => {
+      window.__upcomingShown = shown + 10;
+      renderUpcomingConsultations();
+    });
+    tbody.appendChild(trMore);
+  }
+}
+
+// Abre (o crea) el expediente del paciente de una cita y enfoca la nueva nota.
+async function openRecordFromAppointment(apt) {
+  const record = await ClinicalDB.ensureRecordFromAppointment(apt);
+  openClinicalRecord(record.id, { appointmentId: apt.id, focusNote: true });
+}
+
+// -----------------------------------------------------
+// 📋 EXPEDIENTE CLÍNICO (modal a pantalla completa)
+// -----------------------------------------------------
+function calcAge(record) {
+  if (record.birthDate) {
+    const b = new Date(record.birthDate + 'T00:00:00');
+    if (!isNaN(b)) {
+      const now = new Date();
+      let age = now.getFullYear() - b.getFullYear();
+      const m = now.getMonth() - b.getMonth();
+      if (m < 0 || (m === 0 && now.getDate() < b.getDate())) age--;
+      return age;
+    }
+  }
+  return record.patientAge || '—';
+}
+
+function historyChipsHtml(list, kind, canEdit) {
+  let html = '<div class="cr-chips" style="display:flex; flex-wrap:wrap; gap:0.4rem; margin-top:0.4rem;">';
+  if (!list || list.length === 0) {
+    html += '<span style="color:var(--color-text-muted); font-size:0.85rem; font-style:italic;">Sin antecedentes registrados.</span>';
+  } else {
+    list.forEach((item, idx) => {
+      html += `<span class="cr-chip" style="display:inline-flex; align-items:center; gap:0.35rem; background:rgba(0,168,150,0.1); color:var(--color-primary-dark); border:1px solid rgba(0,168,150,0.3); border-radius:20px; padding:0.25rem 0.6rem; font-size:0.8rem;">
+        <strong>${item.code}</strong> ${item.description}
+        ${canEdit ? `<button class="cr-chip-del" data-kind="${kind}" data-idx="${idx}" style="color:var(--color-danger); font-weight:700; line-height:1; padding:0 0.2rem;">×</button>` : ''}
+      </span>`;
+    });
+  }
+  html += '</div>';
+  return html;
+}
+
+function openClinicalRecord(recordId, opts) {
+  opts = opts || {};
+  const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
+  const record = ClinicalDB.getRecordById(recordId);
+  if (!record) {
+    alert('No se encontró el expediente solicitado.');
+    return;
+  }
+
+  const isDoctor = !!(currentUser && currentUser.specialistId);
+  const isAdminComm = isAdminOrCommercial();
+  const canViewWA = canViewPatientWhatsApp(); // Admin/Comercial ven WhatsApp; médicos no.
+  const canEditClinical = !!(currentUser && (currentUser.specialistId || currentUser.role === 'Administrador'));
+
+  // Eliminar modal previo si existe
+  const prev = document.getElementById('clinical-record-modal');
+  if (prev) prev.remove();
+
+  const modal = document.createElement('div');
+  modal.className = 'modal active';
+  modal.id = 'clinical-record-modal';
+  modal.style.zIndex = '3500';
+
+  const phoneHtml = canViewWA
+    ? `<a href="https://wa.me/51${record.patientPhone}" target="_blank" style="color:var(--color-accent); font-weight:600;">${record.patientPhone} 💬</a>`
+    : (isDoctor ? '<span style="color:var(--color-text-muted); font-style:italic;">Oculto (uso comercial)</span>'
+                : `<span style="font-weight:600;">${record.patientPhone || '—'}</span>`);
+
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width: 860px; width: 96%; padding: 0; max-height: 92vh; overflow: hidden; display:flex; flex-direction:column;">
+      <!-- Cabecera -->
+      <div style="background:var(--color-primary); color:#fff; padding:1.25rem 1.5rem; display:flex; justify-content:space-between; align-items:flex-start;">
+        <div>
+          <h2 style="font-weight:700; margin:0; font-size:1.3rem;">${record.patientName}</h2>
+          <div style="font-size:0.8rem; opacity:0.85; margin-top:0.25rem;">Expediente <strong>${record.id}</strong></div>
+        </div>
+        <button id="cr-close" style="color:#fff; font-size:1.5rem; line-height:1;">&times;</button>
+      </div>
+
+      <div style="overflow-y:auto; padding:1.5rem; flex:1;">
+        <!-- Filiación -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1rem; background:var(--color-bg-light); padding:1rem; border-radius:var(--border-radius-sm); margin-bottom:1.5rem;">
+          <div><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">DNI / Cédula</label><div id="cr-dni-view" style="font-weight:600;">${record.dni || '—'}</div></div>
+          <div><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">Edad</label><div style="font-weight:600;">${calcAge(record)} años</div></div>
+          <div><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">Sexo</label><div id="cr-sex-view" style="font-weight:600;">${record.sex || '—'}</div></div>
+          <div><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">Tipo de sangre</label><div id="cr-blood-view" style="font-weight:600;">${record.bloodType || '—'}</div></div>
+          <div><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">Teléfono</label><div>${phoneHtml}</div></div>
+          <div style="grid-column:1/-1;"><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">Alergias</label><div id="cr-allergies-view" style="font-weight:600; color:var(--color-danger);">${record.allergies || 'Ninguna registrada'}</div></div>
+        </div>
+
+        ${canEditClinical ? `
+        <details style="margin-bottom:1.5rem;">
+          <summary style="cursor:pointer; font-weight:600; color:var(--color-primary); font-size:0.9rem;">✏️ Editar datos de filiación</summary>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-top:0.75rem;">
+            <div><label style="font-size:0.8rem;">DNI / Cédula</label><input type="text" id="cr-dni" class="form-control" value="${record.dni || ''}" placeholder="DNI del paciente"></div>
+            <div><label style="font-size:0.8rem;">Fecha de nacimiento</label><input type="date" id="cr-birthdate" class="form-control" value="${record.birthDate || ''}"></div>
+            <div><label style="font-size:0.8rem;">Sexo</label>
+              <select id="cr-sex" class="form-control">
+                <option value="" ${!record.sex ? 'selected' : ''}>—</option>
+                <option value="Masculino" ${record.sex === 'Masculino' ? 'selected' : ''}>Masculino</option>
+                <option value="Femenino" ${record.sex === 'Femenino' ? 'selected' : ''}>Femenino</option>
+              </select>
+            </div>
+            <div><label style="font-size:0.8rem;">Tipo de sangre</label><input type="text" id="cr-blood" class="form-control" value="${record.bloodType || ''}" placeholder="O+"></div>
+            <div style="grid-column: span 2;"><label style="font-size:0.8rem;">Alergias</label><input type="text" id="cr-allergies" class="form-control" value="${record.allergies || ''}" placeholder="Penicilina, AINEs..."></div>
+          </div>
+          <button class="btn btn-secondary" id="cr-save-filiacion" style="margin-top:0.75rem; font-size:0.8rem;">Guardar filiación</button>
+        </details>` : ''}
+
+        ${isDoctor || currentUser.role === 'Administrador' ? `
+        <!-- Antecedentes -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
+          <div>
+            <h4 style="color:var(--color-primary); font-size:0.95rem; margin-bottom:0.25rem;">Antecedentes heredofamiliares</h4>
+            <div id="cr-family-chips">${historyChipsHtml(record.familyHistory, 'family', canEditClinical)}</div>
+            ${canEditClinical ? '<button class="btn btn-secondary cr-add-history" data-kind="family" style="margin-top:0.5rem; font-size:0.75rem;">+ Agregar (CIE-10)</button>' : ''}
+          </div>
+          <div>
+            <h4 style="color:var(--color-primary); font-size:0.95rem; margin-bottom:0.25rem;">Antecedentes personales</h4>
+            <div id="cr-personal-chips">${historyChipsHtml(record.personalHistory, 'personal', canEditClinical)}</div>
+            ${canEditClinical ? '<button class="btn btn-secondary cr-add-history" data-kind="personal" style="margin-top:0.5rem; font-size:0.75rem;">+ Agregar (CIE-10)</button>' : ''}
+          </div>
+        </div>` : ''}
+
+        ${isDoctor || currentUser.role === 'Administrador' ? `
+        <!-- Nueva nota de evolución -->
+        <div id="cr-new-note-box" style="border:2px solid var(--color-accent); border-radius:var(--border-radius-sm); padding:1rem; margin-bottom:1.5rem; background:rgba(0,168,150,0.03);">
+          <h4 style="color:var(--color-primary); font-size:0.95rem; margin-bottom:0.75rem;">📝 Nueva nota de evolución</h4>
+          <div style="margin-bottom:0.75rem;">
+            <label style="font-size:0.8rem; font-weight:600;">Diagnóstico(s) CIE-10</label>
+            <div id="cr-note-diag-chips">${historyChipsHtml([], 'diag', true)}</div>
+            <button class="btn btn-secondary cr-add-diag" style="margin-top:0.5rem; font-size:0.75rem;">+ Agregar diagnóstico (CIE-10)</button>
+          </div>
+          <textarea id="cr-note-text" class="form-control" rows="4" placeholder="Motivo de consulta, examen físico, evolución, plan de tratamiento..." style="font-size:0.9rem;"></textarea>
+          <button class="btn btn-accent" id="cr-save-note" style="margin-top:0.75rem;">💾 Guardar nota</button>
+        </div>` : ''}
+
+        <!-- Historial de consultas -->
+        <h4 style="color:var(--color-primary); font-size:0.95rem; margin-bottom:0.5rem;">Historial de consultas</h4>
+        <div id="cr-notes-timeline" style="margin-bottom:1.5rem;"></div>
+
+        ${isDoctor || currentUser.role === 'Administrador' ? `
+        <!-- Recetas / órdenes -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+          <h4 style="color:var(--color-primary); font-size:0.95rem; margin:0;">Recetas y órdenes médicas</h4>
+          <button class="btn btn-primary" id="cr-new-prescription" style="font-size:0.8rem;">+ Nueva receta / orden</button>
+        </div>
+        <div id="cr-prescriptions-list" style="margin-bottom:1rem;"></div>` : ''}
+
+        ${isAdminComm ? `
+        <!-- Ventas / pagos (solo Admin/Comercial) -->
+        <details style="margin-top:1rem;">
+          <summary style="cursor:pointer; font-weight:600; color:var(--color-primary); font-size:0.9rem;">💰 Ventas y pagos (uso administrativo)</summary>
+          <p style="font-size:0.85rem; color:var(--color-text-muted); margin-top:0.5rem;">La gestión de ventas y pagos del paciente se administra desde el listado de citas. Total de consultas registradas para este paciente: <strong>${DB.getAppointments().filter(a => a.patientPhone === record.patientPhone).length}</strong>.</p>
+        </details>` : ''}
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  // Estado temporal para la nota nueva (diagnósticos seleccionados)
+  const noteDiagnoses = [];
+
+  // Cerrar
+  modal.querySelector('#cr-close').addEventListener('click', () => modal.remove());
+
+  // Guardar filiación
+  const saveFiliacion = modal.querySelector('#cr-save-filiacion');
+  if (saveFiliacion) {
+    saveFiliacion.addEventListener('click', async () => {
+      record.dni = modal.querySelector('#cr-dni').value.trim();
+      record.birthDate = modal.querySelector('#cr-birthdate').value;
+      record.sex = modal.querySelector('#cr-sex').value;
+      record.bloodType = modal.querySelector('#cr-blood').value.trim();
+      record.allergies = modal.querySelector('#cr-allergies').value.trim();
+      await ClinicalDB.saveRecord(record);
+      openClinicalRecord(record.id, opts); // re-render
+    });
+  }
+
+  // Agregar antecedentes vía selector CIE-10
+  modal.querySelectorAll('.cr-add-history').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const kind = btn.getAttribute('data-kind');
+      openCie10Picker(async (sel) => {
+        const target = kind === 'family' ? 'familyHistory' : 'personalHistory';
+        record[target] = record[target] || [];
+        if (!record[target].some(x => x.code === sel.code)) {
+          record[target].push({ code: sel.code, description: sel.description });
+          await ClinicalDB.saveRecord(record);
+          openClinicalRecord(record.id, opts);
+        }
+      });
+    });
+  });
+
+  // Eliminar chips de antecedentes
+  modal.querySelectorAll('.cr-chip-del').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const kind = btn.getAttribute('data-kind');
+      const idx = parseInt(btn.getAttribute('data-idx'));
+      if (kind === 'family') record.familyHistory.splice(idx, 1);
+      else if (kind === 'personal') record.personalHistory.splice(idx, 1);
+      else if (kind === 'diag') { noteDiagnoses.splice(idx, 1); refreshNoteDiagChips(); return; }
+      await ClinicalDB.saveRecord(record);
+      openClinicalRecord(record.id, opts);
+    });
+  });
+
+  // Diagnósticos de la nueva nota
+  function refreshNoteDiagChips() {
+    const box = modal.querySelector('#cr-note-diag-chips');
+    if (!box) return;
+    box.innerHTML = historyChipsHtml(noteDiagnoses, 'diag', true);
+    box.querySelectorAll('.cr-chip-del').forEach(b => {
+      b.addEventListener('click', () => {
+        noteDiagnoses.splice(parseInt(b.getAttribute('data-idx')), 1);
+        refreshNoteDiagChips();
+      });
+    });
+  }
+  const addDiagBtn = modal.querySelector('.cr-add-diag');
+  if (addDiagBtn) {
+    addDiagBtn.addEventListener('click', () => {
+      openCie10Picker((sel) => {
+        if (!noteDiagnoses.some(x => x.code === sel.code)) {
+          noteDiagnoses.push({ code: sel.code, description: sel.description });
+          refreshNoteDiagChips();
+        }
+      });
+    });
+  }
+
+  // Guardar nota de evolución
+  const saveNoteBtn = modal.querySelector('#cr-save-note');
+  if (saveNoteBtn) {
+    saveNoteBtn.addEventListener('click', async () => {
+      const text = modal.querySelector('#cr-note-text').value.trim();
+      if (!text && noteDiagnoses.length === 0) {
+        alert('Escribe la nota de evolución o agrega al menos un diagnóstico.');
+        return;
+      }
+      await ClinicalDB.saveEvolutionNote({
+        recordId: record.id,
+        specialistId: currentUser.specialistId || '',
+        appointmentId: opts.appointmentId || '',
+        diagnosisCodes: noteDiagnoses.slice(),
+        note: text
+      });
+      openClinicalRecord(record.id, opts);
+    });
+  }
+
+  // Nueva receta
+  const newPrescBtn = modal.querySelector('#cr-new-prescription');
+  if (newPrescBtn) {
+    newPrescBtn.addEventListener('click', () => openPrescriptionBuilder(record));
+  }
+
+  // Render timeline de notas y lista de recetas
+  renderNotesTimeline(record.id);
+  renderPrescriptionsList(record.id);
+
+  // Enfocar la nueva nota si se pidió
+  if (opts.focusNote) {
+    const noteBox = modal.querySelector('#cr-new-note-box');
+    const noteText = modal.querySelector('#cr-note-text');
+    if (noteBox) noteBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (noteText) setTimeout(() => noteText.focus(), 300);
+  }
+}
+
+function renderNotesTimeline(recordId) {
+  const container = document.getElementById('cr-notes-timeline');
+  if (!container) return;
+  const notes = ClinicalDB.getNotesByRecord(recordId);
+  if (notes.length === 0) {
+    container.innerHTML = '<p style="color:var(--color-text-muted); font-size:0.85rem; font-style:italic;">Aún no hay notas de evolución registradas.</p>';
+    return;
+  }
+  container.innerHTML = notes.map(n => {
+    const spec = SPECIALISTS.find(d => d.id === n.specialistId);
+    const dateStr = new Date(n.createdAt).toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' });
+    const diagHtml = (n.diagnosisCodes || []).map(d => `<span style="background:rgba(61,90,115,0.08); border-radius:12px; padding:0.1rem 0.5rem; font-size:0.75rem; margin-right:0.3rem;"><strong>${d.code}</strong> ${d.description}</span>`).join('');
+    return `
+      <div style="border-left:3px solid var(--color-accent); padding:0.5rem 0.75rem 0.75rem; margin-bottom:0.75rem; background:rgba(61,90,115,0.02);">
+        <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--color-accent); font-weight:600;">
+          <span>${spec ? spec.name : 'Especialista'}</span><span>${dateStr}</span>
+        </div>
+        ${diagHtml ? `<div style="margin:0.4rem 0;">${diagHtml}</div>` : ''}
+        <p style="font-size:0.88rem; margin:0.25rem 0 0; white-space:pre-line; color:var(--color-text-dark);">${n.note || ''}</p>
+      </div>`;
+  }).join('');
+}
+
+function renderPrescriptionsList(recordId) {
+  const container = document.getElementById('cr-prescriptions-list');
+  if (!container) return;
+  const list = ClinicalDB.getPrescriptionsByRecord(recordId);
+  if (list.length === 0) {
+    container.innerHTML = '<p style="color:var(--color-text-muted); font-size:0.85rem; font-style:italic;">No hay recetas emitidas.</p>';
+    return;
+  }
+  container.innerHTML = '';
+  list.forEach(p => {
+    const dateStr = new Date(p.createdAt).toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' });
+    const meds = (p.items || []).filter(i => i.tipo === 'medicamento').length;
+    const studies = (p.items || []).filter(i => i.tipo === 'estudio').length;
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; border:1px solid var(--color-border); border-radius:var(--border-radius-sm); padding:0.5rem 0.75rem; margin-bottom:0.5rem;';
+    row.innerHTML = `
+      <div style="font-size:0.85rem;">
+        <strong>${dateStr}</strong><br>
+        <span style="color:var(--color-text-muted);">${meds} medicamento(s), ${studies} estudio(s)</span>
+      </div>
+      <button class="btn btn-secondary cr-redownload" style="font-size:0.78rem;">⬇️ PDF</button>
+    `;
+    row.querySelector('.cr-redownload').addEventListener('click', () => {
+      const record = ClinicalDB.getRecordById(recordId);
+      generatePrescriptionPDF(record, p);
+    });
+    container.appendChild(row);
   });
 }
 
@@ -1606,6 +3313,11 @@ function initAdminBookingForm() {
 
     const service = SERVICES.find(s => s.id === serviceVal);
     const doctor = SPECIALISTS.find(d => d.id === service.specialistId);
+
+    if (!doctor) {
+      timeGrid.innerHTML = '<p style="color: var(--color-primary-light); font-size: 0.8rem; padding: 0.25rem; grid-column: span 4;">Servicio a domicilio: se coordina por WhatsApp, no requiere horario ni médico.</p>';
+      return;
+    }
 
     const availableHours = getDoctorAvailableSlots(doctor, dateVal);
     if (availableHours.length === 0) {
@@ -1676,6 +3388,7 @@ function initAdminBookingForm() {
         selectModality.value = 'Presencial';
         selectModality.disabled = true;
       } else if (serviceVal === 'curacion_heridas') {
+        selectDoctor.innerHTML = '<option value="">No requiere médico asignado</option>';
         let hasDomicilio = false;
         for (let i = 0; i < selectModality.options.length; i++) {
           if (selectModality.options[i].value === 'A Domicilio') hasDomicilio = true;
@@ -1713,6 +3426,11 @@ function initAdminBookingForm() {
     const patientPhone = document.getElementById('admin-booking-phone').value.trim();
     const modality = document.getElementById('admin-booking-modality').value;
     const tracker = document.getElementById('admin-booking-tracker').value;
+
+    if (serviceId === 'curacion_heridas') {
+      alert('La "Curación de Heridas a Domicilio" es un servicio sin médico ni horario que se coordina por WhatsApp. Contacte al paciente directamente para acordar la visita a domicilio.');
+      return;
+    }
 
     if (!serviceId || !specialistId || !date || !time || !patientName || !patientAge || !patientPhone) {
       alert('Por favor complete todos los campos del agendamiento.');
@@ -1768,3 +3486,777 @@ function handleSyncUpdate() {
 // 🔄 Inicialización de Sincronización en Tiempo Real con Supabase (Citas y Personal)
 DB.syncWithCloud(handleSyncUpdate);
 DB_Users.syncWithCloud();
+// Sincronizar el módulo clínico (expedientes, notas, recetas) al iniciar.
+if (typeof ClinicalDB !== 'undefined') {
+  ClinicalDB.syncWithCloud();
+}
+// Sincronizar firmas de médicos.
+if (typeof SignatureDB !== 'undefined') {
+  SignatureDB.syncWithCloud();
+}
+
+// ==========================================================================
+// 🌗 SISTEMA DE TEMAS (CLARO/OSCURO) Y PARTICULAS PARA EL PANEL MEDICO
+// ==========================================================================
+let adminParticleAnimationId = null;
+
+function initAdminThemeToggle() {
+  const toggleBtn = document.getElementById('btn-theme-toggle');
+  const dashboard = document.getElementById('dashboard-section');
+  const sunIcon = document.getElementById('theme-toggle-icon-sun');
+  const moonIcon = document.getElementById('theme-toggle-icon-moon');
+  const toggleText = document.getElementById('theme-toggle-text');
+
+  if (!toggleBtn || !dashboard) return;
+
+  // Cargar preferencia guardada (por defecto es claro)
+  let activeTheme = localStorage.getItem('kolymedical_admin_theme') || 'light';
+
+  const applyTheme = (theme) => {
+    if (theme === 'dark') {
+      dashboard.classList.add('dark-theme');
+      if (sunIcon) sunIcon.style.display = 'block';
+      if (moonIcon) moonIcon.style.display = 'none';
+      if (toggleText) toggleText.textContent = 'Modo Claro';
+      startAdminParticles();
+    } else {
+      dashboard.classList.remove('dark-theme');
+      if (sunIcon) sunIcon.style.display = 'none';
+      if (moonIcon) moonIcon.style.display = 'block';
+      if (toggleText) toggleText.textContent = 'Modo Oscuro';
+      stopAdminParticles();
+    }
+  };
+
+  applyTheme(activeTheme);
+
+  toggleBtn.addEventListener('click', () => {
+    activeTheme = activeTheme === 'light' ? 'dark' : 'light';
+    localStorage.setItem('kolymedical_admin_theme', activeTheme);
+    applyTheme(activeTheme);
+  });
+}
+
+function startAdminParticles() {
+  const canvas = document.getElementById('canvas-particles-admin');
+  const section = document.getElementById('admin-dashboard');
+  if (!canvas || !section) return;
+
+  canvas.style.display = 'block';
+  const ctx = canvas.getContext('2d');
+  
+  let width = canvas.width = section.offsetWidth;
+  let height = canvas.height = section.offsetHeight;
+
+  const particles = [];
+  const particleCount = 30; // 30 partículas es muy fluido y elegante
+
+  class Particle {
+    constructor() {
+      this.x = Math.random() * width;
+      this.y = Math.random() * height;
+      this.vx = (Math.random() - 0.5) * 0.15;
+      this.vy = (Math.random() - 0.5) * 0.15;
+      this.radius = Math.random() * 2 + 1;
+      this.alpha = Math.random() * 0.4 + 0.1;
+      this.growth = Math.random() > 0.5 ? 0.002 : -0.002;
+      this.color = Math.random() > 0.4 ? '126, 168, 216' : '0, 168, 150'; // Steel Blue / Teal
+    }
+    update() {
+      this.x += this.vx;
+      this.y += this.vy;
+      this.alpha += this.growth;
+
+      if (this.alpha <= 0.1 || this.alpha >= 0.5) {
+        this.growth = -this.growth;
+      }
+
+      if (this.x < 0 || this.x > width) this.vx = -this.vx;
+      if (this.y < 0 || this.y > height) this.vy = -this.vy;
+    }
+    draw() {
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${this.color}, ${this.alpha})`;
+      ctx.fill();
+    }
+  }
+
+  for (let i = 0; i < particleCount; i++) {
+    particles.push(new Particle());
+  }
+
+  if (adminParticleAnimationId) {
+    cancelAnimationFrame(adminParticleAnimationId);
+  }
+
+  function animate() {
+    const dashboard = document.getElementById('dashboard-section');
+    if (!dashboard || !dashboard.classList.contains('dark-theme')) {
+      ctx.clearRect(0, 0, width, height);
+      canvas.style.display = 'none';
+      return;
+    }
+
+    ctx.clearRect(0, 0, width, height);
+    particles.forEach(p => {
+      p.update();
+      p.draw();
+    });
+    adminParticleAnimationId = requestAnimationFrame(animate);
+  }
+
+  // Escuchar el tamaño dinámico de la sección administrativa con ResizeObserver
+  if (!window.adminResizeObserver) {
+    window.adminResizeObserver = new ResizeObserver(entries => {
+      for (let entry of entries) {
+        width = canvas.width = entry.contentRect.width;
+        height = canvas.height = entry.contentRect.height;
+      }
+    });
+    window.adminResizeObserver.observe(section);
+  }
+
+  animate();
+}
+
+function stopAdminParticles() {
+  const canvas = document.getElementById('canvas-particles-admin');
+  if (canvas) {
+    canvas.style.display = 'none';
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+  if (adminParticleAnimationId) {
+    cancelAnimationFrame(adminParticleAnimationId);
+    adminParticleAnimationId = null;
+  }
+}
+
+let loginParticleAnimationId = null;
+
+function initLoginParticles() {
+  const canvas = document.getElementById('canvas-particles-login');
+  const section = document.getElementById('login-section');
+  if (!canvas || !section) return;
+
+  const ctx = canvas.getContext('2d');
+  let width = canvas.width = section.offsetWidth;
+  let height = canvas.height = section.offsetHeight;
+
+  const particles = [];
+  const particleCount = 35; // sutil y elegante
+
+  class Particle {
+    constructor() {
+      this.x = Math.random() * width;
+      this.y = Math.random() * height;
+      this.vx = (Math.random() - 0.5) * 0.15;
+      this.vy = (Math.random() - 0.5) * 0.15;
+      this.radius = Math.random() * 2 + 1;
+      this.alpha = Math.random() * 0.4 + 0.1;
+      this.growth = Math.random() > 0.5 ? 0.002 : -0.002;
+      this.color = Math.random() > 0.4 ? '126, 168, 216' : '0, 168, 150'; // Steel Blue o Teal
+    }
+    update() {
+      this.x += this.vx;
+      this.y += this.vy;
+      this.alpha += this.growth;
+
+      if (this.alpha <= 0.1 || this.alpha >= 0.5) {
+        this.growth = -this.growth;
+      }
+
+      if (this.x < 0 || this.x > width) this.vx = -this.vx;
+      if (this.y < 0 || this.y > height) this.vy = -this.vy;
+    }
+    draw() {
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${this.color}, ${this.alpha})`;
+      ctx.fill();
+    }
+  }
+
+  for (let i = 0; i < particleCount; i++) {
+    particles.push(new Particle());
+  }
+
+  if (loginParticleAnimationId) {
+    cancelAnimationFrame(loginParticleAnimationId);
+  }
+
+  function animate() {
+    // Si la pantalla de login ya está oculta (el usuario ingresó), detener el loop
+    if (section.style.display === 'none') {
+      ctx.clearRect(0, 0, width, height);
+      loginParticleAnimationId = null;
+      return;
+    }
+
+    ctx.clearRect(0, 0, width, height);
+    particles.forEach(p => {
+      p.update();
+      p.draw();
+    });
+    loginParticleAnimationId = requestAnimationFrame(animate);
+  }
+
+  const resizeObserver = new ResizeObserver(entries => {
+    for (let entry of entries) {
+      width = canvas.width = entry.contentRect.width;
+      height = canvas.height = entry.contentRect.height;
+    }
+  });
+  resizeObserver.observe(section);
+
+  animate();
+}
+
+/* ==========================================================================
+   🔎 BUSCADOR / SELECTOR GENÉRICO (CIE-10, medicamentos, estudios)
+   Carga diferida del catálogo, búsqueda con debounce y máx N resultados.
+   Selección obligatoria desde el catálogo (sin texto libre).
+   ========================================================================== */
+function debounce(fn, wait) {
+  let t = null;
+  return function () {
+    const args = arguments, ctx = this;
+    clearTimeout(t);
+    t = setTimeout(() => fn.apply(ctx, args), wait);
+  };
+}
+
+// Abre un modal de búsqueda. loadFn(): Promise que asegura el catálogo cargado.
+// searchFn(query): [] resultados. renderItem(item): HTML de la fila. onSelect(item).
+function openSearchPicker(config) {
+  const prev = document.getElementById('search-picker-modal');
+  if (prev) prev.remove();
+
+  const modal = document.createElement('div');
+  modal.className = 'modal active';
+  modal.id = 'search-picker-modal';
+  modal.style.zIndex = '4000';
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width:560px; width:94%; padding:1.25rem; max-height:80vh; display:flex; flex-direction:column;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+        <h3 style="color:var(--color-primary); font-weight:700; margin:0; font-size:1.1rem;">${config.title}</h3>
+        <button id="sp-close" style="font-size:1.4rem; line-height:1; color:var(--color-text-muted);">&times;</button>
+      </div>
+      <input type="text" id="sp-input" class="form-control" placeholder="${config.placeholder || 'Escribe para buscar...'}" autocomplete="off" style="margin-bottom:0.75rem;">
+      <div id="sp-results" style="overflow-y:auto; flex:1; border:1px solid var(--color-border); border-radius:var(--border-radius-sm);">
+        <p style="padding:1rem; color:var(--color-text-muted); font-size:0.85rem; text-align:center;">Cargando catálogo…</p>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  const input = modal.querySelector('#sp-input');
+  const resultsBox = modal.querySelector('#sp-results');
+  modal.querySelector('#sp-close').addEventListener('click', () => modal.remove());
+
+  function renderResults(items) {
+    if (!items || items.length === 0) {
+      resultsBox.innerHTML = '<p style="padding:1rem; color:var(--color-text-muted); font-size:0.85rem; text-align:center;">Sin resultados. Prueba con otro término.</p>';
+      return;
+    }
+    resultsBox.innerHTML = '';
+    items.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'sp-result-row';
+      row.style.cssText = 'padding:0.55rem 0.75rem; border-bottom:1px solid var(--color-border); cursor:pointer; font-size:0.87rem;';
+      row.innerHTML = config.renderItem(item);
+      row.addEventListener('mouseenter', () => row.style.background = 'rgba(0,168,150,0.08)');
+      row.addEventListener('mouseleave', () => row.style.background = 'transparent');
+      row.addEventListener('click', () => {
+        config.onSelect(item);
+        modal.remove();
+      });
+      resultsBox.appendChild(row);
+    });
+  }
+
+  const doSearch = debounce(() => {
+    const q = input.value.trim();
+    if (q.length < 2) {
+      resultsBox.innerHTML = '<p style="padding:1rem; color:var(--color-text-muted); font-size:0.85rem; text-align:center;">Escribe al menos 2 caracteres.</p>';
+      return;
+    }
+    renderResults(config.searchFn(q));
+  }, 250);
+
+  input.addEventListener('input', doSearch);
+
+  // Carga diferida del catálogo, luego habilita búsqueda
+  config.loadFn().then(() => {
+    resultsBox.innerHTML = '<p style="padding:1rem; color:var(--color-text-muted); font-size:0.85rem; text-align:center;">Escribe para buscar en el catálogo.</p>';
+    if (config.showAllOnOpen) renderResults(config.searchFn(''));
+    input.focus();
+  });
+}
+
+// Selector CIE-10 (antecedentes y diagnósticos). onSelect({code, description}).
+function openCie10Picker(onSelect) {
+  openSearchPicker({
+    title: 'Buscar diagnóstico CIE-10',
+    placeholder: 'Ej. hipertension, diabetes, J45...',
+    loadFn: () => Catalogs.loadCie10(),
+    searchFn: (q) => Catalogs.searchCie10(q, 30),
+    renderItem: (item) => `<strong style="color:var(--color-accent);">${item.code}</strong> — ${item.description}`,
+    onSelect: onSelect
+  });
+}
+
+// Selector de medicamentos. onSelect(medObj).
+function openMedicamentoPicker(onSelect) {
+  openSearchPicker({
+    title: 'Buscar medicamento',
+    placeholder: 'Ej. paracetamol, omeprazol...',
+    loadFn: () => Catalogs.loadMedicamentos(),
+    searchFn: (q) => Catalogs.searchMedicamentos(q, 30),
+    renderItem: (m) => `<strong>${m.nombre_comercial}</strong> <span style="color:var(--color-text-muted);">(${m.nombre_generico})</span><br><span style="font-size:0.78rem; color:var(--color-primary-light);">${m.presentacion} · ${m.concentracion}</span>`,
+    onSelect: onSelect
+  });
+}
+
+// Selector de estudios (agrupado por categoría). onSelect({categoria, nombre}).
+function openEstudioPicker(onSelect) {
+  openSearchPicker({
+    title: 'Buscar estudio / orden médica',
+    placeholder: 'Ej. ecografía, fibroscan, tomografía...',
+    loadFn: () => Catalogs.loadEstudios(),
+    searchFn: (q) => Catalogs.searchEstudios(q, 60),
+    renderItem: (e) => `<strong>${e.nombre}</strong><br><span style="font-size:0.78rem; color:var(--color-primary-light);">${e.categoria}</span>`,
+    onSelect: onSelect,
+    showAllOnOpen: true
+  });
+}
+
+/* ==========================================================================
+   💊 GENERADOR DE RECETAS / ÓRDENES + PDF (pdf-lib, 100% en el navegador)
+   ========================================================================== */
+function openPrescriptionBuilder(record) {
+  const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
+  const prev = document.getElementById('prescription-modal');
+  if (prev) prev.remove();
+
+  // Diagnóstico sugerido: el más reciente de las notas de evolución.
+  const notes = ClinicalDB.getNotesByRecord(record.id);
+  let suggestedDiag = '';
+  for (const n of notes) {
+    if (n.diagnosisCodes && n.diagnosisCodes.length) {
+      suggestedDiag = n.diagnosisCodes.map(d => `${d.code} ${d.description}`).join('; ');
+      break;
+    }
+  }
+
+  const modal = document.createElement('div');
+  modal.className = 'modal active';
+  modal.id = 'prescription-modal';
+  modal.style.zIndex = '3800';
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width:720px; width:96%; padding:1.5rem; max-height:90vh; overflow-y:auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+        <h3 style="color:var(--color-primary); font-weight:700; margin:0;">Nueva receta / orden médica</h3>
+        <button id="pr-close" style="font-size:1.5rem; line-height:1; color:var(--color-text-muted);">&times;</button>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:1rem;">
+        <div><label style="font-size:0.8rem; font-weight:600;">Paciente</label><input type="text" class="form-control" value="${record.patientName}" readonly style="background:#f0f3f4;"></div>
+        <div><label style="font-size:0.8rem; font-weight:600;">DNI</label><input type="text" id="pr-dni" class="form-control" placeholder="Documento (opcional)"></div>
+        <div style="grid-column:1/-1;"><label style="font-size:0.8rem; font-weight:600;">Diagnóstico</label><input type="text" id="pr-diagnosis" class="form-control" value="${suggestedDiag}" placeholder="Diagnóstico clínico"></div>
+      </div>
+
+      <label style="font-size:0.85rem; font-weight:600; color:var(--color-primary);">Ítems (medicamentos / estudios)</label>
+      <div id="pr-items" style="margin:0.5rem 0;"></div>
+      <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
+        <button class="btn btn-secondary" id="pr-add-med" style="font-size:0.8rem;">+ Medicamento</button>
+        <button class="btn btn-secondary" id="pr-add-study" style="font-size:0.8rem;">+ Estudio</button>
+      </div>
+
+      <label style="font-size:0.85rem; font-weight:600; color:var(--color-primary);">Indicaciones generales</label>
+      <textarea id="pr-indications" class="form-control" rows="3" placeholder="Reposo, dieta, recomendaciones..." style="margin:0.4rem 0 1rem; font-size:0.9rem;"></textarea>
+
+      <div style="display:flex; justify-content:flex-end; gap:0.75rem;">
+        <button class="btn btn-secondary" id="pr-cancel">Cancelar</button>
+        <button class="btn btn-accent" id="pr-generate">📄 Generar PDF</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  const itemsBox = modal.querySelector('#pr-items');
+  const rows = []; // {tipo, data, el}
+
+  function renderRow(row) {
+    const el = document.createElement('div');
+    el.style.cssText = 'border:1px solid var(--color-border); border-radius:var(--border-radius-sm); padding:0.6rem; margin-bottom:0.5rem;';
+    if (row.tipo === 'medicamento') {
+      el.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+          <span style="font-size:0.75rem; font-weight:700; color:var(--color-accent); text-transform:uppercase;">💊 Medicamento</span>
+          <button class="pr-remove" style="color:var(--color-danger); font-weight:700;">Quitar</button>
+        </div>
+        <div class="pr-med-display" style="font-size:0.88rem; margin-bottom:0.4rem; color:var(--color-text-muted);">Ningún medicamento seleccionado.</div>
+        <button class="btn btn-secondary pr-pick-med" style="font-size:0.75rem; margin-bottom:0.5rem;">Seleccionar medicamento</button>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.4rem;">
+          <input type="text" class="form-control pr-dosis" placeholder="Dosis (1 tab)" style="font-size:0.8rem;">
+          <input type="text" class="form-control pr-freq" placeholder="Frecuencia (c/8h)" style="font-size:0.8rem;">
+          <input type="text" class="form-control pr-dur" placeholder="Duración (7 días)" style="font-size:0.8rem;">
+        </div>`;
+    } else {
+      el.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+          <span style="font-size:0.75rem; font-weight:700; color:var(--color-primary); text-transform:uppercase;">🔬 Estudio</span>
+          <button class="pr-remove" style="color:var(--color-danger); font-weight:700;">Quitar</button>
+        </div>
+        <div class="pr-study-display" style="font-size:0.88rem; margin-bottom:0.4rem; color:var(--color-text-muted);">Ningún estudio seleccionado.</div>
+        <button class="btn btn-secondary pr-pick-study" style="font-size:0.75rem; margin-bottom:0.5rem;">Seleccionar estudio</button>
+        <input type="text" class="form-control pr-study-note" placeholder="Indicación clínica (opcional: en ayunas, con contraste...)" style="font-size:0.8rem;">`;
+    }
+    itemsBox.appendChild(el);
+    row.el = el;
+
+    el.querySelector('.pr-remove').addEventListener('click', () => {
+      const i = rows.indexOf(row);
+      if (i !== -1) rows.splice(i, 1);
+      el.remove();
+    });
+
+    if (row.tipo === 'medicamento') {
+      el.querySelector('.pr-pick-med').addEventListener('click', () => {
+        openMedicamentoPicker((m) => {
+          row.data = m;
+          el.querySelector('.pr-med-display').innerHTML = `<strong>${m.nombre_comercial}</strong> (${m.nombre_generico}) — ${m.presentacion} ${m.concentracion}`;
+          el.querySelector('.pr-med-display').style.color = 'var(--color-text-dark)';
+        });
+      });
+    } else {
+      el.querySelector('.pr-pick-study').addEventListener('click', () => {
+        openEstudioPicker((e) => {
+          row.data = e;
+          el.querySelector('.pr-study-display').innerHTML = `<strong>${e.nombre}</strong> <span style="color:var(--color-text-muted);">(${e.categoria})</span>`;
+          el.querySelector('.pr-study-display').style.color = 'var(--color-text-dark)';
+        });
+      });
+    }
+  }
+
+  modal.querySelector('#pr-add-med').addEventListener('click', () => {
+    const row = { tipo: 'medicamento', data: null };
+    rows.push(row); renderRow(row);
+  });
+  modal.querySelector('#pr-add-study').addEventListener('click', () => {
+    const row = { tipo: 'estudio', data: null };
+    rows.push(row); renderRow(row);
+  });
+
+  modal.querySelector('#pr-close').addEventListener('click', () => modal.remove());
+  modal.querySelector('#pr-cancel').addEventListener('click', () => modal.remove());
+
+  modal.querySelector('#pr-generate').addEventListener('click', async () => {
+    // Recolectar ítems
+    const items = [];
+    rows.forEach(row => {
+      if (row.tipo === 'medicamento' && row.data) {
+        items.push({
+          tipo: 'medicamento',
+          nombre: row.data.nombre_comercial,
+          generico: row.data.nombre_generico,
+          presentacion: row.data.presentacion,
+          concentracion: row.data.concentracion,
+          dosis: row.el.querySelector('.pr-dosis').value.trim(),
+          frecuencia: row.el.querySelector('.pr-freq').value.trim(),
+          duracion: row.el.querySelector('.pr-dur').value.trim()
+        });
+      } else if (row.tipo === 'estudio' && row.data) {
+        items.push({
+          tipo: 'estudio',
+          nombre: row.data.nombre,
+          categoria: row.data.categoria,
+          indicacion: row.el.querySelector('.pr-study-note').value.trim()
+        });
+      }
+    });
+
+    if (items.length === 0) {
+      alert('Agrega al menos un medicamento o estudio con su selección del catálogo.');
+      return;
+    }
+
+    const prescription = {
+      recordId: record.id,
+      specialistId: currentUser.specialistId || '',
+      diagnosis: modal.querySelector('#pr-diagnosis').value.trim(),
+      dni: modal.querySelector('#pr-dni').value.trim(),
+      indications: modal.querySelector('#pr-indications').value.trim(),
+      items: items
+    };
+
+    await ClinicalDB.savePrescription(prescription);
+    await generatePrescriptionPDF(record, prescription);
+    modal.remove();
+
+    // Refrescar la lista de recetas del expediente si sigue abierto
+    renderPrescriptionsList(record.id);
+  });
+}
+
+// Cache de bytes del logo para no re-descargarlo por cada PDF.
+let _logoBytesCache = null;
+async function getLogoBytes() {
+  if (_logoBytesCache) return _logoBytesCache;
+  try {
+    const res = await fetch('Logosinfondo.png', { cache: 'force-cache' });
+    const buf = await res.arrayBuffer();
+    _logoBytesCache = new Uint8Array(buf);
+    return _logoBytesCache;
+  } catch (e) {
+    console.warn('No se pudo cargar el logo para el PDF:', e);
+    return null;
+  }
+}
+
+// Genera y descarga el PDF de la receta/orden con el membrete de KolyMedical.
+async function generatePrescriptionPDF(record, prescription) {
+  if (!window.PDFLib) {
+    alert('La librería de PDF no está disponible. Verifica tu conexión e inténtalo de nuevo.');
+    return;
+  }
+  const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
+  const doc = await PDFDocument.create();
+  const page = doc.addPage([595.28, 841.89]); // A4 vertical
+  const { width, height } = page.getSize();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const fontObl = await doc.embedFont(StandardFonts.HelveticaOblique);
+
+  const primary = rgb(0.239, 0.353, 0.451);   // #3D5A73
+  const accent = rgb(0, 0.659, 0.588);         // #00A896
+  const dark = rgb(0.2, 0.2, 0.2);
+  const muted = rgb(0.45, 0.45, 0.45);
+
+  const M = 48; // margen
+  let y = height - 50;
+
+  // ---- Cabecera / membrete ----
+  const logoBytes = await getLogoBytes();
+  if (logoBytes) {
+    try {
+      const logo = await doc.embedPng(logoBytes);
+      const lw = 54, lh = (logo.height / logo.width) * lw;
+      page.drawImage(logo, { x: M, y: height - 40 - lh, width: lw, height: lh });
+    } catch (e) { /* si falla, seguimos sin logo */ }
+  }
+  page.drawText('KOLYMEDICAL', { x: M + 66, y: height - 58, size: 22, font: fontBold, color: primary });
+  page.drawText('INNOVATION  ·  PRECISION  ·  CARE', { x: M + 67, y: height - 74, size: 8, font: font, color: accent });
+
+  // Fecha (arriba derecha)
+  const fecha = new Date(prescription.createdAt || Date.now()).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  page.drawText('FECHA:', { x: width - M - 150, y: height - 58, size: 9, font: fontBold, color: muted });
+  page.drawText(fecha, { x: width - M - 105, y: height - 58, size: 9, font: font, color: dark });
+
+  // Línea divisoria bajo el membrete
+  y = height - 96;
+  page.drawLine({ start: { x: M, y }, end: { x: width - M, y }, thickness: 1.5, color: accent });
+
+  // ---- Datos del paciente ----
+  y -= 26;
+  const edad = calcAge(record);
+  function field(label, value, x, yy, maxWidth) {
+    page.drawText(label, { x, y: yy, size: 9, font: fontBold, color: primary });
+    const lw = fontBold.widthOfTextAtSize(label, 9);
+    page.drawText(pdfSafe(value) || '-', { x: x + lw + 5, y: yy, size: 10, font, color: dark, maxWidth: maxWidth });
+  }
+  field('PACIENTE:', record.patientName, M, y, 300);
+  field('EDAD:', edad + ' años', width - M - 130, y, 120);
+  y -= 20;
+  field('DNI:', record.dni || '—', M, y, 200);
+  y -= 20;
+  // Diagnóstico (puede envolver)
+  page.drawText('DIAGNÓSTICO:', { x: M, y, size: 9, font: fontBold, color: primary });
+  const diagLines = wrapText(prescription.diagnosis || '—', font, 10, width - 2 * M - 90);
+  diagLines.forEach((ln, i) => {
+    page.drawText(ln, { x: M + 90, y: y - i * 13, size: 10, font, color: dark });
+  });
+  y -= Math.max(diagLines.length * 13, 13) + 12;
+
+  page.drawLine({ start: { x: M, y }, end: { x: width - M, y }, thickness: 0.5, color: rgb(0.8, 0.85, 0.85) });
+  y -= 24;
+
+  // ---- Dos columnas: RECETA (izq) e INDICACIONES (der) ----
+  const colGap = 24;
+  const colWidth = (width - 2 * M - colGap) / 2;
+  const leftX = M;
+  const rightX = M + colWidth + colGap;
+  const topY = y;
+
+  page.drawText('RECETA', { x: leftX, y: topY, size: 12, font: fontBold, color: accent });
+  page.drawText('INDICACIONES', { x: rightX, y: topY, size: 12, font: fontBold, color: accent });
+
+  // Contenido RECETA (medicamentos)
+  const meds = (prescription.items || []).filter(i => i.tipo === 'medicamento');
+  let ly = topY - 20;
+  if (meds.length === 0) {
+    page.drawText('-', { x: leftX, y: ly, size: 10, font, color: muted });
+  } else {
+    meds.forEach((m, idx) => {
+      const title = `${idx + 1}. ${m.nombre} ${m.concentracion || ''}`.trim();
+      wrapText(title, fontBold, 10, colWidth).forEach(ln => {
+        page.drawText(ln, { x: leftX, y: ly, size: 10, font: fontBold, color: dark });
+        ly -= 13;
+      });
+      const poso = [m.dosis, m.frecuencia, m.duracion].filter(Boolean).join('  ·  ');
+      if (poso) {
+        wrapText(poso, font, 9, colWidth).forEach(ln => {
+          page.drawText(ln, { x: leftX + 8, y: ly, size: 9, font: fontObl, color: muted });
+          ly -= 12;
+        });
+      }
+      ly -= 6;
+    });
+  }
+
+  // Contenido INDICACIONES (texto libre + estudios "Se solicita:")
+  const studies = (prescription.items || []).filter(i => i.tipo === 'estudio');
+  let ry = topY - 20;
+  if (prescription.indications) {
+    wrapText(prescription.indications, font, 10, colWidth).forEach(ln => {
+      page.drawText(ln, { x: rightX, y: ry, size: 10, font, color: dark });
+      ry -= 13;
+    });
+    ry -= 6;
+  }
+  studies.forEach(s => {
+    const line = `Se solicita: ${s.nombre}` + (s.indicacion ? ` (${s.indicacion})` : '');
+    wrapText(line, font, 10, colWidth).forEach((ln, i) => {
+      page.drawText(ln, { x: rightX, y: ry, size: 10, font: i === 0 ? fontBold : font, color: i === 0 ? primary : dark });
+      ry -= 13;
+    });
+    ry -= 5;
+  });
+  if (!prescription.indications && studies.length === 0) {
+    page.drawText('-', { x: rightX, y: ry, size: 10, font, color: muted });
+  }
+
+  // ---- Firma y pie ----
+  const spec = SPECIALISTS.find(d => d.id === prescription.specialistId);
+  const footY = 120;
+
+  // Cargar firma (desde DB o de la carpeta física firmas/)
+  let signatureDataUrl = SignatureDB.get(prescription.specialistId);
+  if (!signatureDataUrl && prescription.specialistId) {
+    try {
+      const res = await fetch(`firmas/${prescription.specialistId}.png`);
+      if (res.ok) {
+        const blob = await res.blob();
+        signatureDataUrl = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(blob);
+        });
+      }
+    } catch (e) {
+      console.warn(`No se pudo cargar la firma de fallback firmas/${prescription.specialistId}.png:`, e);
+    }
+  }
+
+  // Dibujar la firma si existe
+  if (signatureDataUrl) {
+    try {
+      const parts = signatureDataUrl.split(',');
+      if (parts.length === 2) {
+        const base64Data = parts[1];
+        const binaryString = atob(base64Data);
+        const len = binaryString.length;
+        const sigBytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          sigBytes[i] = binaryString.charCodeAt(i);
+        }
+
+        let embeddedImage;
+        if (signatureDataUrl.includes('image/jpeg') || signatureDataUrl.includes('image/jpg')) {
+          embeddedImage = await doc.embedJpg(sigBytes);
+        } else {
+          embeddedImage = await doc.embedPng(sigBytes);
+        }
+
+        const sigWidth = 110;
+        let sigHeight = (embeddedImage.height / embeddedImage.width) * sigWidth;
+        const maxSigHeight = 45;
+        let finalW = sigWidth;
+        let finalH = sigHeight;
+        if (sigHeight > maxSigHeight) {
+          finalH = maxSigHeight;
+          finalW = (embeddedImage.width / embeddedImage.height) * finalH;
+        }
+
+        page.drawImage(embeddedImage, {
+          x: width / 2 - finalW / 2,
+          y: footY + 24,
+          width: finalW,
+          height: finalH
+        });
+      }
+    } catch (err) {
+      console.error('Error al incrustar la firma en el PDF:', err);
+    }
+  }
+
+  page.drawLine({ start: { x: width / 2 - 90, y: footY + 22 }, end: { x: width / 2 + 90, y: footY + 22 }, thickness: 0.8, color: dark });
+  const specName = spec ? spec.name : 'Especialista';
+  page.drawText(specName, { x: width / 2 - font.widthOfTextAtSize(specName, 10) / 2, y: footY + 8, size: 10, font: fontBold, color: primary });
+  if (spec && spec.specialty) {
+    page.drawText(spec.specialty, { x: width / 2 - font.widthOfTextAtSize(spec.specialty, 9) / 2, y: footY - 4, size: 9, font, color: muted });
+  }
+
+  page.drawLine({ start: { x: M, y: 70 }, end: { x: width - M, y: 70 }, thickness: 1, color: accent });
+  const footer1 = 'KolyMedical  ·  Innovation - Precision - Care';
+  page.drawText(footer1, { x: width / 2 - font.widthOfTextAtSize(footer1, 8) / 2, y: 56, size: 8, font, color: primary });
+  const footer2 = 'WhatsApp: +51 987 346 934   ·   @kolymedical';
+  page.drawText(footer2, { x: width / 2 - font.widthOfTextAtSize(footer2, 8) / 2, y: 44, size: 8, font, color: muted });
+
+  // Descargar
+  const bytes = await doc.save();
+  const blob = new Blob([bytes], { type: 'application/pdf' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const safeName = (record.patientName || 'paciente').replace(/[^a-z0-9]/gi, '_');
+  a.href = url;
+  a.download = `Receta_${safeName}_${fecha.replace(/\//g, '-')}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+// Sanea texto para las fuentes estándar de pdf-lib (WinAnsi): reemplaza
+// puntuación Unicode común y descarta caracteres fuera de rango para evitar
+// que la generación del PDF falle con descripciones CIE-10 poco comunes.
+function pdfSafe(str) {
+  return String(str == null ? '' : str)
+    .replace(/[–—]/g, '-')   // en/em dash
+    .replace(/[‘’‚]/g, "'")
+    .replace(/[“”„]/g, '"')
+    .replace(/…/g, '...')
+    .replace(/ /g, ' ')
+    .replace(/[^ -ÿ]/g, '');  // fuera de latin-1 → se descarta
+}
+
+// Envuelve texto a un ancho máximo (en puntos) para pdf-lib.
+function wrapText(text, font, size, maxWidth) {
+  const words = pdfSafe(text).split(/\s+/);
+  const lines = [];
+  let line = '';
+  words.forEach(w => {
+    const test = line ? line + ' ' + w : w;
+    if (font.widthOfTextAtSize(test, size) > maxWidth && line) {
+      lines.push(line);
+      line = w;
+    } else {
+      line = test;
+    }
+  });
+  if (line) lines.push(line);
+  return lines.length ? lines : ['—'];
+}
