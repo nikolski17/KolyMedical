@@ -1,0 +1,29 @@
+CARPETA DE FIRMAS DIGITALES — KolyMedical
+==========================================
+
+Aquí se guardan las firmas escaneadas de los médicos para que aparezcan
+en las recetas y órdenes médicas en PDF.
+
+Hay dos formas de cargar una firma:
+
+1) DESDE EL PANEL (recomendado, solo Super Administrador)
+   Panel → Gestión de Personal → botón "✍️ Firma" en la fila del médico.
+   La firma se guarda en el navegador (y en Supabase si está configurado)
+   y se embebe automáticamente en cada receta que emita ese médico.
+
+2) MANUALMENTE (opcional, al desplegar el sitio)
+   Coloca la imagen de la firma en esta carpeta con el nombre EXACTO del
+   identificador (etiqueta) del especialista, en formato PNG con fondo
+   transparente:
+        firmas/<specialistId>.png
+   Ejemplos:
+        firmas/pedraza.png
+        firmas/morales.png
+   El sistema usará primero la firma cargada desde el panel; si no existe,
+   intentará leer el archivo de esta carpeta.
+
+Recomendaciones para la imagen:
+   - Formato PNG con fondo transparente.
+   - Firma en trazo oscuro (negro o azul).
+   - Proporción horizontal (ej. 400 x 150 px).
+   - Peso menor a 300 KB.

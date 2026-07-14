@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KolyMedical — Medicina Regenerativa, Células Madre y FibroScan en Lima</title>
+  <meta name="description"
+    content="Centro médico multidisciplinar líder en Medicina Regenerativa, terapia celular con células madre, infiltración de rodilla y hombro, elastografía hepática FibroScan, heridas crónicas y atención médica a domicilio en Lima, Perú.">
+  <meta name="keywords"
+    content="medicina regenerativa lima, celulas madre peru, dr joan pedraza lima, KolyMedical Peru, curacion pie diabetico domicilio, fibroscan peru, infiltracion rodilla celulas madre, tratamiento cirrosis hepatica, escaras domicilio peru">
+  <meta name="google-site-verification" content="wGWs5L8xQ5y6Dh73YsiJRgJQyRNEKZNuGaMCzQFM17Y" />
+  <meta property="og:title" content="KolyMedical Perú — Medicina Regenerativa y Células Madre en Lima">
+  <meta property="og:description"
+    content="Centro médico líder en medicina regenerativa, terapia celular con células madre, FibroScan y atención a domicilio en Lima, Perú.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://kolymedical.netlify.app/">
+  <meta property="og:image" content="https://kolymedical.netlify.app/LOGO.png">
+  <meta property="og:locale" content="es_PE">
+  <meta name="geo.region" content="PE-LIM">
+  <meta name="geo.placename" content="Lima">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kolymedical.netlify.app/">
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- Datos Estructurados JSON-LD para Google SEO (Schema.org) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "MedicalClinic",
+    "name": "KolyMedical",
+    "image": "https://kolymedical.netlify.app/LOGO.png",
+    "@id": "https://kolymedical.netlify.app/#clinic",
+    "url": "https://kolymedical.netlify.app/",
+    "telephone": "+51987346934",
+    "email": "kolymedical26@gmail.com",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "Av. Venezuela 615",
+      "addressLocality": "Lima",
+      "addressRegion": "Lima",
+      "postalCode": "15082",
+      "addressCountry": "PE"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": -12.0543,
+      "longitude": -77.0421
+    },
+    "openingHoursSpecification": [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday"
+        ],
+        "opens": "09:00",
+        "closes": "18:00"
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": "Saturday",
+        "opens": "09:00",
+        "closes": "14:00"
+      }
+    ],
+    "medicalSpecialty": [
+      "MedicalSpecialty",
+      "RenalClinic",
+      "Gastroenterology"
+    ],
+    "availableService": [
+      {
+        "@type": "MedicalProcedure",
+        "name": "Medicina Regenerativa y Terapia Celular",
+        "description": "Tratamiento avanzado con células madre y ortobiológicos para artrosis, cirrosis hepática, nefropatías y asma."
+      },
+      {
+        "@type": "MedicalProcedure",
+        "name": "Estudio FibroScan",
+        "description": "Elastografía hepática no invasiva e indolora para diagnóstico de hígado graso y fibrosis."
+      },
+      {
+        "@type": "MedicalProcedure",
+        "name": "Curación de Heridas Crónicas a Domicilio",
+        "description": "Cuidados avanzados a domicilio para úlceras de pie diabético, escaras y úlceras varicosas."
+      }
+    ],
+    "employee": [
+      {
+        "@type": "Physician",
+        "name": "Dr. Joan Pedraza",
+        "medicalSpecialty": "RenalClinic"
+      },
+      {
+        "@type": "Physician",
+        "name": "Dr. Ruslan Golovliov",
+        "medicalSpecialty": "Gastroenterology"
+      }
+    ]
+  }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap');
+
+    /* CONFIGURACIÓN HÍBRIDA DE SECCIONES OSCURAS */
+    .protocols-section, .gallery-carousel-section {
+      background-color: #07090b !important;
+      background-image: radial-gradient(circle at 50% 0%, #152233 0%, #07090b 80%) !important;
+      color: #ffffff !important;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .protocols-section::before, .gallery-carousel-section::before {
+      content: '';
+      position: absolute;
+      top: -20%;
+      left: -20%;
+      width: 140%;
+      height: 140%;
+      background: radial-gradient(circle at 30% 20%, rgba(61, 90, 115, 0.12) 0%, transparent 40%),
+                  radial-gradient(circle at 70% 60%, rgba(0, 168, 150, 0.08) 0%, transparent 45%);
+      z-index: 1;
+      pointer-events: none;
+      animation: auroraShift 45s ease infinite alternate;
+    }
+
+    @keyframes auroraShift {
+      0% { transform: rotate(0deg) scale(1); }
+      50% { transform: rotate(3deg) scale(1.05); }
+      100% { transform: rotate(-3deg) scale(0.98); }
+    }
+
+    /* CONTENEDORES INTERNOS DE LAS SECCIONES OSCURAS */
+    .protocols-section .container, .gallery-carousel-section .container {
+      position: relative;
+      z-index: 2;
+    }
+
+    .protocols-section .section-title, .gallery-carousel-section .section-title {
+      font-family: 'Cormorant Garamond', serif !important;
+      color: #ffffff !important;
+      font-weight: 500 !important;
+      font-size: 2.5rem !important;
+    }
+
+    .protocols-section .section-subtitle, .gallery-carousel-section .section-subtitle {
+      color: rgba(255, 255, 255, 0.75) !important;
+    }
+
+    .protocols-section p, .gallery-carousel-section p,
+    .protocols-section li, .gallery-carousel-section li {
+      color: rgba(255, 255, 255, 0.75) !important;
+    }
+
+    .protocols-section h3 {
+      font-family: 'Cormorant Garamond', serif !important;
+      color: #ffffff !important;
+      font-weight: 500 !important;
+    }
+
+    /* TARJETAS GLASSMORPHISM EN SECCIONES OSCURAS */
+    .protocols-section .tab-btn, .protocols-section .treatment-card, .protocols-section .support-card {
+      background: rgba(255, 255, 255, 0.02) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.02) !important;
+      backdrop-filter: blur(12px) !important;
+      -webkit-backdrop-filter: blur(12px) !important;
+      color: #ffffff !important;
+    }
+
+    .protocols-section .tab-btn.active {
+      background: rgba(0, 168, 150, 0.12) !important;
+      color: #00a896 !important;
+      border-color: rgba(0, 168, 150, 0.3) !important;
+    }
+
+    /* MARQUEE INFINITO (DIVIDER DE TRANSICIÓN) */
+    .marquee-container {
+      background: rgba(61, 90, 115, 0.08) !important;
+      border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+      overflow: hidden;
+      white-space: nowrap;
+      padding: 0.8rem 0;
+      position: relative;
+      z-index: 10;
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+
+    .marquee-track {
+      display: inline-flex;
+      animation: marquee 25s linear infinite;
+    }
+
+    .marquee-content {
+      display: inline-flex;
+      gap: 3rem;
+      padding-right: 3rem;
+    }
+
+    .marquee-content span {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-weight: 500;
+      color: #3d5a73 !important; /* Steel blue */
+    }
+
+    @keyframes marquee {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    /* CENTRADO DE PRECIOS CON FLEXBOX (PSICOLOGÍA EN EL MEDIO) */
+    .pricing-grid {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      justify-content: center !important;
+      gap: 2rem !important;
+      max-width: 1000px !important;
+      margin: 0 auto !important;
+    }
+
+    .price-card {
+      width: calc(33.333% - 1.34rem) !important;
+      min-width: 280px !important;
+    }
+
+    @media (max-width: 992px) {
+      .price-card {
+        width: calc(50% - 1rem) !important;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .price-card {
+        width: 100% !important;
+      }
+    }
+  </style>
+</head>
+
+<body id="public-web">
+
+  <!-- 1. HEADER / NAVEGACIÓN -->
+  <header class="header">
+    <div class="container">
+      <a href="#" class="logo-container">
+        <img src="Logosinfondo.png" alt="KolyMedical" class="logo-icon" style="object-fit: contain;">
+        <div class="logo-text">
+          KolyMedical
+          <span>Ciencia e Innovación</span>
+        </div>
+      </a>
+
+      <nav class="nav-links">
+        <a href="#inicio" class="nav-link">Inicio</a>
+        <a href="#staff" class="nav-link">Staff Médico</a>
+        <a href="#servicios" class="nav-link">Servicios y Tratamientos</a>
+        <a href="#tarifario" class="nav-link">Tarifario</a>
+        <a href="#contacto" class="nav-link">Contacto</a>
+        <a href="admin.html" class="btn btn-panel">Panel Médico</a>
+        <button class="btn btn-accent open-booking-modal">Reservar Cita</button>
+      </nav>
+
+      <button class="menu-toggle" id="mobile-menu-toggle">☰</button>
+    </div>
+  </header>
+
+  <!-- 2. HERO SECTION -->
+  <section class="hero" id="inicio">
+    <div class="container hero-grid">
+      <div class="hero-content">
+        <h1 class="animate-fade">Ciencia, investigación y <span>bienestar</span></h1>
+        <p>En KolyMedical brindamos soluciones médicas integrales y de vanguardia. Especialistas en medicina
+          regenerativa con células madre y diagnóstico avanzado no invasivo para restaurar tu salud y mejorar tu calidad
+          de vida.</p>
+        <div class="hero-buttons">
+          <button class="btn btn-primary open-booking-modal">Reservar Cita Online</button>
+          <a href="#servicios" class="btn btn-secondary"
+            style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Ver
+            Servicios y Tratamientos</a>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="hero-card">
+          <div class="hero-card-header">
+            <div class="pulse-badge">
+              <span class="pulse-dot"></span>
+              KolyMedical
+            </div>
+            <span style="font-size: 0.85rem; color: var(--color-text-muted);">Sede Operativa</span>
+          </div>
+          <p style="font-size: 0.9rem; font-weight: 500; color: var(--color-primary-dark); margin-bottom: 0.5rem;">Sede
+            Principal en Perú</p>
+          <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 1.5rem;">Av. Venezuela 6113,
+            Lima, Perú</p>
+          <div style="border-top: 1px solid var(--color-border); padding-top: 1rem;">
+            <p style="font-size: 0.8rem; color: var(--color-text-muted);"><strong>Modalidad de Atención:</strong></p>
+            <p style="font-size: 0.85rem; color: var(--color-primary-dark);">Presencial en sede & consultas virtuales en
+              todo el Perú.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INFINITE SCROLLING MARQUEE -->
+  <div class="marquee-container">
+    <div class="marquee-track">
+      <div class="marquee-content">
+        <span>Medicina Regenerativa •</span>
+        <span>Células Madre de Cordón Umbilical •</span>
+        <span>Infiltración Ecoguiada •</span>
+        <span>Elastografía Hepática FibroScan •</span>
+        <span>Atención Médica a Domicilio •</span>
+        <span>Seguimiento Clínico Continuo •</span>
+        <span>Bienestar y Longevidad •</span>
+      </div>
+      <div class="marquee-content" aria-hidden="true">
+        <span>Medicina Regenerativa •</span>
+        <span>Células Madre de Cordón Umbilical •</span>
+        <span>Infiltración Ecoguiada •</span>
+        <span>Elastografía Hepática FibroScan •</span>
+        <span>Atención Médica a Domicilio •</span>
+        <span>Seguimiento Clínico Continuo •</span>
+        <span>Bienestar y Longevidad •</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. MÉTODO KOLY -->
+  <section class="section koly-method" id="metodo">
+    <div class="container">
+      <div class="text-center">
+        <h2 class="section-title">El Método KOLY</h2>
+        <p class="section-subtitle">Nuestro modelo estructurado de atención acompaña al paciente en cada etapa,
+          garantizando precisión clínica y soporte humano continuo.</p>
+      </div>
+
+      <div class="method-timeline">
+        <div class="method-card">
+          <span class="method-step">01</span>
+          <h3>Evaluación Integral</h3>
+          <p>Recopilamos tus datos, síntomas, antecedentes y exámenes previos para construir una historia clínica
+            inicial detallada.</p>
+        </div>
+        <div class="method-card">
+          <span class="method-step">02</span>
+          <h3>Diagnóstico Avanzado</h3>
+          <p>Analizamos las condiciones específicas del paciente y los factores de riesgo con tecnologías no invasivas.
+          </p>
+        </div>
+        <div class="method-card">
+          <span class="method-step">03</span>
+          <h3>Plan Personalizado</h3>
+          <p>Diseñamos un plan terapéutico a medida combinando medicina regenerativa, nutrición, psicología y soporte
+            integral.</p>
+        </div>
+        <div class="method-card">
+          <span class="method-step">04</span>
+          <h3>Tratamiento</h3>
+          <p>Coordinamos y aplicamos el tratamiento en nuestras sedes bajo los más estrictos estándares con
+            especialistas calificados.</p>
+        </div>
+        <div class="method-card">
+          <span class="method-step">05</span>
+          <h3>Seguimiento Continuo</h3>
+          <p>Realizamos evaluaciones periódicas de control para optimizar resultados y medir la evolución clínica del
+            paciente.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3.5 NUESTRO STAFF MÉDICO -->
+  <section class="section staff-section" id="staff">
+    <div class="container">
+      <div class="text-center">
+        <h2 class="section-title">Nuestro Staff Médico</h2>
+        <p class="section-subtitle">Profesionales altamente calificados comprometidos con tu bienestar y recuperación
+          integral.</p>
+      </div>
+
+      <div class="staff-grid">
+        <div class="staff-card">
+          <div class="staff-photo-wrapper">
+            <img src="img/staff_pedraza.jpg" alt="Dr. Joan Manuel Pedraza La Barrera" class="staff-photo">
+          </div>
+          <h3>Dr. Joan Manuel Pedraza La Barrera</h3>
+          <span class="staff-title">Patólogo Clínico</span>
+          <span class="staff-specialty">Especialista en Medicina Regenerativa</span>
+        </div>
+
+        <div class="staff-card">
+          <div class="staff-photo-wrapper">
+            <img src="img/staff_amelia.jpg" alt="Lic. Amelia Ester Tenorio Añanca" class="staff-photo">
+          </div>
+          <h3>Lic. Amelia Ester Tenorio Añanca</h3>
+          <span class="staff-title">Nutricionista Clínica</span>
+          <span class="staff-specialty">Planes alimenticios terapéuticos</span>
+        </div>
+
+        <div class="staff-card">
+          <div class="staff-photo-wrapper">
+            <img src="img/morales.jpg" alt="Dr. Joel Morales Pereyra" class="staff-photo">
+          </div>
+          <h3>Dr. Joel Morales Pereyra</h3>
+          <span class="staff-title">Gastroenterólogo</span>
+          <span class="staff-specialty">Diagnóstico y tratamiento digestivo</span>
+        </div>
+
+        <div class="staff-card">
+          <div class="staff-photo-wrapper">
+            <img src="img/ruslan.jpg" alt="Dr. Ruslan Golovliov" class="staff-photo">
+          </div>
+          <h3>Dr. Ruslan Golovliov</h3>
+          <span class="staff-title">Gastroenterólogo</span>
+          <span class="staff-specialty">Especialista en FibroScan y elastografía hepática</span>
+        </div>
+
+        <div class="staff-card">
+          <div class="staff-photo-wrapper">
+            <img src="img/montes.jpg" alt="Dr. Guido Alvaro Montes Pedraza" class="staff-photo">
+          </div>
+          <h3>Dr. Guido Alvaro Montes Pedraza</h3>
+          <span class="staff-title">Otorrinolaringólogo</span>
+          <span class="staff-specialty">Rinólogo y Cirujano Facial</span>
+        </div>
+
+        <div class="staff-card">
+          <div class="staff-photo-wrapper">
+            <img src="img/staff_melendes.jpg" alt="Lic. Ricardo Melendes" class="staff-photo">
+          </div>
+          <h3>Lic. Ricardo Melendes</h3>
+          <span class="staff-title">Psicólogo Clínico</span>
+          <span class="staff-specialty">Acompañamiento integral del paciente</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. SERVICIOS Y TRATAMIENTOS UNIFICADOS -->
+  <section class="section protocols-section" id="servicios">
+    <div class="container">
+      <div class="text-center">
+        <h2 class="section-title" style="color: #ffffff;">Servicios y Tratamientos</h2>
+        <p class="section-subtitle" style="color: rgba(255,255,255,0.75); max-width: 800px; margin: 0 auto 3rem auto;">
+          Ofrecemos un abordaje médico integral y de vanguardia. Los tratamientos regenerativos principales son
+          realizados por el <strong>Dr. Joan Manuel Pedraza La Barrera</strong>, apoyado de forma interdisciplinaria por
+          especialistas de soporte y exámenes auxiliares de alta tecnología.
+        </p>
+      </div>
+
+      <!-- Sistema de Pestañas (Tabs) Horizontales con Scroll en Móvil -->
+      <div class="protocol-tabs">
+        <button class="protocol-tab active" data-tab="general">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path
+              d="M4.5 10.5C4.5 7.46243 6.96243 5 10 5C13.0376 5 15.5 7.46243 15.5 10.5M10 5V19M4.5 10.5C4.5 13.5376 6.96243 16 10 16C13.0376 16 15.5 13.5376 15.5 10.5M10 16V19M10 19H14M10 5H6" />
+          </svg>
+          Medicina Regenerativa
+        </button>
+        <button class="protocol-tab" data-tab="rodilla">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path
+              d="M12 2v20M5 5v14c0 1.66 3.13 3 7 3s7-1.34 7-3V5M5 5c0 1.66 3.13 3 7 3s7-1.34 7-3M5 5c0-1.66 3.13-3 7-3s7 1.34 7 3" />
+          </svg>
+          Dolor de Rodilla
+        </button>
+        <button class="protocol-tab" data-tab="columna">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 3v18M8 6h8M8 10h8M8 14h8M8 18h8" />
+          </svg>
+          Dolor de Columna
+        </button>
+        <button class="protocol-tab" data-tab="hepaticas">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 4c-4.418 0-8 3.582-8 8s3.582 8 8 8 8-3.582 8-8-3.582-8-8-8zm-3 8h6M12 9v6" />
+          </svg>
+          Enfermedades Hepáticas
+        </button>
+        <button class="protocol-tab" data-tab="pulmonares">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path
+              d="M9 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm6 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm-6 2c-3 0-5 2-5 5v1h10v-1c0-3-2-5-5-5zm6 0c-3 0-5 2-5 5v1h10v-1c0-3-2-5-5-5z" />
+          </svg>
+          Enfermedades Pulmonares
+        </button>
+        <button class="protocol-tab" data-tab="oncologicas">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path
+              d="M12 2c-2.76 0-5 2.24-5 5 0 3.18 3.2 6.64 4.54 8.04.26.27.66.27.92 0C13.8 13.64 17 10.18 17 7c0-2.76-2.24-5-5-5zm0 6.75a1.75 1.75 0 1 1 0-3.5 1.75 1.75 0 0 1 0 3.5z" />
+          </svg>
+          Oncológicas
+        </button>
+        <button class="protocol-tab" data-tab="neurologicas">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path
+              d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.9 1M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.9 1M12 4.5c0 3 4 3 4 6s-4 3-4 6" />
+          </svg>
+          Neurológicas
+        </button>
+        <button class="protocol-tab" data-tab="fibroscan">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          Estudio FibroScan
+        </button>
+        <button class="protocol-tab" data-tab="soporte">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="12" rx="2" />
+            <path d="M12 18v3M10 21h4" />
+          </svg>
+          Consultas de Soporte
+        </button>
+      </div>
+
+      <!-- Contenidos de las Pestañas -->
+
+      <!-- 1. Medicina Regenerativa General -->
+      <div class="protocol-content active" id="tab-general">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center;">
+          <div>
+            <h3 style="font-size: 1.8rem; color: #fff; margin-bottom: 1.5rem; font-weight: 700;">Terapia Celular y
+              Medicina Regenerativa</h3>
+            <p style="color: rgba(255,255,255,0.85); line-height: 1.7; margin-bottom: 1.5rem;">
+              La medicina regenerativa representa una alternativa complementaria y avanzada frente a los tratamientos
+              convencionales. Mediante la aplicación de células madre adultas y factores inductores biológicos, nos
+              enfocamos en detener el daño tisular y revertir la progresión de enfermedades crónicas, autoinmunes y
+              degenerativas.
+            </p>
+            <p style="color: rgba(255,255,255,0.85); line-height: 1.7; margin-bottom: 2rem;">
+              Todos nuestros protocolos principales son diseñados y dirigidos por el <strong>Dr. Joan Manuel Pedraza La
+                Barrera</strong>, garantizando el máximo estándar en trazabilidad y precisión celular.
+            </p>
+            <button class="btn btn-accent open-booking-modal" style="padding: 1rem 2rem;">Reservar Evaluación
+              Inicial</button>
+          </div>
+          <div>
+            <img src="img/tratamiento_celulas_madre.jpg" alt="Terapia Regenerativa"
+              style="width: 100%; border-radius: var(--border-radius-md); box-shadow: var(--shadow-lg); object-fit: cover; height: 350px;">
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Dolor de Rodilla -->
+      <div class="protocol-content" id="tab-rodilla">
+        <div class="protocol-grid">
+          <div class="protocol-card">
+            <h4>Patologías Tratadas</h4>
+            <ul class="protocol-list">
+              <li>Artrosis de rodilla (desgaste de cartílago)</li>
+              <li>Condromalacia rotuliana o patelar</li>
+              <li>Rotura y lesiones de meniscos</li>
+              <li>Esguinces articulares y ligamentosos</li>
+              <li>Tendinosis patelar o cuadricipital</li>
+              <li>Entesitis y Quiste de Baker</li>
+            </ul>
+          </div>
+          <div class="protocol-card">
+            <h4>Terapias Regenerativas</h4>
+            <ul class="protocol-list terapias">
+              <li>Células Madre adultas</li>
+              <li>Plasma Rico en Plaquetas (PRP) autólogo</li>
+              <li>Factores de crecimiento ortobiológicos</li>
+              <li>Ozonoterapia articular dirigida</li>
+              <li>Ácido Hialurónico intraarticular</li>
+              <li>Bloqueos y proloterapia localizada</li>
+            </ul>
+          </div>
+          <div class="protocol-card benefits-card">
+            <h4>Beneficios Clínicos</h4>
+            <div class="benefits-grid">
+              <div class="benefit-item">
+                <strong>Alivio del Dolor</strong>
+                <p>Disminuye el dolor crónico permitiendo recuperar la movilidad diaria.</p>
+              </div>
+              <div class="benefit-item">
+                <strong>Reparación Articular</strong>
+                <p>Estimula la regeneración natural del cartílago, tendones y ligamentos.</p>
+              </div>
+              <div class="benefit-item">
+                <strong>Alternativa No Quirúrgica</strong>
+                <p>Evita o posterga cirugías invasivas de reemplazo articular (prótesis).</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Dolor de Columna -->
+      <div class="protocol-content" id="tab-columna">
+        <div class="protocol-grid">
+          <div class="protocol-card">
+            <h4>Patologías Tratadas</h4>
+            <ul class="protocol-list">
+              <li>Hernia Discal (cervical, dorsal, lumbar)</li>
+              <li>Síndrome Facetario y Espondiloartrosis</li>
+              <li>Sacroileitis e inflamación sacroilíaca</li>
+              <li>Síndrome Piramidal (pseudociática)</li>
+              <li>Cervicalgias, Dorsalgias y Lumbalgias crónicas</li>
+              <li>Espondilolistesis y Estenosis Foraminal</li>
+              <li>Hipertrofia de ligamento amarillo y síndrome miofascial</li>
+            </ul>
+          </div>
+          <div class="protocol-card">
+            <h4>Terapias Regenerativas</h4>
+            <ul class="protocol-list terapias">
+              <li>Células Madre y inductores celulares</li>
+              <li>Factores de crecimiento plaquetarios (PRP)</li>
+              <li>Ozonoterapia discal e intramuscular</li>
+              <li>Neurolisis periférica y terapia PIT (Terapia Infiltrativa Perineural)</li>
+              <li>Proloterapia regenerativa lumbar</li>
+            </ul>
+          </div>
+          <div class="protocol-card benefits-card">
+            <h4>Beneficios Clínicos</h4>
+            <div class="benefits-grid">
+              <div class="benefit-item">
+                <strong>Efecto Antiinflamatorio</strong>
+                <p>Modula la cascada inflamatoria rodeando los nervios comprometidos.</p>
+              </div>
+              <div class="benefit-item">
+                <strong>Estabilización Espinal</strong>
+                <p>Fortalece el soporte ligamentoso y muscular de los segmentos espinales.</p>
+              </div>
+              <div class="benefit-item">
+                <strong>Liberación Nerviosa</strong>
+                <p>Reduce la compresión y el adormecimiento irradiado a miembros inferiores.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Enfermedades Hepáticas -->
+      <div class="protocol-content" id="tab-hepaticas">
+        <div class="protocol-grid">
+          <div class="protocol-card">
+            <h4>Patologías Tratadas</h4>
+            <ul class="protocol-list">
+              <li>Hígado Graso (esteatosis hepática severa)</li>
+              <li>Cirrosis Hepática (estadios Child A, B y C)</li>
+              <li>Hepatitis Autoinmune</li>
+              <li>Cirrosis Biliar Primaria</li>
+              <li>Enfermedad de Wilson</li>
+            </ul>
+          </div>
+          <div class="protocol-card">
+            <h4>Terapias Intraparenquimales y Sistémicas</h4>
+            <ul class="protocol-list terapias">
+              <li>Células Madre Mesenquimales (MSC)</li>
+              <li>BMAC / Ficoll-Paque de Médula Ósea</li>
+              <li>FVE de Tejido Adiposo autólogo</li>
+              <li>Gelatina de Wharton de Cordón Umbilical</li>
+              <li>Infiltración directa intraparenquimal guiada</li>
+            </ul>
+            <p class="protocol-note">* Seguimiento clínico especializado por Gastroenterología</p>
+          </div>
+          <div class="protocol-card benefits-card">
+            <h4>Beneficios Clínicos Basados en Evidencia</h4>
+            <div class="benefits-grid">
+              <div class="benefit-item">
+                <strong>Regeneración Tisular</strong>
+                <p>Las MSC promueven la regeneración de hepatocitos y mejoran la arquitectura hepática.</p>
+              </div>
+              <div class="benefit-item">
+                <strong>Reducción de Fibrosis</strong>
+                <p>Disminuye la activación de células estrelladas, limitando el depósito de colágeno fibrótico.</p>
+              </div>
+              <div class="benefit-item">
+                <strong>Soporte Sintético</strong>
+                <p>Mejora parámetros bioquímicos cruciales: transaminasas, bilirrubina y síntesis de albúmina.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Enfermedades Pulmonares -->
+      <div class="protocol-content" id="tab-pulmonares">
+        <div class="protocol-grid">
+          <div class="protocol-card">
+            <h4>Patologías Tratadas</h4>
+            <ul class="protocol-list">
+              <li>Fibrosis Pulmonar avanzada</li>
+              <li>EPOC (Enfermedad Pulmonar Obstructiva Crónica)</li>
+              <li>Secuelas respiratorias graves de COVID-19</li>
+              <li>Secuelas de Tuberculosis (TBC)</li>
+              <li>Hiperreactividad bronquial severa</li>
+            </ul>
+          </div>
+          <div class="protocol-card">
+            <h4>Terapias Regenerativas Inhaladas y Sistémicas</h4>
+            <ul class="protocol-list terapias">
+              <li>Nebulización biológica de inductores celulares</li>
+              <li>Factores liberadores endovenosos</li>
+              <li>Terapia con células madre adultas sistémica</li>
+              <li>Soporte de inmunomodulación</li>
+            </ul>
+          </div>
+          <div class="protocol-card benefits-card">
+            <h4>Beneficios Clínicos</h4>
+            <div class="benefits-grid">
+              <div class="benefit-item">
+                <strong>Mejora de la Capacidad Vital</strong>
+                <p>Optimiza la oxigenación general y reduce la disnea (falta de aire) de esfuerzo.</p>
+              </div>
+              <div class="benefit-item">
+                <strong>Efecto Antifibrótico</strong>
+                <p>Ayuda a frenar la progresión del endurecimiento de las paredes alveolares pulmonares.</p>
+              </div>
+              <div class="benefit-item">
+                <strong>Desinflamación Bronquial</strong>
+                <p>Reduce la hiperreactividad y la inflamación obstructiva del árbol respiratorio.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. Oncológicas -->
+      <div class="protocol-content" id="tab-oncologicas">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center;">
+          <div>
+            <h3 style="font-size: 1.6rem; color: #fff; margin-bottom: 1.5rem; font-weight: 700;">Inmunoterapia Celular
+              de Autovacunas</h3>
+            <p style="color: rgba(255,255,255,0.85); line-height: 1.7; margin-bottom: 1.5rem;">
+              Ofrecemos un tratamiento celular personalizado mediante la preparación y aplicación de <strong>autovacunas
+                oncológicas</strong>. Este protocolo complementa los tratamientos convencionales y tiene como fin
+              reactivar el propio sistema inmunitario del paciente para reconocer y combatir células tumorales
+              específicas.
+            </p>
+            <p style="color: rgba(255,255,255,0.85); line-height: 1.7; margin-bottom: 1.5rem;">
+              <strong>Patologías de Apoyo:</strong> Cáncer de mama, cáncer de hígado, tumores sólidos y soporte
+              inmunológico avanzado post-quimioterapia.
+            </p>
+            <button class="btn btn-accent open-booking-modal">Solicitar Pre-Evaluación</button>
+          </div>
+          <div>
+            <img src="img/autovacunas_oncologia.jpg" alt="Autovacunas Oncológicas"
+              style="width: 100%; border-radius: var(--border-radius-md); box-shadow: var(--shadow-lg); object-fit: cover; height: 300px;">
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. Neurológicas -->
+      <div class="protocol-content" id="tab-neurologicas">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center;">
+          <div>
+            <h3 style="font-size: 1.6rem; color: #fff; margin-bottom: 1.5rem; font-weight: 700;">Soporte Neurológico
+              Regenerativo</h3>
+            <p style="color: rgba(255,255,255,0.85); line-height: 1.7; margin-bottom: 1.5rem;">
+              Protocolos enfocados en la neuroprotección y en mitigar la tasa de neurodegeneración celular. Mediante
+              factores liberadores y secretoma de células madre adultas, se busca brindar un soporte biológico al tejido
+              nervioso central y periférico.
+            </p>
+            <p style="color: rgba(255,255,255,0.85); line-height: 1.7; margin-bottom: 1.5rem;">
+              <strong>Patologías Abordadas:</strong>
+            </p>
+            <ul style="color: rgba(255,255,255,0.85); margin-left: 1.5rem; margin-bottom: 1.5rem; line-height: 1.6;">
+              <li>Esclerosis Lateral Amiotrófica (ELA)</li>
+              <li>Enfermedad de Parkinson (soporte de síntomas y rigidez)</li>
+              <li>Secuelas de accidentes cerebrovasculares</li>
+            </ul>
+          </div>
+          <div>
+            <img src="img/neurologicas.jpg" alt="Enfermedades Neurológicas"
+              style="width: 100%; border-radius: var(--border-radius-md); box-shadow: var(--shadow-lg); object-fit: cover; height: 300px;">
+          </div>
+        </div>
+      </div>
+
+      <!-- 8. Estudio FibroScan -->
+      <div class="protocol-content" id="tab-fibroscan">
+        <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 2rem; align-items: center;">
+          <div>
+            <h3 style="font-size: 1.6rem; color: #fff; margin-bottom: 1.25rem; font-weight: 700;">Estudio Diagnóstico
+              Auxiliar FibroScan</h3>
+            <p style="color: rgba(255,255,255,0.85); line-height: 1.7; margin-bottom: 1.25rem;">
+              El **FibroScan** (elastografía hepática) representa un examen auxiliar diagnóstico crucial y no invasivo.
+              Permite medir y estadificar de forma inmediata la rigidez del hígado, hígado graso (esteatosis) y cirrosis
+              hepática sin necesidad de biopsias dolorosas ni agujas.
+            </p>
+            <p style="color: rgba(255,255,255,0.85); line-height: 1.7; margin-bottom: 1.5rem;">
+              Es una herramienta esencial indicada por el médico especialista para el diagnóstico precoz y monitoreo
+              continuo de cirrosis hepática o fibrosis del tejido pulmonar.
+            </p>
+            <p style="color: var(--color-accent-light); font-weight: 600; margin-bottom: 1.5rem;">* Realizado de forma
+              presencial por el especialista Dr. Ruslan Golovliov.</p>
+            <button class="btn btn-accent open-booking-modal">Reservar Examen FibroScan</button>
+          </div>
+          <div>
+            <img src="img/fibroscan_estudio.jpg" alt="Examen Fibroscan"
+              style="width: 100%; border-radius: var(--border-radius-md); box-shadow: var(--shadow-lg); object-fit: cover; height: 280px; margin-bottom: 1rem;">
+          </div>
+        </div>
+      </div>
+
+      <!-- 9. Especialidades de Soporte -->
+      <div class="protocol-content" id="tab-soporte">
+        <h3 style="font-size: 1.6rem; color: #fff; margin-bottom: 2rem; font-weight: 700; text-align: center;">Consultas
+          de Soporte y Acompañamiento Clínico</h3>
+        <p
+          style="color: rgba(255,255,255,0.85); text-align: center; max-width: 700px; margin: 0 auto 2.5rem auto; font-size: 0.95rem; line-height: 1.6;">
+          Especialidades transversales encargadas de realizar las consultas de control, seguimiento y coadyuvancia en la
+          nutrición, digestión y bienestar psicológico de nuestros pacientes en tratamiento regenerativo.
+        </p>
+
+        <div class="support-specialties-grid">
+          <!-- Nutrición -->
+          <div class="support-specialty-card">
+            <div class="support-card-image-wrapper">
+              <img src="img/nutricion_antienvejecimiento.jpg" alt="Nutrición Clínica">
+            </div>
+            <h5>Nutrición Clínica</h5>
+            <p>Planes alimenticios terapéuticos adaptados a pacientes metabólicos y crónicos.</p>
+            <span class="support-doc-badge">Control: Lic. Amelia</span>
+          </div>
+
+          <!-- Gastro -->
+          <div class="support-specialty-card">
+            <div class="support-card-image-wrapper">
+              <img src="img/gastroenterologia.jpg" alt="Gastroenterología">
+            </div>
+            <h5>Gastroenterología</h5>
+            <p>Diagnóstico, control y tratamiento de patologías digestivas y gastritis crónica.</p>
+            <span class="support-doc-badge">Control: Dr. Joel Morales</span>
+          </div>
+
+          <!-- ORL -->
+          <div class="support-specialty-card">
+            <div class="support-card-image-wrapper">
+              <img src="img/otorrino_consulta.jpg" alt="Otorrinolaringología">
+            </div>
+            <h5>Otorrinolaringología</h5>
+            <p>Evaluación y tratamiento de afecciones del oído, nariz y garganta.</p>
+            <span class="support-doc-badge">Control: Dr. Guido Montes</span>
+          </div>
+
+          <!-- Psicología -->
+          <div class="support-specialty-card">
+            <div class="support-card-image-wrapper">
+              <img src="img/psicología.jpg" alt="Psicología Clínica">
+            </div>
+            <h5>Psicología Clínica</h5>
+            <p>Acompañamiento emocional y mental indispensable para afrontar enfermedades crónicas y degenerativas.</p>
+            <span class="support-doc-badge">Control: Lic. Ricardo Melendes</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 4.5 GALERÍA DE PROCEDIMIENTOS (CARRUSEL) -->
+  <section class="gallery-carousel-section" id="galeria">
+    <div class="container">
+      <div class="text-center">
+        <h2 class="section-title">Galería de Procedimientos</h2>
+        <p class="section-subtitle">Imágenes reales de nuestros procedimientos clínicos y tratamientos aplicados.</p>
+      </div>
+
+      <div class="carousel-wrapper">
+        <div class="carousel-track" id="gallery-carousel-track">
+          <div class="carousel-slide">
+            <img src="img/img1.jpg" alt="Infiltración ecoguiada articular">
+            <div class="carousel-caption">
+              <h4>Infiltración Ecoguiada</h4>
+              <p>Infiltración articular precisa en hombro y cuello con apoyo ecográfico en tiempo real.</p>
+            </div>
+          </div>
+          <div class="carousel-slide">
+            <img src="img/img2.jpg" alt="Células madre de médula ósea">
+            <div class="carousel-caption">
+              <h4>Células Madre de Médula Ósea</h4>
+              <p>Procedimiento especializado para la obtención y aplicación de inductores celulares.</p>
+            </div>
+          </div>
+          <div class="carousel-slide">
+            <img src="img/img3.jpg" alt="Células madre en viales">
+            <div class="carousel-caption">
+              <h4>Células Madre en Viales (Trustem)</h4>
+              <p>Productos de alta pureza e innovación para el restablecimiento de tejidos dañados.</p>
+            </div>
+          </div>
+          <div class="carousel-slide">
+            <img src="img/img4.jpg" alt="Infiltración directa de rodilla">
+            <div class="carousel-caption">
+              <h4>Terapia Intraarticular</h4>
+              <p>Tratamiento regenerativo directo para la artrosis de rodilla y desgaste de cartílago.</p>
+            </div>
+          </div>
+          <div class="carousel-slide">
+            <img src="img/img5.jpg" alt="Extracción y preparación de plasma">
+            <div class="carousel-caption">
+              <h4>Obtención de Factores de Crecimiento</h4>
+              <p>Procedimiento de extracción sanguínea inicial para el procesamiento de plasma rico en plaquetas.</p>
+            </div>
+          </div>
+          <div class="carousel-slide">
+            <img src="img/img6.jpg" alt="Procesamiento en cabina biológica">
+            <div class="carousel-caption">
+              <h4>Laboratorio Especializado</h4>
+              <p>Preparación hermética y estéril de fórmulas terapéuticas biológicas.</p>
+            </div>
+          </div>
+          <div class="carousel-slide">
+            <img src="img/img7.jpg" alt="Células madre con solución de trazabilidad de fluorescencia">
+            <div class="carousel-caption">
+              <h4>Solución de Trazabilidad</h4>
+              <p>Células madre con una solución de trazabilidad de fluorescencia para precisión clínica.</p>
+            </div>
+          </div>
+          <div class="carousel-slide">
+            <img src="img/img8.jpg" alt="Células madre de cordón umbilical">
+            <div class="carousel-caption">
+              <h4>Gelatina de Wharton</h4>
+              <p>Células madre de cordón umbilical obtenidas de Gelatina de Wharton.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="carousel-nav">
+        <button class="carousel-btn" id="carousel-prev">◀</button>
+        <div class="carousel-dots" id="carousel-dots"></div>
+        <button class="carousel-btn" id="carousel-next">▶</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. TARIFARIO BASE -->
+  <section class="section pricing-section" id="tarifario">
+    <div class="container">
+      <div class="text-center">
+        <h2 class="section-title">Tarifas de Consulta</h2>
+        <p class="section-subtitle">Costos transparentes de evaluación inicial. Los tratamientos regenerativos se
+          cotizan de forma personalizada según el estadio clínico del paciente.</p>
+      </div>
+
+      <div class="pricing-grid">
+        <!-- Tarifa 1: Medicina Regenerativa -->
+        <div class="price-card">
+          <h3>Medicina Regenerativa</h3>
+          <div class="price-amount"><span class="price-currency">S/</span> 100</div>
+          <span class="price-period">Por Consulta Inicial</span>
+          <ul class="price-features">
+            <li>Evaluación con el Dr. Pedraza</li>
+            <li>Revisión de historial clínico</li>
+            <li>Pre-diagnóstico personalizado</li>
+            <li>Presencial o Virtual</li>
+          </ul>
+          <button class="btn btn-primary open-booking-modal" style="width: 100%;">Reservar Consulta</button>
+        </div>
+
+        <!-- Tarifa 2: Fibroscan -->
+        <div class="price-card popular">
+          <h3>Estudio FibroScan</h3>
+          <div class="price-amount"><span class="price-currency">S/</span> 650</div>
+          <span class="price-period">Por Estudio Diagnóstico</span>
+          <ul class="price-features">
+            <li>Elastografía hepática inmediata</li>
+            <li>Entrega de informe al instante</li>
+            <li>No invasivo y sin dolor</li>
+            <li>Realizado por el Dr. Ruslan Golovliov</li>
+            <li>Atención únicamente Presencial</li>
+          </ul>
+          <button class="btn btn-accent open-booking-modal" style="width: 100%;">Reservar Estudio</button>
+        </div>
+
+        <!-- Tarifa 3: Nutrición Clínica -->
+        <div class="price-card">
+          <h3>Nutrición Clínica</h3>
+          <div class="price-amount"><span class="price-currency">S/</span> 150</div>
+          <span class="price-period">Por Consulta Inicial</span>
+          <ul class="price-features">
+            <li>Evaluación con Lic. Amelia</li>
+            <li>Diseño de plan alimenticio</li>
+            <li>Enfoque terapéutico clínico</li>
+            <li>Presencial o Virtual</li>
+          </ul>
+          <button class="btn btn-primary open-booking-modal" style="width: 100%;">Reservar Consulta</button>
+        </div>
+
+        <!-- Tarifa 4: Psicología Clínica -->
+        <div class="price-card">
+          <h3>Psicología Clínica</h3>
+          <div class="price-amount"><span class="price-currency">S/</span> 100</div>
+          <span class="price-period">Por Consulta Especializada</span>
+          <ul class="price-features">
+            <li>Evaluación con Lic. Ricardo Melendes</li>
+            <li>Acompañamiento emocional integral</li>
+            <li>Soporte a pacientes crónicos</li>
+            <li>Presencial o Virtual</li>
+          </ul>
+          <button class="btn btn-primary open-booking-modal" style="width: 100%;">Reservar Consulta</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. CONTACTO -->
+  <section class="section" id="contacto">
+    <div class="container" style="max-width: 800px;">
+      <div class="text-center">
+        <h2 class="section-title">Contáctanos</h2>
+        <p class="section-subtitle">¿Tienes consultas o deseas una pre-evaluación rápida? Escríbenos directamente a
+          WhatsApp y un asesor comercial te guiará.</p>
+        <a href="https://wa.me/51987346934?text=Hola%20KolyMedical,%20deseo%20informaci%C3%B3n%20sobre%20los%20tratamientos."
+          target="_blank" class="btn btn-accent btn-lg" style="padding: 1.2rem 2.5rem; font-size: 1.1rem;">
+          💬 Enviar Mensaje a WhatsApp
+        </a>
+        <p style="margin-top: 1.5rem; font-size: 0.85rem; color: var(--color-text-muted);">
+          Horario de Atención: Lunes a Viernes 9:00 am - 6:00 pm | Sábados 9:00 am - 2:00 pm
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. MODAL DE AGENDAMIENTO PASO A PASO (PACIENTES) -->
+  <div class="modal" id="booking-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Reserva de Cita</h2>
+        <span class="modal-close">&times;</span>
+      </div>
+
+      <!-- Indicador de pasos -->
+      <div style="padding-top: 1.5rem;">
+        <div class="step-indicator">
+          <div class="step-dot active"></div>
+          <div class="step-dot"></div>
+          <div class="step-dot"></div>
+        </div>
+      </div>
+
+      <div class="booking-form">
+        <!-- PASO 1: Servicio e Especialista -->
+        <div class="form-step active">
+          <h3 style="font-size: 1.1rem; color: var(--color-primary); margin-bottom: 1.5rem;">Paso 1: ¿Qué consulta
+            deseas agendar?</h3>
+          <div class="form-group">
+            <label for="booking-service">Servicio / Tratamiento:</label>
+            <select id="booking-service" class="form-control">
+              <option value="">-- Selecciona Servicio --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="booking-doctor">Médico Especialista:</label>
+            <select id="booking-doctor" class="form-control" disabled>
+              <option value="">-- Selecciona Especialista --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="booking-modality">Modalidad de Cita:</label>
+            <select id="booking-modality" class="form-control">
+              <option value="Presencial">Presencial</option>
+              <option value="Virtual">Virtual</option>
+            </select>
+            <div id="booking-modality-note"
+              style="color: var(--color-primary-light); font-size: 0.8rem; margin-top: 0.5rem; display: none; font-weight: 500;">
+            </div>
+          </div>
+        </div>
+
+        <!-- PASO 2: Fecha y Hora -->
+        <div class="form-step">
+          <h3 style="font-size: 1.1rem; color: var(--color-primary); margin-bottom: 1.5rem;">Paso 2: Selecciona la fecha
+            y hora</h3>
+          <div class="form-group">
+            <label for="booking-date">Fecha de la Cita:</label>
+            <input type="date" id="booking-date" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>Horarios Disponibles:</label>
+            <input type="hidden" id="booking-selected-time">
+            <div class="time-grid" id="time-slots-grid">
+              <p style="color: var(--color-text-muted); font-size: 0.85rem; padding: 0.5rem; grid-column: span 4;">
+                Selecciona una especialidad y fecha primero.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- PASO 3: Datos de Contacto -->
+        <div class="form-step">
+          <h3 style="font-size: 1.1rem; color: var(--color-primary); margin-bottom: 1.5rem;">Paso 3: Tus Datos de
+            Contacto</h3>
+          <div class="form-group">
+            <label for="booking-name">Nombre y Apellido del Paciente:</label>
+            <input type="text" id="booking-name" class="form-control" placeholder="Ej. Carlos Mendoza">
+          </div>
+          <div class="form-group">
+            <label for="booking-age">Edad:</label>
+            <input type="number" id="booking-age" class="form-control" placeholder="Ej. 45" min="1" max="120">
+          </div>
+          <div class="form-group">
+            <label for="booking-phone">Número de Teléfono / WhatsApp:</label>
+            <input type="tel" id="booking-phone" class="form-control" placeholder="Ej. 987654321">
+          </div>
+          <div class="form-group" id="booking-address-group" style="display: none;">
+            <label for="booking-address">Dirección exacta (servicio a domicilio):</label>
+            <input type="text" id="booking-address" class="form-control"
+              placeholder="Ej. Av. Ejemplo 123, Dpto 4, San Isidro, Lima">
+            <div style="color: var(--color-primary-light); font-size: 0.8rem; margin-top: 0.5rem; font-weight: 500;">
+              Indícanos una referencia clara para la visita a domicilio.</div>
+          </div>
+        </div>
+
+        <!-- Navegación del Formulario -->
+        <div class="form-navigation">
+          <button class="btn btn-secondary" id="btn-prev" style="display: none;">Atrás</button>
+          <button class="btn btn-primary" id="btn-next" style="margin-left: auto;">Siguiente</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. FOOTER -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-logo">
+            <img src="Logosinfondo.png" alt="KolyMedical Logo" class="logo-icon"
+              style="width: 35px; height: 35px; object-fit: contain;">
+            KolyMedical
+          </div>
+          <p class="footer-desc">Centro médico organizador de tu evolución de salud. Desde la primera consulta hasta el
+            tratamiento definitivo.</p>
+        </div>
+
+        <div class="footer-links">
+          <h4>Navegación</h4>
+          <ul>
+            <li><a href="#inicio">Inicio</a></li>
+            <li><a href="#staff">Staff Médico</a></li>
+            <li><a href="#servicios">Servicios</a></li>
+            <li><a href="#galeria">Galería</a></li>
+            <li><a href="#tarifario">Tarifario</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-contact">
+          <h4>Contacto</h4>
+          <ul>
+            <li>📍 Av. Venezuela 6113, Lima, Perú</li>
+            <li>📞 WhatsApp: +51 987 346 934</li>
+            <li>✉️ Correo: kolymedical26@gmail.com</li>
+            <li>🕒 Lun-Vie: 9am - 6pm | Sáb: 9am - 2pm</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>&copy; 2026 KolyMedical. Todos los derechos reservados. | "Ciencia, investigación y bienestar"</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- El Cajón de Tratamientos ha sido unificado dentro de la sección principal de Servicios y Tratamientos -->
+
+  <!-- BUZÓN DE SUGERENCIAS (Botón flotante + Modal) -->
+  <button class="suggestion-fab" id="suggestion-fab" title="Buzón de Sugerencias">
+    📢
+  </button>
+  <div class="suggestion-modal" id="suggestion-modal">
+    <div class="suggestion-modal-content">
+      <div class="suggestion-modal-header">
+        <h3>📢 Buzón de Sugerencias</h3>
+        <button class="suggestion-close" id="suggestion-close">&times;</button>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 1rem;">Tu opinión nos ayuda a
+        mejorar. Déjanos tu sugerencia, comentario o recomendación:</p>
+      <form id="suggestion-form">
+        <div class="form-group">
+          <label for="suggestion-name">Tu Nombre (opcional):</label>
+          <input type="text" id="suggestion-name" class="form-control" placeholder="Nombre">
+        </div>
+        <div class="form-group">
+          <label for="suggestion-text">Tu Sugerencia:</label>
+          <textarea id="suggestion-text" class="form-control" rows="4" placeholder="Escribe aquí tu sugerencia..."
+            required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Enviar Sugerencia</button>
+      </form>
+      <div id="suggestion-success" style="display:none; text-align:center; padding: 2rem;">
+        <span style="font-size: 3rem;">✅</span>
+        <p style="margin-top: 1rem; font-weight: 600; color: var(--color-primary);">¡Gracias por tu sugerencia!</p>
+        <p style="font-size: 0.85rem; color: var(--color-text-muted);">Tu opinión es muy valiosa para nosotros.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Supabase Client CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="app.js"></script>
+  <script>
+    // Control de Menú Móvil
+    const menuToggle = document.getElementById('mobile-menu-toggle');
+    const navLinks = document.querySelector('.nav-links');
+
+    menuToggle.addEventListener('click', () => {
+      const isVisible = navLinks.style.display === 'flex';
+      navLinks.style.display = isVisible ? 'none' : 'flex';
+      if (!isVisible) {
+        navLinks.style.flexDirection = 'column';
+        navLinks.style.position = 'absolute';
+        navLinks.style.top = '80px';
+        navLinks.style.left = '0';
+        navLinks.style.right = '0';
+        navLinks.style.backgroundColor = '#FFFFFF';
+        navLinks.style.padding = '2rem';
+        navLinks.style.boxShadow = 'var(--shadow-md)';
+        navLinks.style.gap = '1.5rem';
+      }
+    });
+
+    // Restaurar navegación al cambiar resolución
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 768) {
+        navLinks.style.display = 'flex';
+        navLinks.style.flexDirection = 'row';
+        navLinks.style.position = 'static';
+        navLinks.style.boxShadow = 'none';
+        navLinks.style.padding = '0';
+      } else {
+        navLinks.style.display = 'none';
+      }
+    });
+
+    // Tabs de Servicios y Tratamientos
+    document.querySelectorAll('.protocol-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        // Desactivar todos los tabs y contenidos
+        document.querySelectorAll('.protocol-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.protocol-content').forEach(c => c.classList.remove('active'));
+        // Activar el seleccionado
+        tab.classList.add('active');
+        const target = document.getElementById('tab-' + tab.dataset.tab);
+        if (target) target.classList.add('active');
+      });
+    });
+
+    // Buzón de Sugerencias
+    const suggestionFab = document.getElementById('suggestion-fab');
+    const suggestionModal = document.getElementById('suggestion-modal');
+    const suggestionClose = document.getElementById('suggestion-close');
+    const suggestionForm = document.getElementById('suggestion-form');
+    const suggestionSuccess = document.getElementById('suggestion-success');
+
+    suggestionFab.addEventListener('click', () => {
+      suggestionModal.classList.add('open');
+    });
+
+    suggestionClose.addEventListener('click', () => {
+      suggestionModal.classList.remove('open');
+    });
+
+    suggestionModal.addEventListener('click', (e) => {
+      if (e.target === suggestionModal) {
+        suggestionModal.classList.remove('open');
+      }
+    });
+
+    suggestionForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = document.getElementById('suggestion-name').value.trim() || 'Anónimo';
+      const text = document.getElementById('suggestion-text').value.trim();
+      if (!text) return;
+
+      // Enviar por WhatsApp como sugerencia interna
+      const msg = `📢 SUGERENCIA WEB - KolyMedical\n\nDe: ${name}\nMensaje: ${text}`;
+      const encodedMsg = encodeURIComponent(msg);
+      window.open(`https://wa.me/51987346934?text=${encodedMsg}`, '_blank');
+
+      // Guardar sugerencia localmente para el panel médico
+      if (window.DB && window.DB.saveSuggestion) {
+        window.DB.saveSuggestion(name, text);
+      }
+
+      // Mostrar éxito
+      suggestionForm.style.display = 'none';
+      suggestionSuccess.style.display = 'block';
+
+      // Resetear después de 3s
+      setTimeout(() => {
+        suggestionForm.reset();
+        suggestionForm.style.display = 'block';
+        suggestionSuccess.style.display = 'none';
+        suggestionModal.classList.remove('open');
+      }, 3000);
+    });
+  </script>
+
+  <!-- CANVAS BACKGROUND PARTICLES -->
+  <!-- CANVAS BACKGROUND PARTICLES -->
+  <script>
+    (function() {
+      const initParticles = (sectionSelector) => {
+        const section = document.querySelector(sectionSelector);
+        if (!section) return;
+
+        // Asegurar que la sección sea relative
+        section.style.position = 'relative';
+
+        const canvas = document.createElement('canvas');
+        canvas.style.position = 'absolute';
+        canvas.style.top = '0';
+        canvas.style.left = '0';
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        canvas.style.zIndex = '1';
+        canvas.style.pointerEvents = 'none';
+        section.appendChild(canvas);
+
+        const ctx = canvas.getContext('2d');
+        let width = canvas.width = section.offsetWidth;
+        let height = canvas.height = section.offsetHeight;
+
+        const particles = [];
+        const particleCount = 20; // 20 por sección es muy sutil y equilibrado
+
+        class Particle {
+          constructor() {
+            this.x = Math.random() * width;
+            this.y = Math.random() * height;
+            this.vx = (Math.random() - 0.5) * 0.15; // Lento
+            this.vy = (Math.random() - 0.5) * 0.15;
+            this.radius = Math.random() * 2 + 1; // 1px a 3px
+            this.alpha = Math.random() * 0.4 + 0.1;
+            this.growth = Math.random() > 0.5 ? 0.002 : -0.002;
+            this.color = Math.random() > 0.4 ? '126, 168, 216' : '0, 168, 150'; // Steel Blue o Teal
+          }
+          update() {
+            this.x += this.vx;
+            this.y += this.vy;
+            this.alpha += this.growth;
+
+            if (this.alpha <= 0.1 || this.alpha >= 0.5) {
+              this.growth = -this.growth;
+            }
+
+            if (this.x < 0 || this.x > width) this.vx = -this.vx;
+            if (this.y < 0 || this.y > height) this.vy = -this.vy;
+          }
+          draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${this.color}, ${this.alpha})`;
+            ctx.fill();
+          }
+        }
+
+        for (let i = 0; i < particleCount; i++) {
+          particles.push(new Particle());
+        }
+
+        function animate() {
+          ctx.clearRect(0, 0, width, height);
+          particles.forEach(p => {
+            p.update();
+            p.draw();
+          });
+          requestAnimationFrame(animate);
+        }
+
+        // Observer moderno para cambios de tamaño de sección
+        const resizeObserver = new ResizeObserver(entries => {
+          for (let entry of entries) {
+            width = canvas.width = entry.contentRect.width;
+            height = canvas.height = entry.contentRect.height;
+          }
+        });
+        resizeObserver.observe(section);
+
+        animate();
+      };
+
+      initParticles('.protocols-section');
+      initParticles('.gallery-carousel-section');
+    })();
+  </script>
+</body>
+
+</html>

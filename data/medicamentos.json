@@ -1,0 +1,2540 @@
+[
+{
+"nombre_comercial": "Acetazolamida",
+"nombre_generico": "Acetazolamida",
+"presentacion": "Tableta",
+"concentracion": "250 mg"
+},
+{
+"nombre_comercial": "Fluimucil",
+"nombre_generico": "Acetilcisteína",
+"presentacion": "Sobre efervescente",
+"concentracion": "600 mg"
+},
+{
+"nombre_comercial": "Zovirax",
+"nombre_generico": "Aciclovir",
+"presentacion": "Tableta",
+"concentracion": "400 mg"
+},
+{
+"nombre_comercial": "Aciclovir",
+"nombre_generico": "Aciclovir",
+"presentacion": "Tableta",
+"concentracion": "200 mg"
+},
+{
+"nombre_comercial": "Aciclovir (Como Sal Sodica)",
+"nombre_generico": "Aciclovir (Como Sal Sodica)",
+"presentacion": "Inyectable",
+"concentracion": "250 mg 10 mL"
+},
+{
+"nombre_comercial": "Acido Acetilsalicilico",
+"nombre_generico": "Acido Acetilsalicilico",
+"presentacion": "Tableta",
+"concentracion": "100 mg"
+},
+{
+"nombre_comercial": "Acido Folico",
+"nombre_generico": "Acido Folico",
+"presentacion": "Tableta",
+"concentracion": "500 µg (0.5 mg)"
+},
+{
+"nombre_comercial": "Acido Folico + Ferroso Sulfato (Equiv. De Hierro Elemental)",
+"nombre_generico": "Acido Folico + Ferroso Sulfato (Equiv. De Hierro Elemental)",
+"presentacion": "Tableta",
+"concentracion": "400 µg + 60 mg Fe"
+},
+{
+"nombre_comercial": "Acido Gadoterico",
+"nombre_generico": "Acido Gadoterico",
+"presentacion": "Inyectable",
+"concentracion": "0.5 mmol/mL 15 mL"
+},
+{
+"nombre_comercial": "Acido Tranexamico",
+"nombre_generico": "Acido Tranexamico",
+"presentacion": "Inyectable",
+"concentracion": "1 g 10 mL"
+},
+{
+"nombre_comercial": "Acido Tranexamico",
+"nombre_generico": "Acido Tranexamico",
+"presentacion": "Tableta",
+"concentracion": "250 mg"
+},
+{
+"nombre_comercial": "Acido Ursodesoxicolico",
+"nombre_generico": "Acido Ursodesoxicolico",
+"presentacion": "Tableta",
+"concentracion": "250 mg"
+},
+{
+"nombre_comercial": "Adenosina",
+"nombre_generico": "Adenosina",
+"presentacion": "Inyectable",
+"concentracion": "6 mg/2 mL 2 mL"
+},
+{
+"nombre_comercial": "Agua Destilada",
+"nombre_generico": "Agua Destilada",
+"presentacion": "Unidad",
+"concentracion": "1 L"
+},
+{
+"nombre_comercial": "Albendazol",
+"nombre_generico": "Albendazol",
+"presentacion": "Suspension",
+"concentracion": "100 mg/5 mL 20 mL"
+},
+{
+"nombre_comercial": "Albendazol",
+"nombre_generico": "Albendazol",
+"presentacion": "Tableta",
+"concentracion": "200 mg"
+},
+{
+"nombre_comercial": "Albumina Humana",
+"nombre_generico": "Albumina Humana",
+"presentacion": "Inyectable",
+"concentracion": "20 g/100 mL 50 mL"
+},
+{
+"nombre_comercial": "Zyloprim",
+"nombre_generico": "Alopurinol",
+"presentacion": "Tableta",
+"concentracion": "300 mg"
+},
+{
+"nombre_comercial": "Alopurinol",
+"nombre_generico": "Alopurinol",
+"presentacion": "Tableta",
+"concentracion": "100 mg"
+},
+{
+"nombre_comercial": "Alprazolam",
+"nombre_generico": "Alprazolam",
+"presentacion": "Tableta",
+"concentracion": "0.5 mg"
+},
+{
+"nombre_comercial": "Alprazolam",
+"nombre_generico": "Alprazolam",
+"presentacion": "Tableta",
+"concentracion": "500 µg (0.5 mg)"
+},
+{
+"nombre_comercial": "Alprostadil",
+"nombre_generico": "Alprostadil",
+"presentacion": "Inyectable",
+"concentracion": "500 µg/mL 1 mL"
+},
+{
+"nombre_comercial": "Aluminio Hidroxido + Magnesio Hidroxido",
+"nombre_generico": "Aluminio Hidroxido + Magnesio Hidroxido",
+"presentacion": "Suspension",
+"concentracion": "400 + 400 mg/5 mL 150 mL"
+},
+{
+"nombre_comercial": "Mucosolvan",
+"nombre_generico": "Ambroxol",
+"presentacion": "Jarabe",
+"concentracion": "30 mg/5 mL"
+},
+{
+"nombre_comercial": "Amfotericina B (Ambl)",
+"nombre_generico": "Amfotericina B (Ambl)",
+"presentacion": "Inyectable",
+"concentracion": "50 mg"
+},
+{
+"nombre_comercial": "Amikacina (Como Sulfato)",
+"nombre_generico": "Amikacina (Como Sulfato)",
+"presentacion": "Inyectable",
+"concentracion": "250 mg/mL 2 mL"
+},
+{
+"nombre_comercial": "Amikacina (Como Sulfato)",
+"nombre_generico": "Amikacina (Como Sulfato)",
+"presentacion": "Inyectable",
+"concentracion": "50 mg/mL 2 mL"
+},
+{
+"nombre_comercial": "Aminofilina",
+"nombre_generico": "Aminofilina",
+"presentacion": "Inyectable",
+"concentracion": "25 mg/mL 10 mL"
+},
+{
+"nombre_comercial": "Amiodarona Clorhidrato",
+"nombre_generico": "Amiodarona Clorhidrato",
+"presentacion": "Tableta",
+"concentracion": "200 mg"
+},
+{
+"nombre_comercial": "Amiodarona Clorhidrato",
+"nombre_generico": "Amiodarona Clorhidrato",
+"presentacion": "Inyectable",
+"concentracion": "50 mg/mL 3 mL"
+},
+{
+"nombre_comercial": "Amitriptilina",
+"nombre_generico": "Amitriptilina",
+"presentacion": "Tableta",
+"concentracion": "25 mg"
+},
+{
+"nombre_comercial": "Amitriptilina Clorhidrato",
+"nombre_generico": "Amitriptilina Clorhidrato",
+"presentacion": "Tableta",
+"concentracion": "25 mg"
+},
+{
+"nombre_comercial": "Norvasc",
+"nombre_generico": "Amlodipino",
+"presentacion": "Tableta",
+"concentracion": "10 mg"
+},
+{
+"nombre_comercial": "Amlodipino (Como Besilato)",
+"nombre_generico": "Amlodipino (Como Besilato)",
+"presentacion": "Tableta",
+"concentracion": "10 mg"
+},
+{
+"nombre_comercial": "Amlodipino (Como Besilato)",
+"nombre_generico": "Amlodipino (Como Besilato)",
+"presentacion": "Tableta",
+"concentracion": "5 mg"
+},
+{
+"nombre_comercial": "Amoxil",
+"nombre_generico": "Amoxicilina",
+"presentacion": "Cápsula",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Amoxil",
+"nombre_generico": "Amoxicilina",
+"presentacion": "Suspensión",
+"concentracion": "250 mg/5 mL"
+},
+{
+"nombre_comercial": "Amoxicilina",
+"nombre_generico": "Amoxicilina",
+"presentacion": "Suspension",
+"concentracion": "250 mg/5 mL 60 mL"
+},
+{
+"nombre_comercial": "Amoxicilina",
+"nombre_generico": "Amoxicilina",
+"presentacion": "Tableta",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Amoxicilina + Acido Clavulanico (Como Sal Potasica)",
+"nombre_generico": "Amoxicilina + Acido Clavulanico (Como Sal Potasica)",
+"presentacion": "Suspension",
+"concentracion": "250 mg + 62.5 mg/5 mL 60 mL"
+},
+{
+"nombre_comercial": "Amoxicilina + Acido Clavulanico (Como Sal Potasica)",
+"nombre_generico": "Amoxicilina + Acido Clavulanico (Como Sal Potasica)",
+"presentacion": "Tableta",
+"concentracion": "500 mg + 125 mg"
+},
+{
+"nombre_comercial": "Augmentin",
+"nombre_generico": "Amoxicilina + Ácido clavulánico",
+"presentacion": "Tableta",
+"concentracion": "875/125 mg"
+},
+{
+"nombre_comercial": "Augmentin",
+"nombre_generico": "Amoxicilina + Ácido clavulánico",
+"presentacion": "Suspensión",
+"concentracion": "600/42.9 mg/5 mL"
+},
+{
+"nombre_comercial": "Ampicilina",
+"nombre_generico": "Ampicilina",
+"presentacion": "Inyectable",
+"concentracion": "1 g"
+},
+{
+"nombre_comercial": "Tenormin",
+"nombre_generico": "Atenolol",
+"presentacion": "Tableta",
+"concentracion": "50 mg"
+},
+{
+"nombre_comercial": "Lipitor",
+"nombre_generico": "Atorvastatina",
+"presentacion": "Tableta",
+"concentracion": "20 mg"
+},
+{
+"nombre_comercial": "Atorvastatina (Como Sal Calcica)",
+"nombre_generico": "Atorvastatina (Como Sal Calcica)",
+"presentacion": "Tableta",
+"concentracion": "20 mg"
+},
+{
+"nombre_comercial": "Atropina Sulfato",
+"nombre_generico": "Atropina Sulfato",
+"presentacion": "Inyectable",
+"concentracion": "1 mg/mL 1 mL"
+},
+{
+"nombre_comercial": "Atropina Sulfato",
+"nombre_generico": "Atropina Sulfato",
+"presentacion": "Inyectable",
+"concentracion": "500 µg/mL (0.5 mg/mL) 1 mL"
+},
+{
+"nombre_comercial": "Atropina Sulfato (Solucion Oftalmica)",
+"nombre_generico": "Atropina Sulfato (Solucion Oftalmica)",
+"presentacion": "Solucion",
+"concentracion": "10 mg/mL (1 %) 5 mL"
+},
+{
+"nombre_comercial": "Azatioprina",
+"nombre_generico": "Azatioprina",
+"presentacion": "Tableta",
+"concentracion": "50 mg"
+},
+{
+"nombre_comercial": "Zithromax",
+"nombre_generico": "Azitromicina",
+"presentacion": "Tableta",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Azitromicina",
+"nombre_generico": "Azitromicina",
+"presentacion": "Suspension",
+"concentracion": "200 mg/5 mL 60 mL"
+},
+{
+"nombre_comercial": "Azitromicina",
+"nombre_generico": "Azitromicina",
+"presentacion": "Tableta",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Enterogermina",
+"nombre_generico": "Bacillus clausii (probiótico)",
+"presentacion": "Frasco oral",
+"concentracion": "2000 millones/5 mL"
+},
+{
+"nombre_comercial": "Baclofeno",
+"nombre_generico": "Baclofeno",
+"presentacion": "Tableta",
+"concentracion": "10 mg"
+},
+{
+"nombre_comercial": "Beclometasona Dipropionato",
+"nombre_generico": "Beclometasona Dipropionato",
+"presentacion": "Aerosol",
+"concentracion": "250 µg/DOSIS 200 DOSIS"
+},
+{
+"nombre_comercial": "Betametasona",
+"nombre_generico": "Betametasona",
+"presentacion": "Ampolla",
+"concentracion": "4 mg/mL"
+},
+{
+"nombre_comercial": "Betametasona (Como Dipropionato)",
+"nombre_generico": "Betametasona (Como Dipropionato)",
+"presentacion": "Crema",
+"concentracion": "50 mg/100 g (0.05 %) 20 g"
+},
+{
+"nombre_comercial": "Biperideno Clorhidrato",
+"nombre_generico": "Biperideno Clorhidrato",
+"presentacion": "Tableta",
+"concentracion": "2 mg"
+},
+{
+"nombre_comercial": "Dulcolax",
+"nombre_generico": "Bisacodilo",
+"presentacion": "Tableta",
+"concentracion": "5 mg"
+},
+{
+"nombre_comercial": "Bisacodilo",
+"nombre_generico": "Bisacodilo",
+"presentacion": "Tableta",
+"concentracion": "5 mg"
+},
+{
+"nombre_comercial": "Concor",
+"nombre_generico": "Bisoprolol",
+"presentacion": "Tableta",
+"concentracion": "5 mg"
+},
+{
+"nombre_comercial": "Bromuro De Ipratropio",
+"nombre_generico": "Bromuro De Ipratropio",
+"presentacion": "Aerosol",
+"concentracion": "20 µg/Dosis 200 DOSIS"
+},
+{
+"nombre_comercial": "Bromuro De Rocuronio",
+"nombre_generico": "Bromuro De Rocuronio",
+"presentacion": "Inyectable",
+"concentracion": "10 mg/mL 5 mL"
+},
+{
+"nombre_comercial": "Bromuro De Vecuronio",
+"nombre_generico": "Bromuro De Vecuronio",
+"presentacion": "Inyectable",
+"concentracion": "4 mg/mL 1 mL"
+},
+{
+"nombre_comercial": "Budesonida",
+"nombre_generico": "Budesonida",
+"presentacion": "Aerosol",
+"concentracion": "200 µg/DOSIS 200 DOSIS"
+},
+{
+"nombre_comercial": "Symbicort",
+"nombre_generico": "Budesonida + Formoterol",
+"presentacion": "Inhalador",
+"concentracion": "160/4.5 mcg"
+},
+{
+"nombre_comercial": "Bupivacaina Clorhidrato (Sin Preservantes)",
+"nombre_generico": "Bupivacaina Clorhidrato (Sin Preservantes)",
+"presentacion": "Inyectable",
+"concentracion": "5 mg/mL (0.5 %) 20 mL"
+},
+{
+"nombre_comercial": "Buscapina",
+"nombre_generico": "Butilbromuro de hioscina",
+"presentacion": "Tableta",
+"concentracion": "10 mg"
+},
+{
+"nombre_comercial": "Buscapina Compositum",
+"nombre_generico": "Butilbromuro de hioscina + Paracetamol",
+"presentacion": "Tableta",
+"concentracion": "10/500 mg"
+},
+{
+"nombre_comercial": "Cafeina Citrato",
+"nombre_generico": "Cafeina Citrato",
+"presentacion": "Inyectable",
+"concentracion": "20 mg/mL 1 mL"
+},
+{
+"nombre_comercial": "Calcio Gluconato",
+"nombre_generico": "Calcio Gluconato",
+"presentacion": "Inyectable",
+"concentracion": "100 mg/mL (Equiv. a 8.4 mg/mL de Calc 10 mL"
+},
+{
+"nombre_comercial": "Calcitriol",
+"nombre_generico": "Calcitriol",
+"presentacion": "Tableta",
+"concentracion": "0.25 µg"
+},
+{
+"nombre_comercial": "Captopril",
+"nombre_generico": "Captopril",
+"presentacion": "Tableta",
+"concentracion": "25 mg"
+},
+{
+"nombre_comercial": "Tegretol",
+"nombre_generico": "Carbamazepina",
+"presentacion": "Tableta",
+"concentracion": "200 mg"
+},
+{
+"nombre_comercial": "Carbamazepina",
+"nombre_generico": "Carbamazepina",
+"presentacion": "Suspension",
+"concentracion": "100 mg/5 mL 100 mL"
+},
+{
+"nombre_comercial": "Carbamazepina",
+"nombre_generico": "Carbamazepina",
+"presentacion": "Tableta",
+"concentracion": "200 mg"
+},
+{
+"nombre_comercial": "Carbidopa + Levodopa",
+"nombre_generico": "Carbidopa + Levodopa",
+"presentacion": "Tableta",
+"concentracion": "25 mg + 250 mg"
+},
+{
+"nombre_comercial": "Carbomero",
+"nombre_generico": "Carbomero",
+"presentacion": "Gel",
+"concentracion": "200 mg/100 g 10 g"
+},
+{
+"nombre_comercial": "Carbonato De Calcio",
+"nombre_generico": "Carbonato De Calcio",
+"presentacion": "Tableta",
+"concentracion": "1.25 g (Equiv. a 500 mg de Calcio)"
+},
+{
+"nombre_comercial": "Calcibon D",
+"nombre_generico": "Carbonato de calcio + Vitamina D3",
+"presentacion": "Tableta",
+"concentracion": "600 mg/400 UI"
+},
+{
+"nombre_comercial": "Carbonato De Magnesio (Tableta Efervescente)",
+"nombre_generico": "Carbonato De Magnesio (Tableta Efervescente)",
+"presentacion": "Tableta",
+"concentracion": "0.8334 g"
+},
+{
+"nombre_comercial": "Caspofungina",
+"nombre_generico": "Caspofungina",
+"presentacion": "Inyectable",
+"concentracion": "50 mg"
+},
+{
+"nombre_comercial": "Keflex",
+"nombre_generico": "Cefalexina",
+"presentacion": "Cápsula",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Cefalexina",
+"nombre_generico": "Cefalexina",
+"presentacion": "Suspension",
+"concentracion": "250 mg/5 mL 60 mL"
+},
+{
+"nombre_comercial": "Cefalexina",
+"nombre_generico": "Cefalexina",
+"presentacion": "Tableta",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Cefazolina (Como Sal Sodica) Con Diluyente",
+"nombre_generico": "Cefazolina (Como Sal Sodica) Con Diluyente",
+"presentacion": "Inyectable",
+"concentracion": "1 g"
+},
+{
+"nombre_comercial": "Suprax",
+"nombre_generico": "Cefixima",
+"presentacion": "Tableta",
+"concentracion": "400 mg"
+},
+{
+"nombre_comercial": "Cefotaxima (Como Sal Sodica)",
+"nombre_generico": "Cefotaxima (Como Sal Sodica)",
+"presentacion": "Inyectable",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Ceftazidima",
+"nombre_generico": "Ceftazidima",
+"presentacion": "Inyectable",
+"concentracion": "1 g"
+},
+{
+"nombre_comercial": "Ceftriaxona Sodica (Como Sal Sodica)",
+"nombre_generico": "Ceftriaxona Sodica (Como Sal Sodica)",
+"presentacion": "Inyectable",
+"concentracion": "1 g"
+},
+{
+"nombre_comercial": "Cefuroxima",
+"nombre_generico": "Cefuroxima",
+"presentacion": "Suspension",
+"concentracion": "250 mg/5 mL 100 mL"
+},
+{
+"nombre_comercial": "Cefuroxima (Como Axetil)",
+"nombre_generico": "Cefuroxima (Como Axetil)",
+"presentacion": "Tableta",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Celebrex",
+"nombre_generico": "Celecoxib",
+"presentacion": "Cápsula",
+"concentracion": "200 mg"
+},
+{
+"nombre_comercial": "Zyrtec",
+"nombre_generico": "Cetirizina",
+"presentacion": "Tableta",
+"concentracion": "10 mg"
+},
+{
+"nombre_comercial": "Ciclofosfamida",
+"nombre_generico": "Ciclofosfamida",
+"presentacion": "Inyectable",
+"concentracion": "1 g"
+},
+{
+"nombre_comercial": "Ciclofosfamida",
+"nombre_generico": "Ciclofosfamida",
+"presentacion": "Inyectable",
+"concentracion": "200 mg"
+},
+{
+"nombre_comercial": "Ciclofosfamida",
+"nombre_generico": "Ciclofosfamida",
+"presentacion": "Tableta",
+"concentracion": "50 mg"
+},
+{
+"nombre_comercial": "Ciclosporina",
+"nombre_generico": "Ciclosporina",
+"presentacion": "Solucion",
+"concentracion": "100 mg/mL 50 mL"
+},
+{
+"nombre_comercial": "Ciproxina",
+"nombre_generico": "Ciprofloxacino",
+"presentacion": "Tableta",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Ciprofloxacino (Como Clorhidrato)",
+"nombre_generico": "Ciprofloxacino (Como Clorhidrato)",
+"presentacion": "Tableta",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Ciprofloxacino (Como Clorhidrato)(solucion Oftalmica)",
+"nombre_generico": "Ciprofloxacino (Como Clorhidrato)(solucion Oftalmica)",
+"presentacion": "Solucion",
+"concentracion": "3 mg/mL (0.3 %) 5 mL"
+},
+{
+"nombre_comercial": "Ciprofloxacino (Como Lactato)",
+"nombre_generico": "Ciprofloxacino (Como Lactato)",
+"presentacion": "Inyectable",
+"concentracion": "200 mg 100 mL"
+},
+{
+"nombre_comercial": "Cetraxal Plus",
+"nombre_generico": "Ciprofloxacino + Fluocinolona (ótico)",
+"presentacion": "Gotas óticas",
+"concentracion": "3/0.25 mg/mL"
+},
+{
+"nombre_comercial": "Citarabina",
+"nombre_generico": "Citarabina",
+"presentacion": "Inyectable",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Citarabina (Sin Preservantes)",
+"nombre_generico": "Citarabina (Sin Preservantes)",
+"presentacion": "Inyectable",
+"concentracion": "100 mg"
+},
+{
+"nombre_comercial": "Claritromicina",
+"nombre_generico": "Claritromicina",
+"presentacion": "Tableta",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Dalacin C",
+"nombre_generico": "Clindamicina",
+"presentacion": "Cápsula",
+"concentracion": "300 mg"
+},
+{
+"nombre_comercial": "Clindamicina (Como Clorhidrato)",
+"nombre_generico": "Clindamicina (Como Clorhidrato)",
+"presentacion": "Tableta",
+"concentracion": "300 mg"
+},
+{
+"nombre_comercial": "Clindamicina (Como Fosfato)",
+"nombre_generico": "Clindamicina (Como Fosfato)",
+"presentacion": "Inyectable",
+"concentracion": "600 mg 4 mL"
+},
+{
+"nombre_comercial": "Clobazam",
+"nombre_generico": "Clobazam",
+"presentacion": "Tableta",
+"concentracion": "10 mg"
+},
+{
+"nombre_comercial": "Rivotril",
+"nombre_generico": "Clonazepam",
+"presentacion": "Tableta",
+"concentracion": "0.5 mg"
+},
+{
+"nombre_comercial": "Clonazepam",
+"nombre_generico": "Clonazepam",
+"presentacion": "Tableta",
+"concentracion": "2 mg"
+},
+{
+"nombre_comercial": "Clonazepam",
+"nombre_generico": "Clonazepam",
+"presentacion": "Tableta",
+"concentracion": "500 µg (0.5 mg)"
+},
+{
+"nombre_comercial": "Dorixina",
+"nombre_generico": "Clonixinato de lisina",
+"presentacion": "Tableta",
+"concentracion": "125 mg"
+},
+{
+"nombre_comercial": "Plavix",
+"nombre_generico": "Clopidogrel",
+"presentacion": "Tableta",
+"concentracion": "75 mg"
+},
+{
+"nombre_comercial": "Clorfenamina",
+"nombre_generico": "Clorfenamina maleato",
+"presentacion": "Tableta",
+"concentracion": "4 mg"
+},
+{
+"nombre_comercial": "Clorfenamina Maleato",
+"nombre_generico": "Clorfenamina Maleato",
+"presentacion": "Inyectable",
+"concentracion": "10 mg/mL 1 mL"
+},
+{
+"nombre_comercial": "Clorfenamina Maleato",
+"nombre_generico": "Clorfenamina Maleato",
+"presentacion": "Jarabe",
+"concentracion": "2 mg/5 mL 120 mL"
+},
+{
+"nombre_comercial": "Clorfenamina Maleato",
+"nombre_generico": "Clorfenamina Maleato",
+"presentacion": "Tableta",
+"concentracion": "4 mg"
+},
+{
+"nombre_comercial": "Clorhexidina Gluconato",
+"nombre_generico": "Clorhexidina Gluconato",
+"presentacion": "Solucion",
+"concentracion": "2 g/100 mL 120 mL"
+},
+{
+"nombre_comercial": "Clorpromazina Clorhidrato",
+"nombre_generico": "Clorpromazina Clorhidrato",
+"presentacion": "Tableta",
+"concentracion": "100 mg"
+},
+{
+"nombre_comercial": "Clotrimazol",
+"nombre_generico": "Clotrimazol",
+"presentacion": "Crema",
+"concentracion": "1 g/100 g (1 %) 20 g"
+},
+{
+"nombre_comercial": "Colchicina",
+"nombre_generico": "Colchicina",
+"presentacion": "Tableta",
+"concentracion": "0.5 mg"
+},
+{
+"nombre_comercial": "Vitamina D3",
+"nombre_generico": "Colecalciferol",
+"presentacion": "Gotas",
+"concentracion": "2000 UI/mL"
+},
+{
+"nombre_comercial": "Colistina",
+"nombre_generico": "Colistina",
+"presentacion": "Inyectable",
+"concentracion": "150 mg/ 2mL"
+},
+{
+"nombre_comercial": "Dolo-Neurobión Forte",
+"nombre_generico": "Complejo B + Diclofenaco",
+"presentacion": "Tableta",
+"concentracion": "—"
+},
+{
+"nombre_comercial": "Hepabionta",
+"nombre_generico": "Complejo hepatoprotector",
+"presentacion": "Gragea",
+"concentracion": "—"
+},
+{
+"nombre_comercial": "Dacarbazina",
+"nombre_generico": "Dacarbazina",
+"presentacion": "Inyectable",
+"concentracion": "200 mg"
+},
+{
+"nombre_comercial": "Dasatinib",
+"nombre_generico": "Dasatinib",
+"presentacion": "Tableta",
+"concentracion": "50 mg"
+},
+{
+"nombre_comercial": "Dasatinib",
+"nombre_generico": "Dasatinib",
+"presentacion": "Tableta",
+"concentracion": "70 mg"
+},
+{
+"nombre_comercial": "Deferasirox",
+"nombre_generico": "Deferasirox",
+"presentacion": "Tableta",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Aerius",
+"nombre_generico": "Desloratadina",
+"presentacion": "Tableta",
+"concentracion": "5 mg"
+},
+{
+"nombre_comercial": "Desmopresina Acetato",
+"nombre_generico": "Desmopresina Acetato",
+"presentacion": "Aerosol",
+"concentracion": "10 µg/100 µL 5 mL"
+},
+{
+"nombre_comercial": "Dexametasona",
+"nombre_generico": "Dexametasona",
+"presentacion": "Ampolla",
+"concentracion": "8 mg/2 mL"
+},
+{
+"nombre_comercial": "Dexametasona",
+"nombre_generico": "Dexametasona",
+"presentacion": "Elixir",
+"concentracion": "2 mg/5 mL 100 mL"
+},
+{
+"nombre_comercial": "Dexametasona",
+"nombre_generico": "Dexametasona",
+"presentacion": "Tableta",
+"concentracion": "4 mg"
+},
+{
+"nombre_comercial": "Dexametasona",
+"nombre_generico": "Dexametasona",
+"presentacion": "Tableta",
+"concentracion": "500 µg (0.5 mg)"
+},
+{
+"nombre_comercial": "Dexametasona Fosfato (Como Sal Sodica)",
+"nombre_generico": "Dexametasona Fosfato (Como Sal Sodica)",
+"presentacion": "Inyectable",
+"concentracion": "4 mg/2 mL 2 mL"
+},
+{
+"nombre_comercial": "Notuss",
+"nombre_generico": "Dextrometorfano",
+"presentacion": "Jarabe",
+"concentracion": "15 mg/5 mL"
+},
+{
+"nombre_comercial": "Dextrometorfano Bromhidrato",
+"nombre_generico": "Dextrometorfano Bromhidrato",
+"presentacion": "Jarabe",
+"concentracion": "15 mg/5 mL 120 mL"
+},
+{
+"nombre_comercial": "Dextrosa",
+"nombre_generico": "Dextrosa",
+"presentacion": "Inyectable",
+"concentracion": "10 g/100 mL (10 %) 1 L"
+},
+{
+"nombre_comercial": "Dextrosa",
+"nombre_generico": "Dextrosa",
+"presentacion": "Inyectable",
+"concentracion": "333 mg/mL (33 %) 20 mL"
+},
+{
+"nombre_comercial": "Dextrosa",
+"nombre_generico": "Dextrosa",
+"presentacion": "Inyectable",
+"concentracion": "5 g/100 mL (5 %) 1 L"
+},
+{
+"nombre_comercial": "Dextrosa",
+"nombre_generico": "Dextrosa",
+"presentacion": "Inyectable",
+"concentracion": "5 g/100 mL (5 %) 100 mL"
+},
+{
+"nombre_comercial": "Dextrosa",
+"nombre_generico": "Dextrosa",
+"presentacion": "Inyectable",
+"concentracion": "5 g/100 mL (5 %) 250 mL"
+},
+{
+"nombre_comercial": "Dextrosa",
+"nombre_generico": "Dextrosa",
+"presentacion": "Inyectable",
+"concentracion": "5 g/100 mL (5 %) 500 mL"
+},
+{
+"nombre_comercial": "Valium",
+"nombre_generico": "Diazepam",
+"presentacion": "Tableta",
+"concentracion": "10 mg"
+},
+{
+"nombre_comercial": "Diazepam",
+"nombre_generico": "Diazepam",
+"presentacion": "Tableta",
+"concentracion": "10 mg"
+},
+{
+"nombre_comercial": "Diazepam",
+"nombre_generico": "Diazepam",
+"presentacion": "Inyectable",
+"concentracion": "5 mg/mL 2 mL"
+},
+{
+"nombre_comercial": "Dolo-Neurobión",
+"nombre_generico": "Diclofenaco + Complejo B",
+"presentacion": "Tableta",
+"concentracion": "50 mg"
+},
+{
+"nombre_comercial": "Cataflam",
+"nombre_generico": "Diclofenaco potásico",
+"presentacion": "Tableta",
+"concentracion": "50 mg"
+},
+{
+"nombre_comercial": "Diclofenaco Sodico",
+"nombre_generico": "Diclofenaco Sodico",
+"presentacion": "Inyectable",
+"concentracion": "25 mg/mL 3 mL"
+},
+{
+"nombre_comercial": "Voltaren",
+"nombre_generico": "Diclofenaco sódico",
+"presentacion": "Tableta",
+"concentracion": "50 mg"
+},
+{
+"nombre_comercial": "Voltaren",
+"nombre_generico": "Diclofenaco sódico",
+"presentacion": "Ampolla IM",
+"concentracion": "75 mg/3 mL"
+},
+{
+"nombre_comercial": "Dicloxacilina (Como Sal Sodica)",
+"nombre_generico": "Dicloxacilina (Como Sal Sodica)",
+"presentacion": "Suspension",
+"concentracion": "250 mg/5 mL 60 mL"
+},
+{
+"nombre_comercial": "Dicloxacilina (Como Sal Sodica)",
+"nombre_generico": "Dicloxacilina (Como Sal Sodica)",
+"presentacion": "Tableta",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Digoxina",
+"nombre_generico": "Digoxina",
+"presentacion": "Tableta",
+"concentracion": "250 µg (0.25 mg)"
+},
+{
+"nombre_comercial": "Dimenhidrinato",
+"nombre_generico": "Dimenhidrinato",
+"presentacion": "Tableta",
+"concentracion": "50 mg"
+},
+{
+"nombre_comercial": "Dimenhidrinato",
+"nombre_generico": "Dimenhidrinato",
+"presentacion": "Inyectable",
+"concentracion": "50 mg 5 mL"
+},
+{
+"nombre_comercial": "Dinitrato De Isosorbida",
+"nombre_generico": "Dinitrato De Isosorbida",
+"presentacion": "Tableta",
+"concentracion": "10 mg"
+},
+{
+"nombre_comercial": "Dobutamina (Como Clorhidrato)",
+"nombre_generico": "Dobutamina (Como Clorhidrato)",
+"presentacion": "Inyectable",
+"concentracion": "250 mg/20 mL 20 mL"
+},
+{
+"nombre_comercial": "Motilium",
+"nombre_generico": "Domperidona",
+"presentacion": "Tableta",
+"concentracion": "10 mg"
+},
+{
+"nombre_comercial": "Dopamina Clorhidrato",
+"nombre_generico": "Dopamina Clorhidrato",
+"presentacion": "Inyectable",
+"concentracion": "40 mg/mL 5 mL"
+},
+{
+"nombre_comercial": "Doxiciclina",
+"nombre_generico": "Doxiciclina",
+"presentacion": "Cápsula",
+"concentracion": "100 mg"
+},
+{
+"nombre_comercial": "Doxiciclina",
+"nombre_generico": "Doxiciclina",
+"presentacion": "Tableta",
+"concentracion": "100 mg"
+},
+{
+"nombre_comercial": "Doxorubicina",
+"nombre_generico": "Doxorubicina",
+"presentacion": "Inyectable",
+"concentracion": "50 mg 25 mL"
+},
+{
+"nombre_comercial": "Jardiance",
+"nombre_generico": "Empagliflozina",
+"presentacion": "Tableta",
+"concentracion": "25 mg"
+},
+{
+"nombre_comercial": "Enalapril",
+"nombre_generico": "Enalapril",
+"presentacion": "Tableta",
+"concentracion": "20 mg"
+},
+{
+"nombre_comercial": "Enalapril Maleato",
+"nombre_generico": "Enalapril Maleato",
+"presentacion": "Tableta",
+"concentracion": "10 mg"
+},
+{
+"nombre_comercial": "Enoxaparina Sodica",
+"nombre_generico": "Enoxaparina Sodica",
+"presentacion": "Inyectable",
+"concentracion": "40 mg/0.4 mL 0.4 mL"
+},
+{
+"nombre_comercial": "Epinefrina (Como Clorhidrato O Tartrato)",
+"nombre_generico": "Epinefrina (Como Clorhidrato O Tartrato)",
+"presentacion": "Inyectable",
+"concentracion": "1 mg/mL 1 mL"
+},
+{
+"nombre_comercial": "Epoetina Alfa (Eritropoyetina)",
+"nombre_generico": "Epoetina Alfa (Eritropoyetina)",
+"presentacion": "Inyectable",
+"concentracion": "2000 UI/mL 1 mL"
+},
+{
+"nombre_comercial": "Lexapro",
+"nombre_generico": "Escitalopram",
+"presentacion": "Tableta",
+"concentracion": "10 mg"
+},
+{
+"nombre_comercial": "Escopolamina N-butilbromuro",
+"nombre_generico": "Escopolamina N-butilbromuro",
+"presentacion": "Inyectable",
+"concentracion": "20 mg/mL 1 mL"
+},
+{
+"nombre_comercial": "Nexium",
+"nombre_generico": "Esomeprazol",
+"presentacion": "Tableta",
+"concentracion": "40 mg"
+},
+{
+"nombre_comercial": "Espironolactona",
+"nombre_generico": "Espironolactona",
+"presentacion": "Tableta",
+"concentracion": "100 mg"
+},
+{
+"nombre_comercial": "Espironolactona",
+"nombre_generico": "Espironolactona",
+"presentacion": "Tableta",
+"concentracion": "25 mg"
+},
+{
+"nombre_comercial": "Etoposido",
+"nombre_generico": "Etoposido",
+"presentacion": "Inyectable",
+"concentracion": "100 mg 5 mL"
+},
+{
+"nombre_comercial": "Etoricoxib",
+"nombre_generico": "Etoricoxib",
+"presentacion": "Tableta",
+"concentracion": "90 mg"
+},
+{
+"nombre_comercial": "Fenitoina Sodica",
+"nombre_generico": "Fenitoina Sodica",
+"presentacion": "Tableta",
+"concentracion": "100 mg"
+},
+{
+"nombre_comercial": "Fenitoina Sodica",
+"nombre_generico": "Fenitoina Sodica",
+"presentacion": "Inyectable",
+"concentracion": "100 mg 2 mL"
+},
+{
+"nombre_comercial": "Fenitoina Sodica",
+"nombre_generico": "Fenitoina Sodica",
+"presentacion": "Suspension",
+"concentracion": "125 mg/5 mL 120 mL"
+},
+{
+"nombre_comercial": "Fenobarbital",
+"nombre_generico": "Fenobarbital",
+"presentacion": "Tableta",
+"concentracion": "100 mg"
+},
+{
+"nombre_comercial": "Fenobarbital Sodico",
+"nombre_generico": "Fenobarbital Sodico",
+"presentacion": "Inyectable",
+"concentracion": "100 mg/mL 2 mL"
+},
+{
+"nombre_comercial": "Fentanilo",
+"nombre_generico": "Fentanilo",
+"presentacion": "Inyectable",
+"concentracion": "50 µg/mL 10 mL"
+},
+{
+"nombre_comercial": "Ferroso Sulfato",
+"nombre_generico": "Ferroso Sulfato",
+"presentacion": "Solucion",
+"concentracion": "25 mg de Fe/mL 30 mL"
+},
+{
+"nombre_comercial": "Ferroso Sulfato",
+"nombre_generico": "Ferroso Sulfato",
+"presentacion": "Tableta",
+"concentracion": "300 mg (Equiv. 60 mg Fe)"
+},
+{
+"nombre_comercial": "Ferroso Sulfato",
+"nombre_generico": "Ferroso Sulfato",
+"presentacion": "Jarabe",
+"concentracion": "75 mg (Equiv. 15 mg Fe)/5 mL 180 mL"
+},
+{
+"nombre_comercial": "Filgrastim",
+"nombre_generico": "Filgrastim",
+"presentacion": "Inyectable",
+"concentracion": "30000000 UI/mL (300 µg/mL) 1 mL"
+},
+{
+"nombre_comercial": "Fitomenadiona",
+"nombre_generico": "Fitomenadiona",
+"presentacion": "Inyectable",
+"concentracion": "10 mg/mL 1 mL"
+},
+{
+"nombre_comercial": "Diflucan",
+"nombre_generico": "Fluconazol",
+"presentacion": "Cápsula",
+"concentracion": "150 mg"
+},
+{
+"nombre_comercial": "Fluconazol",
+"nombre_generico": "Fluconazol",
+"presentacion": "Inyectable",
+"concentracion": "2 mg/mL 50 mL"
+},
+{
+"nombre_comercial": "Fludarabina Fosfato",
+"nombre_generico": "Fludarabina Fosfato",
+"presentacion": "Inyectable",
+"concentracion": "50 mg"
+},
+{
+"nombre_comercial": "Fludrocortisona",
+"nombre_generico": "Fludrocortisona",
+"presentacion": "Tableta",
+"concentracion": "100 µg"
+},
+{
+"nombre_comercial": "Flumazenil",
+"nombre_generico": "Flumazenil",
+"presentacion": "Inyectable",
+"concentracion": "100 µg/mL (0.1 mg/mL) 5 mL"
+},
+{
+"nombre_comercial": "Prozac",
+"nombre_generico": "Fluoxetina",
+"presentacion": "Cápsula",
+"concentracion": "20 mg"
+},
+{
+"nombre_comercial": "Fluoxetina (Como Clorhidrato)",
+"nombre_generico": "Fluoxetina (Como Clorhidrato)",
+"presentacion": "Tableta",
+"concentracion": "20 mg"
+},
+{
+"nombre_comercial": "Fluticasona Propionato + Salmeterol (Como Xinafoato)",
+"nombre_generico": "Fluticasona Propionato + Salmeterol (Como Xinafoato)",
+"presentacion": "Aerosol",
+"concentracion": "250 µg + 25 µg/DOSIS 120 DOSIS"
+},
+{
+"nombre_comercial": "Lasix",
+"nombre_generico": "Furosemida",
+"presentacion": "Tableta",
+"concentracion": "40 mg"
+},
+{
+"nombre_comercial": "Furosemida",
+"nombre_generico": "Furosemida",
+"presentacion": "Inyectable",
+"concentracion": "10 mg/mL 2 mL"
+},
+{
+"nombre_comercial": "Furosemida",
+"nombre_generico": "Furosemida",
+"presentacion": "Tableta",
+"concentracion": "40 mg"
+},
+{
+"nombre_comercial": "Neurontin",
+"nombre_generico": "Gabapentina",
+"presentacion": "Cápsula",
+"concentracion": "300 mg"
+},
+{
+"nombre_comercial": "Gabapentina",
+"nombre_generico": "Gabapentina",
+"presentacion": "Tableta",
+"concentracion": "300 mg"
+},
+{
+"nombre_comercial": "Ganciclovir",
+"nombre_generico": "Ganciclovir",
+"presentacion": "Inyectable",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Gelatina",
+"nombre_generico": "Gelatina",
+"presentacion": "Inyectable",
+"concentracion": "3.5%-4%"
+},
+{
+"nombre_comercial": "Gentamicina (Como Sulfato)",
+"nombre_generico": "Gentamicina (Como Sulfato)",
+"presentacion": "Inyectable",
+"concentracion": "40 mg/mL 2 mL"
+},
+{
+"nombre_comercial": "Gentamicina (Como Sulfato)",
+"nombre_generico": "Gentamicina (Como Sulfato)",
+"presentacion": "Inyectable",
+"concentracion": "80 mg/mL 2 mL"
+},
+{
+"nombre_comercial": "Amaryl",
+"nombre_generico": "Glimepirida",
+"presentacion": "Tableta",
+"concentracion": "4 mg"
+},
+{
+"nombre_comercial": "Glutapak-R",
+"nombre_generico": "Glutamina (suplemento)",
+"presentacion": "Sobre",
+"concentracion": "10 g"
+},
+{
+"nombre_comercial": "Haloperidol",
+"nombre_generico": "Haloperidol",
+"presentacion": "Tableta",
+"concentracion": "10 mg"
+},
+{
+"nombre_comercial": "Haloperidol",
+"nombre_generico": "Haloperidol",
+"presentacion": "Solucion",
+"concentracion": "2 mg/mL 20 mL"
+},
+{
+"nombre_comercial": "Haloperidol",
+"nombre_generico": "Haloperidol",
+"presentacion": "Inyectable",
+"concentracion": "5 mg/mL 1 mL"
+},
+{
+"nombre_comercial": "Heparina Sodica",
+"nombre_generico": "Heparina Sodica",
+"presentacion": "Inyectable",
+"concentracion": "25000 UI/5 mL 5 mL"
+},
+{
+"nombre_comercial": "Hidroclorotiazida",
+"nombre_generico": "Hidroclorotiazida",
+"presentacion": "Tableta",
+"concentracion": "25 mg"
+},
+{
+"nombre_comercial": "Hidrocortisona",
+"nombre_generico": "Hidrocortisona",
+"presentacion": "Tableta",
+"concentracion": "20 mg"
+},
+{
+"nombre_comercial": "Hidrocortisona (Como Acetato)",
+"nombre_generico": "Hidrocortisona (Como Acetato)",
+"presentacion": "Crema",
+"concentracion": "1 g/100 g (1 %) 20 g"
+},
+{
+"nombre_comercial": "Hidrocortisona (Como Succinato Sodico)",
+"nombre_generico": "Hidrocortisona (Como Succinato Sodico)",
+"presentacion": "Inyectable",
+"concentracion": "100 mg 2 mL"
+},
+{
+"nombre_comercial": "Hidroxicarbamida",
+"nombre_generico": "Hidroxicarbamida",
+"presentacion": "Tableta",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Hipromelosa(solucion Oftalmica)",
+"nombre_generico": "Hipromelosa(solucion Oftalmica)",
+"presentacion": "Solucion",
+"concentracion": "20 mg/mL 2 mL"
+},
+{
+"nombre_comercial": "Ibupirac",
+"nombre_generico": "Ibuprofeno",
+"presentacion": "Tableta",
+"concentracion": "400 mg"
+},
+{
+"nombre_comercial": "Ibupirac",
+"nombre_generico": "Ibuprofeno",
+"presentacion": "Tableta",
+"concentracion": "600 mg"
+},
+{
+"nombre_comercial": "Ibuprofeno",
+"nombre_generico": "Ibuprofeno",
+"presentacion": "Suspension",
+"concentracion": "100 mg/5 mL 60 mL"
+},
+{
+"nombre_comercial": "Ibuprofeno",
+"nombre_generico": "Ibuprofeno",
+"presentacion": "Tableta",
+"concentracion": "400 mg"
+},
+{
+"nombre_comercial": "Inmunoglobulina Humana Normal",
+"nombre_generico": "Inmunoglobulina Humana Normal",
+"presentacion": "Inyectable",
+"concentracion": "5 g 100 mL"
+},
+{
+"nombre_comercial": "Lantus",
+"nombre_generico": "Insulina glargina",
+"presentacion": "Lapicero",
+"concentracion": "100 UI/mL"
+},
+{
+"nombre_comercial": "Insulina Humana (Adn Recombinante)",
+"nombre_generico": "Insulina Humana (Adn Recombinante)",
+"presentacion": "Inyectable",
+"concentracion": "100 UI/mL 10 mL"
+},
+{
+"nombre_comercial": "Insulina Isofana Humana (Nph) Adn Recombinante",
+"nombre_generico": "Insulina Isofana Humana (Nph) Adn Recombinante",
+"presentacion": "Inyectable",
+"concentracion": "100 UI/mL 10 mL"
+},
+{
+"nombre_comercial": "Ketamina (Como Clorhidrato)",
+"nombre_generico": "Ketamina (Como Clorhidrato)",
+"presentacion": "Inyectable",
+"concentracion": "50 mg/mL 10 mL"
+},
+{
+"nombre_comercial": "Nizoral",
+"nombre_generico": "Ketoconazol",
+"presentacion": "Tableta",
+"concentracion": "200 mg"
+},
+{
+"nombre_comercial": "Ketorolaco",
+"nombre_generico": "Ketorolaco trometamol",
+"presentacion": "Ampolla",
+"concentracion": "30 mg/mL"
+},
+{
+"nombre_comercial": "Lacosamida",
+"nombre_generico": "Lacosamida",
+"presentacion": "Tableta",
+"concentracion": "50 mg"
+},
+{
+"nombre_comercial": "Lactato Sodico Compuesta (Lactato Ringer)",
+"nombre_generico": "Lactato Sodico Compuesta (Lactato Ringer)",
+"presentacion": "Inyectable",
+"concentracion": "1 L"
+},
+{
+"nombre_comercial": "Lactulosa",
+"nombre_generico": "Lactulosa",
+"presentacion": "Jarabe",
+"concentracion": "3.33 g/5 mL"
+},
+{
+"nombre_comercial": "Lactulosa",
+"nombre_generico": "Lactulosa",
+"presentacion": "Solucion",
+"concentracion": "3.3 g/5 mL 180 mL"
+},
+{
+"nombre_comercial": "Lamotrigina",
+"nombre_generico": "Lamotrigina",
+"presentacion": "Tableta",
+"concentracion": "50 mg"
+},
+{
+"nombre_comercial": "Lanzopral",
+"nombre_generico": "Lansoprazol",
+"presentacion": "Cápsula",
+"concentracion": "30 mg"
+},
+{
+"nombre_comercial": "Levetiracetam",
+"nombre_generico": "Levetiracetam",
+"presentacion": "Tableta",
+"concentracion": "1 g"
+},
+{
+"nombre_comercial": "Levetiracetam",
+"nombre_generico": "Levetiracetam",
+"presentacion": "Solucion",
+"concentracion": "100 mg/mL 300 mL"
+},
+{
+"nombre_comercial": "Levetiracetam",
+"nombre_generico": "Levetiracetam",
+"presentacion": "Tableta",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Tavanic",
+"nombre_generico": "Levofloxacino",
+"presentacion": "Tableta",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Euthyrox",
+"nombre_generico": "Levotiroxina",
+"presentacion": "Tableta",
+"concentracion": "100 mcg"
+},
+{
+"nombre_comercial": "Levotiroxina Sodica",
+"nombre_generico": "Levotiroxina Sodica",
+"presentacion": "Tableta",
+"concentracion": "100 µg (0.1 mg)"
+},
+{
+"nombre_comercial": "Levotiroxina Sodica",
+"nombre_generico": "Levotiroxina Sodica",
+"presentacion": "Tableta",
+"concentracion": "50 µg"
+},
+{
+"nombre_comercial": "Lidocaina Clorhidrato",
+"nombre_generico": "Lidocaina Clorhidrato",
+"presentacion": "Gel",
+"concentracion": "2 g/100 g 10 g"
+},
+{
+"nombre_comercial": "Lidocaina Clorhidrato Sin Preservantes",
+"nombre_generico": "Lidocaina Clorhidrato Sin Preservantes",
+"presentacion": "Inyectable",
+"concentracion": "2 g/100 mL (2 %) 20 mL"
+},
+{
+"nombre_comercial": "Otix",
+"nombre_generico": "Lidocaína + Fenazona (ótico)",
+"presentacion": "Gotas óticas",
+"concentracion": "—"
+},
+{
+"nombre_comercial": "Imodium",
+"nombre_generico": "Loperamida",
+"presentacion": "Cápsula",
+"concentracion": "2 mg"
+},
+{
+"nombre_comercial": "Clarityne",
+"nombre_generico": "Loratadina",
+"presentacion": "Tableta",
+"concentracion": "10 mg"
+},
+{
+"nombre_comercial": "Loratadina",
+"nombre_generico": "Loratadina",
+"presentacion": "Tableta",
+"concentracion": "10 mg"
+},
+{
+"nombre_comercial": "Loratadina",
+"nombre_generico": "Loratadina",
+"presentacion": "Jarabe",
+"concentracion": "5 mg/5 mL 60 mL"
+},
+{
+"nombre_comercial": "Losartan Potasico",
+"nombre_generico": "Losartan Potasico",
+"presentacion": "Tableta",
+"concentracion": "50 mg"
+},
+{
+"nombre_comercial": "Losartan",
+"nombre_generico": "Losartán potásico",
+"presentacion": "Tableta",
+"concentracion": "50 mg"
+},
+{
+"nombre_comercial": "Macrogol",
+"nombre_generico": "Macrogol",
+"presentacion": "Polvo",
+"concentracion": "3350 (POLIETILENGLICOL 3350) COMBINACIONES 105 g 110.10 g"
+},
+{
+"nombre_comercial": "Magnesio Sulfato",
+"nombre_generico": "Magnesio Sulfato",
+"presentacion": "Inyectable",
+"concentracion": "200 mg/mL 10 mL"
+},
+{
+"nombre_comercial": "Manitol",
+"nombre_generico": "Manitol",
+"presentacion": "Inyectable",
+"concentracion": "20 g/100 mL (20 %) 500 mL"
+},
+{
+"nombre_comercial": "Duspatalin",
+"nombre_generico": "Mebeverina",
+"presentacion": "Cápsula",
+"concentracion": "200 mg"
+},
+{
+"nombre_comercial": "Dolocordralan",
+"nombre_generico": "Meloxicam",
+"presentacion": "Tableta",
+"concentracion": "15 mg"
+},
+{
+"nombre_comercial": "Mercaptopurina",
+"nombre_generico": "Mercaptopurina",
+"presentacion": "Tableta",
+"concentracion": "50 mg"
+},
+{
+"nombre_comercial": "Meropenem",
+"nombre_generico": "Meropenem",
+"presentacion": "Inyectable",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Metamizol Sodico",
+"nombre_generico": "Metamizol Sodico",
+"presentacion": "Inyectable",
+"concentracion": "1 g 2 mL"
+},
+{
+"nombre_comercial": "Nolotil",
+"nombre_generico": "Metamizol sódico (dipirona)",
+"presentacion": "Ampolla",
+"concentracion": "1 g/2 mL"
+},
+{
+"nombre_comercial": "Antalgina",
+"nombre_generico": "Metamizol sódico (dipirona)",
+"presentacion": "Tableta",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Glucophage",
+"nombre_generico": "Metformina",
+"presentacion": "Tableta",
+"concentracion": "850 mg"
+},
+{
+"nombre_comercial": "Metformina Clorhidrato",
+"nombre_generico": "Metformina Clorhidrato",
+"presentacion": "Tableta",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Metformina Clorhidrato",
+"nombre_generico": "Metformina Clorhidrato",
+"presentacion": "Tableta",
+"concentracion": "850 mg"
+},
+{
+"nombre_comercial": "Glucophage XR",
+"nombre_generico": "Metformina liberación prolongada",
+"presentacion": "Tableta",
+"concentracion": "1000 mg"
+},
+{
+"nombre_comercial": "Metildopa",
+"nombre_generico": "Metildopa",
+"presentacion": "Tableta",
+"concentracion": "250 mg"
+},
+{
+"nombre_comercial": "Metilfenidato Clorhidrato",
+"nombre_generico": "Metilfenidato Clorhidrato",
+"presentacion": "Tableta",
+"concentracion": "10 mg"
+},
+{
+"nombre_comercial": "Metilprednisolona (Como Succinato Sodico)",
+"nombre_generico": "Metilprednisolona (Como Succinato Sodico)",
+"presentacion": "Inyectable",
+"concentracion": "500 mg 4 mL"
+},
+{
+"nombre_comercial": "Flexiver Compuesto",
+"nombre_generico": "Metocarbamol + Paracetamol",
+"presentacion": "Tableta",
+"concentracion": "400/500 mg"
+},
+{
+"nombre_comercial": "Primperan",
+"nombre_generico": "Metoclopramida",
+"presentacion": "Tableta",
+"concentracion": "10 mg"
+},
+{
+"nombre_comercial": "Metoclopramida Clorhidrato",
+"nombre_generico": "Metoclopramida Clorhidrato",
+"presentacion": "Tableta",
+"concentracion": "10 mg"
+},
+{
+"nombre_comercial": "Metoclopramida Clorhidrato",
+"nombre_generico": "Metoclopramida Clorhidrato",
+"presentacion": "Inyectable",
+"concentracion": "5 mg/mL 2 mL"
+},
+{
+"nombre_comercial": "Metotrexato",
+"nombre_generico": "Metotrexato",
+"presentacion": "Tableta",
+"concentracion": "2.5 mg"
+},
+{
+"nombre_comercial": "Metotrexato Sodico",
+"nombre_generico": "Metotrexato Sodico",
+"presentacion": "Inyectable",
+"concentracion": "50 mg 2 mL"
+},
+{
+"nombre_comercial": "Flagyl",
+"nombre_generico": "Metronidazol",
+"presentacion": "Tableta",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Metronidazol",
+"nombre_generico": "Metronidazol",
+"presentacion": "Suspension",
+"concentracion": "250 mg/5 mL 120 mL"
+},
+{
+"nombre_comercial": "Metronidazol",
+"nombre_generico": "Metronidazol",
+"presentacion": "Tableta",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Metronidazol",
+"nombre_generico": "Metronidazol",
+"presentacion": "Inyectable",
+"concentracion": "500 mg 100 mL"
+},
+{
+"nombre_comercial": "Micofenolato Mofetilo",
+"nombre_generico": "Micofenolato Mofetilo",
+"presentacion": "Tableta",
+"concentracion": "250 mg"
+},
+{
+"nombre_comercial": "Micofenolato Mofetilo",
+"nombre_generico": "Micofenolato Mofetilo",
+"presentacion": "Tableta",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Midazolam",
+"nombre_generico": "Midazolam",
+"presentacion": "Inyectable",
+"concentracion": "5 mg 5 mL"
+},
+{
+"nombre_comercial": "Midazolam",
+"nombre_generico": "Midazolam",
+"presentacion": "Inyectable",
+"concentracion": "50 mg 10 mL"
+},
+{
+"nombre_comercial": "Milrinona",
+"nombre_generico": "Milrinona",
+"presentacion": "Inyectable",
+"concentracion": "10 mg/10 mL 10 mL"
+},
+{
+"nombre_comercial": "Remeron",
+"nombre_generico": "Mirtazapina",
+"presentacion": "Tableta",
+"concentracion": "30 mg"
+},
+{
+"nombre_comercial": "Mitoxantrona (Como Diclorhidrato)",
+"nombre_generico": "Mitoxantrona (Como Diclorhidrato)",
+"presentacion": "Inyectable",
+"concentracion": "20 mg/10 mL 10 mL"
+},
+{
+"nombre_comercial": "Nasonex",
+"nombre_generico": "Mometasona (nasal)",
+"presentacion": "Spray nasal",
+"concentracion": "50 mcg/dosis"
+},
+{
+"nombre_comercial": "Singulair",
+"nombre_generico": "Montelukast",
+"presentacion": "Tableta",
+"concentracion": "10 mg"
+},
+{
+"nombre_comercial": "Morfina (Clorhidrato)",
+"nombre_generico": "Morfina (Clorhidrato)",
+"presentacion": "Inyectable",
+"concentracion": "10 mg 1 mL"
+},
+{
+"nombre_comercial": "Morfina (Clorhidrato)",
+"nombre_generico": "Morfina (Clorhidrato)",
+"presentacion": "Inyectable",
+"concentracion": "20 mg 1 mL"
+},
+{
+"nombre_comercial": "Morfina (Sulfato)",
+"nombre_generico": "Morfina (Sulfato)",
+"presentacion": "Tableta",
+"concentracion": "30 mg"
+},
+{
+"nombre_comercial": "Sillix Duo",
+"nombre_generico": "Multivitamínico",
+"presentacion": "Tableta",
+"concentracion": "—"
+},
+{
+"nombre_comercial": "Supradyn",
+"nombre_generico": "Multivitamínico + minerales",
+"presentacion": "Tableta efervescente",
+"concentracion": "—"
+},
+{
+"nombre_comercial": "Mupirocina (Como Sal Calcica)",
+"nombre_generico": "Mupirocina (Como Sal Calcica)",
+"presentacion": "Crema",
+"concentracion": "2 g/100 g (2 %) 15 g"
+},
+{
+"nombre_comercial": "Naproxeno",
+"nombre_generico": "Naproxeno",
+"presentacion": "Tableta",
+"concentracion": "250 mg"
+},
+{
+"nombre_comercial": "Naproxeno",
+"nombre_generico": "Naproxeno",
+"presentacion": "Tableta",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Apronax",
+"nombre_generico": "Naproxeno sódico",
+"presentacion": "Tableta",
+"concentracion": "550 mg"
+},
+{
+"nombre_comercial": "Neostigmina Metilsulfato",
+"nombre_generico": "Neostigmina Metilsulfato",
+"presentacion": "Inyectable",
+"concentracion": "500 µg/mL 1 mL"
+},
+{
+"nombre_comercial": "Nifedipino",
+"nombre_generico": "Nifedipino",
+"presentacion": "Tableta",
+"concentracion": "10 mg"
+},
+{
+"nombre_comercial": "Nimodipino",
+"nombre_generico": "Nimodipino",
+"presentacion": "Inyectable",
+"concentracion": "10 mg 50 mL"
+},
+{
+"nombre_comercial": "Nimodipino",
+"nombre_generico": "Nimodipino",
+"presentacion": "Tableta",
+"concentracion": "30 mg"
+},
+{
+"nombre_comercial": "Nistatina (Gotas)",
+"nombre_generico": "Nistatina (Gotas)",
+"presentacion": "Suspension",
+"concentracion": "100000 UI/mL 12 mL"
+},
+{
+"nombre_comercial": "Nitrofurantoina",
+"nombre_generico": "Nitrofurantoina",
+"presentacion": "Tableta",
+"concentracion": "100 mg"
+},
+{
+"nombre_comercial": "Nitrofurantoina",
+"nombre_generico": "Nitrofurantoina",
+"presentacion": "Suspension",
+"concentracion": "25 mg/5 mL 120 mL"
+},
+{
+"nombre_comercial": "Nitrofurantoína",
+"nombre_generico": "Nitrofurantoína",
+"presentacion": "Cápsula",
+"concentracion": "100 mg"
+},
+{
+"nombre_comercial": "Nitroglicerina (Gliceroltrinitrato)",
+"nombre_generico": "Nitroglicerina (Gliceroltrinitrato)",
+"presentacion": "Inyectable",
+"concentracion": "25 mg 5 mL"
+},
+{
+"nombre_comercial": "Nitroprusiato Sodico",
+"nombre_generico": "Nitroprusiato Sodico",
+"presentacion": "Inyectable",
+"concentracion": "50 mg 2 mL"
+},
+{
+"nombre_comercial": "Norepinefrina (Como Acido Tartrato)",
+"nombre_generico": "Norepinefrina (Como Acido Tartrato)",
+"presentacion": "Inyectable",
+"concentracion": "1 mg/mL 4 mL"
+},
+{
+"nombre_comercial": "Prazol",
+"nombre_generico": "Omeprazol",
+"presentacion": "Cápsula",
+"concentracion": "20 mg"
+},
+{
+"nombre_comercial": "Losec",
+"nombre_generico": "Omeprazol",
+"presentacion": "Ampolla EV",
+"concentracion": "40 mg"
+},
+{
+"nombre_comercial": "Omeprazol",
+"nombre_generico": "Omeprazol",
+"presentacion": "Tableta",
+"concentracion": "20 mg"
+},
+{
+"nombre_comercial": "Omeprazol (Como Sal Sodica)",
+"nombre_generico": "Omeprazol (Como Sal Sodica)",
+"presentacion": "Inyectable",
+"concentracion": "40 mg"
+},
+{
+"nombre_comercial": "Ondansetron (Como Clorhidrato)",
+"nombre_generico": "Ondansetron (Como Clorhidrato)",
+"presentacion": "Inyectable",
+"concentracion": "2 mg/mL 4 mL"
+},
+{
+"nombre_comercial": "Ondansetron (Como Clorhidrato)",
+"nombre_generico": "Ondansetron (Como Clorhidrato)",
+"presentacion": "Tableta",
+"concentracion": "8 mg"
+},
+{
+"nombre_comercial": "Zofran",
+"nombre_generico": "Ondansetrón",
+"presentacion": "Tableta",
+"concentracion": "8 mg"
+},
+{
+"nombre_comercial": "Dorival",
+"nombre_generico": "Orfenadrina + Paracetamol",
+"presentacion": "Tableta",
+"concentracion": "35/450 mg"
+},
+{
+"nombre_comercial": "Oxacilina",
+"nombre_generico": "Oxacilina",
+"presentacion": "Inyectable",
+"concentracion": "1 g"
+},
+{
+"nombre_comercial": "Oxacilina",
+"nombre_generico": "Oxacilina",
+"presentacion": "Inyectable",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Oxibutinina Clorhidrato",
+"nombre_generico": "Oxibutinina Clorhidrato",
+"presentacion": "Tableta",
+"concentracion": "5 mg"
+},
+{
+"nombre_comercial": "Oxicodona",
+"nombre_generico": "Oxicodona",
+"presentacion": "Tableta",
+"concentracion": "5 mg"
+},
+{
+"nombre_comercial": "Oxigeno Medicinal M3",
+"nombre_generico": "Oxigeno Medicinal M3",
+"presentacion": "Gas",
+"concentracion": "—"
+},
+{
+"nombre_comercial": "Oxigeno Medicinal M3",
+"nombre_generico": "Oxigeno Medicinal M3",
+"presentacion": "Liquido",
+"concentracion": "—"
+},
+{
+"nombre_comercial": "Afrin",
+"nombre_generico": "Oximetazolina",
+"presentacion": "Spray nasal",
+"concentracion": "0.05%"
+},
+{
+"nombre_comercial": "Controloc",
+"nombre_generico": "Pantoprazol",
+"presentacion": "Tableta",
+"concentracion": "40 mg"
+},
+{
+"nombre_comercial": "Panadol",
+"nombre_generico": "Paracetamol",
+"presentacion": "Tableta",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Panadol",
+"nombre_generico": "Paracetamol",
+"presentacion": "Tableta",
+"concentracion": "1 g"
+},
+{
+"nombre_comercial": "Paracetamol",
+"nombre_generico": "Paracetamol",
+"presentacion": "Solucion",
+"concentracion": "100 mg/mL 10 mL"
+},
+{
+"nombre_comercial": "Paracetamol",
+"nombre_generico": "Paracetamol",
+"presentacion": "Jarabe",
+"concentracion": "120 mg/5 mL 60 mL"
+},
+{
+"nombre_comercial": "Paracetamol",
+"nombre_generico": "Paracetamol",
+"presentacion": "Tableta",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Paxil",
+"nombre_generico": "Paroxetina",
+"presentacion": "Tableta",
+"concentracion": "20 mg"
+},
+{
+"nombre_comercial": "Permetrina",
+"nombre_generico": "Permetrina",
+"presentacion": "Crema",
+"concentracion": "5 g/100 g (5 %) 60 g"
+},
+{
+"nombre_comercial": "Piperacilina + Tazobactam",
+"nombre_generico": "Piperacilina + Tazobactam",
+"presentacion": "Inyectable",
+"concentracion": "4 g + 500 mg"
+},
+{
+"nombre_comercial": "Piridoxina Clorhidrato",
+"nombre_generico": "Piridoxina Clorhidrato",
+"presentacion": "Tableta",
+"concentracion": "50 mg"
+},
+{
+"nombre_comercial": "Movicol",
+"nombre_generico": "Polietilenglicol 3350",
+"presentacion": "Sobre",
+"concentracion": "13.8 g"
+},
+{
+"nombre_comercial": "Potasio Citrato (Equivalente A",
+"nombre_generico": "Potasio Citrato (Equivalente A",
+"presentacion": "Tableta",
+"concentracion": "10 mEq de ión potasio) 1080 mg"
+},
+{
+"nombre_comercial": "Potasio Cloruro",
+"nombre_generico": "Potasio Cloruro",
+"presentacion": "Inyectable",
+"concentracion": "20 g/100 mL (20 %) 10 mL"
+},
+{
+"nombre_comercial": "Deltacortril",
+"nombre_generico": "Prednisolona",
+"presentacion": "Tableta",
+"concentracion": "5 mg"
+},
+{
+"nombre_comercial": "Prednisona",
+"nombre_generico": "Prednisona",
+"presentacion": "Tableta",
+"concentracion": "20 mg"
+},
+{
+"nombre_comercial": "Prednisona",
+"nombre_generico": "Prednisona",
+"presentacion": "Tableta",
+"concentracion": "5 mg"
+},
+{
+"nombre_comercial": "Prednisona",
+"nombre_generico": "Prednisona",
+"presentacion": "Jarabe",
+"concentracion": "5 mg/5 mL 120 mL"
+},
+{
+"nombre_comercial": "Prednisona",
+"nombre_generico": "Prednisona",
+"presentacion": "Tableta",
+"concentracion": "50 mg"
+},
+{
+"nombre_comercial": "Lyrica",
+"nombre_generico": "Pregabalina",
+"presentacion": "Cápsula",
+"concentracion": "75 mg"
+},
+{
+"nombre_comercial": "Propofol",
+"nombre_generico": "Propofol",
+"presentacion": "Inyectable",
+"concentracion": "10 mg/mL (1 %) 20 mL"
+},
+{
+"nombre_comercial": "Propranolol Clorhidrato",
+"nombre_generico": "Propranolol Clorhidrato",
+"presentacion": "Tableta",
+"concentracion": "40 mg"
+},
+{
+"nombre_comercial": "Protamina Sulfato",
+"nombre_generico": "Protamina Sulfato",
+"presentacion": "Inyectable",
+"concentracion": "10 mg/mL 5 mL"
+},
+{
+"nombre_comercial": "Pariet",
+"nombre_generico": "Rabeprazol",
+"presentacion": "Tableta",
+"concentracion": "20 mg"
+},
+{
+"nombre_comercial": "Ranitidina",
+"nombre_generico": "Ranitidina",
+"presentacion": "Tableta",
+"concentracion": "300 mg"
+},
+{
+"nombre_comercial": "Ranitidina (Como Clorhidrato)",
+"nombre_generico": "Ranitidina (Como Clorhidrato)",
+"presentacion": "Tableta",
+"concentracion": "150 mg"
+},
+{
+"nombre_comercial": "Ranitidina (Como Clorhidrato)",
+"nombre_generico": "Ranitidina (Como Clorhidrato)",
+"presentacion": "Inyectable",
+"concentracion": "25 mg/mL 2 mL"
+},
+{
+"nombre_comercial": "Ranitidina (Como Clorhidrato)",
+"nombre_generico": "Ranitidina (Como Clorhidrato)",
+"presentacion": "Tableta",
+"concentracion": "300 mg"
+},
+{
+"nombre_comercial": "Rifaximina",
+"nombre_generico": "Rifaximina",
+"presentacion": "Tableta",
+"concentracion": "550 mg"
+},
+{
+"nombre_comercial": "Risperidona",
+"nombre_generico": "Risperidona",
+"presentacion": "Tableta",
+"concentracion": "2 mg"
+},
+{
+"nombre_comercial": "Crestor",
+"nombre_generico": "Rosuvastatina",
+"presentacion": "Tableta",
+"concentracion": "10 mg"
+},
+{
+"nombre_comercial": "Ventolin",
+"nombre_generico": "Salbutamol",
+"presentacion": "Inhalador",
+"concentracion": "100 mcg/dosis"
+},
+{
+"nombre_comercial": "Salbutamol (Como Sulfato)",
+"nombre_generico": "Salbutamol (Como Sulfato)",
+"presentacion": "Aerosol",
+"concentracion": "100 µg/DOSIS 200 DOSIS"
+},
+{
+"nombre_comercial": "Salbutamol (Como Sulfato)",
+"nombre_generico": "Salbutamol (Como Sulfato)",
+"presentacion": "Solucion",
+"concentracion": "5 mg/mL 10 mL"
+},
+{
+"nombre_comercial": "Sales De Rehidratacion Oral",
+"nombre_generico": "Sales De Rehidratacion Oral",
+"presentacion": "Polvo",
+"concentracion": "20.5 g/L"
+},
+{
+"nombre_comercial": "Dioralyte",
+"nombre_generico": "Sales de rehidratación oral",
+"presentacion": "Sobre",
+"concentracion": "27.9 g"
+},
+{
+"nombre_comercial": "Sertralina",
+"nombre_generico": "Sertralina",
+"presentacion": "Tableta",
+"concentracion": "50 mg"
+},
+{
+"nombre_comercial": "Sevoflurano",
+"nombre_generico": "Sevoflurano",
+"presentacion": "Solucion",
+"concentracion": "100 mL/100 mL 250 mL"
+},
+{
+"nombre_comercial": "Legalon",
+"nombre_generico": "Silimarina",
+"presentacion": "Cápsula",
+"concentracion": "140 mg"
+},
+{
+"nombre_comercial": "Espaven",
+"nombre_generico": "Simeticona",
+"presentacion": "Tableta masticable",
+"concentracion": "80 mg"
+},
+{
+"nombre_comercial": "Simeticona",
+"nombre_generico": "Simeticona",
+"presentacion": "Suspension",
+"concentracion": "80 mg/mL 15 mL"
+},
+{
+"nombre_comercial": "Januvia",
+"nombre_generico": "Sitagliptina",
+"presentacion": "Tableta",
+"concentracion": "100 mg"
+},
+{
+"nombre_comercial": "Sodio Bicarbonato",
+"nombre_generico": "Sodio Bicarbonato",
+"presentacion": "Inyectable",
+"concentracion": "8.4 g/100 mL (8.4 %) 20 mL"
+},
+{
+"nombre_comercial": "Sodio Cloruro",
+"nombre_generico": "Sodio Cloruro",
+"presentacion": "Inyectable",
+"concentracion": "20 g/100 mL (20 %) 20 mL"
+},
+{
+"nombre_comercial": "Sodio Cloruro",
+"nombre_generico": "Sodio Cloruro",
+"presentacion": "Inyectable",
+"concentracion": "900 mg/100 mL (0.9 %) 1 L"
+},
+{
+"nombre_comercial": "Sodio Cloruro",
+"nombre_generico": "Sodio Cloruro",
+"presentacion": "Inyectable",
+"concentracion": "900 mg/100 mL (0.9 %) 100 mL"
+},
+{
+"nombre_comercial": "Sodio Cloruro",
+"nombre_generico": "Sodio Cloruro",
+"presentacion": "Inyectable",
+"concentracion": "900 mg/100 mL (0.9 %) 250 mL"
+},
+{
+"nombre_comercial": "Sodio Cloruro",
+"nombre_generico": "Sodio Cloruro",
+"presentacion": "Inyectable",
+"concentracion": "900 mg/100 mL (0.9 %) 500 mL"
+},
+{
+"nombre_comercial": "Solucion Para Dialisis Peritoneal",
+"nombre_generico": "Solucion Para Dialisis Peritoneal",
+"presentacion": "Solucion",
+"concentracion": "2.5 % 2 L"
+},
+{
+"nombre_comercial": "Solucion Para Dialisis Peritoneal",
+"nombre_generico": "Solucion Para Dialisis Peritoneal",
+"presentacion": "Solucion",
+"concentracion": "4.25 % 2 L"
+},
+{
+"nombre_comercial": "Solucion Polielectrolitica",
+"nombre_generico": "Solucion Polielectrolitica",
+"presentacion": "Solucion",
+"concentracion": "1 L"
+},
+{
+"nombre_comercial": "Sucralfato",
+"nombre_generico": "Sucralfato",
+"presentacion": "Tableta",
+"concentracion": "1 g"
+},
+{
+"nombre_comercial": "Sulfadiazina De Plata",
+"nombre_generico": "Sulfadiazina De Plata",
+"presentacion": "Crema",
+"concentracion": "1 g/100 g (1 %) 400 g"
+},
+{
+"nombre_comercial": "Sulfadiazina De Plata",
+"nombre_generico": "Sulfadiazina De Plata",
+"presentacion": "Crema",
+"concentracion": "1 g/100 g (1 %) 50 g"
+},
+{
+"nombre_comercial": "Sulfametoxazol + Trimetoprima",
+"nombre_generico": "Sulfametoxazol + Trimetoprima",
+"presentacion": "Suspension",
+"concentracion": "200 mg + 40 mg/5 mL 60 mL"
+},
+{
+"nombre_comercial": "Sulfametoxazol + Trimetoprima",
+"nombre_generico": "Sulfametoxazol + Trimetoprima",
+"presentacion": "Inyectable",
+"concentracion": "400 mg + 80 mg 5 mL"
+},
+{
+"nombre_comercial": "Sulfametoxazol + Trimetoprima",
+"nombre_generico": "Sulfametoxazol + Trimetoprima",
+"presentacion": "Tableta",
+"concentracion": "800 mg + 160 mg"
+},
+{
+"nombre_comercial": "Sulfato Ferroso",
+"nombre_generico": "Sulfato ferroso",
+"presentacion": "Tableta",
+"concentracion": "200 mg"
+},
+{
+"nombre_comercial": "Ensure",
+"nombre_generico": "Suplemento nutricional polimérico",
+"presentacion": "Polvo",
+"concentracion": "—"
+},
+{
+"nombre_comercial": "Tacrolimus",
+"nombre_generico": "Tacrolimus",
+"presentacion": "Tableta",
+"concentracion": "1 mg"
+},
+{
+"nombre_comercial": "Tamsulosina Clorhidrato",
+"nombre_generico": "Tamsulosina Clorhidrato",
+"presentacion": "Tableta",
+"concentracion": "400 µg (0.4 mg)"
+},
+{
+"nombre_comercial": "Micardis",
+"nombre_generico": "Telmisartán",
+"presentacion": "Tableta",
+"concentracion": "40 mg"
+},
+{
+"nombre_comercial": "Tetraciclina Clorhidrato (Ungüento Oftalmico)",
+"nombre_generico": "Tetraciclina Clorhidrato (Ungüento Oftalmico)",
+"presentacion": "Ungüento",
+"concentracion": "1 g/100 g (1 %) 6 g"
+},
+{
+"nombre_comercial": "Tiamazol",
+"nombre_generico": "Tiamazol",
+"presentacion": "Tableta",
+"concentracion": "20 mg"
+},
+{
+"nombre_comercial": "Tiamazol",
+"nombre_generico": "Tiamazol",
+"presentacion": "Tableta",
+"concentracion": "5 mg"
+},
+{
+"nombre_comercial": "Tiamina Clorhidrato",
+"nombre_generico": "Tiamina Clorhidrato",
+"presentacion": "Tableta",
+"concentracion": "100 mg"
+},
+{
+"nombre_comercial": "Timolol Maleato(solucion Oftalmica)",
+"nombre_generico": "Timolol Maleato(solucion Oftalmica)",
+"presentacion": "Solucion",
+"concentracion": "5 mg/mL (0.5 %) 5 mL"
+},
+{
+"nombre_comercial": "Tioguanina",
+"nombre_generico": "Tioguanina",
+"presentacion": "Tableta",
+"concentracion": "40 mg"
+},
+{
+"nombre_comercial": "Tiopental Sodico",
+"nombre_generico": "Tiopental Sodico",
+"presentacion": "Inyectable",
+"concentracion": "1 g"
+},
+{
+"nombre_comercial": "Sirdalud",
+"nombre_generico": "Tizanidina",
+"presentacion": "Tableta",
+"concentracion": "2 mg"
+},
+{
+"nombre_comercial": "Mydocalm",
+"nombre_generico": "Tolperisona",
+"presentacion": "Tableta",
+"concentracion": "150 mg"
+},
+{
+"nombre_comercial": "Topiramato",
+"nombre_generico": "Topiramato",
+"presentacion": "Tableta",
+"concentracion": "50 mg"
+},
+{
+"nombre_comercial": "Tramal",
+"nombre_generico": "Tramadol",
+"presentacion": "Cápsula",
+"concentracion": "50 mg"
+},
+{
+"nombre_comercial": "Tramal",
+"nombre_generico": "Tramadol",
+"presentacion": "Ampolla",
+"concentracion": "100 mg/2 mL"
+},
+{
+"nombre_comercial": "Tramadol Clorhidrato",
+"nombre_generico": "Tramadol Clorhidrato",
+"presentacion": "Solucion",
+"concentracion": "100 mg/mL 10 mL"
+},
+{
+"nombre_comercial": "Tramadol Clorhidrato",
+"nombre_generico": "Tramadol Clorhidrato",
+"presentacion": "Tableta",
+"concentracion": "50 mg"
+},
+{
+"nombre_comercial": "Tramadol Clorhidrato",
+"nombre_generico": "Tramadol Clorhidrato",
+"presentacion": "Inyectable",
+"concentracion": "50 mg/mL 1 mL"
+},
+{
+"nombre_comercial": "Tramadol Clorhidrato",
+"nombre_generico": "Tramadol Clorhidrato",
+"presentacion": "Inyectable",
+"concentracion": "50 mg/mL 2 mL"
+},
+{
+"nombre_comercial": "Tretinoina",
+"nombre_generico": "Tretinoina",
+"presentacion": "Tableta",
+"concentracion": "10 mg"
+},
+{
+"nombre_comercial": "Bactrim Forte",
+"nombre_generico": "Trimetoprima + Sulfametoxazol",
+"presentacion": "Tableta",
+"concentracion": "160/800 mg"
+},
+{
+"nombre_comercial": "Triptorelina",
+"nombre_generico": "Triptorelina",
+"presentacion": "Inyectable",
+"concentracion": "3.75 mg"
+},
+{
+"nombre_comercial": "Tropicamida (Solucion Oftalmica)",
+"nombre_generico": "Tropicamida (Solucion Oftalmica)",
+"presentacion": "Solucion",
+"concentracion": "10 mg/mL (1 %) 15 mL"
+},
+{
+"nombre_comercial": "Valganciclovir",
+"nombre_generico": "Valganciclovir",
+"presentacion": "Tableta",
+"concentracion": "450 mg"
+},
+{
+"nombre_comercial": "Valproato Sodico",
+"nombre_generico": "Valproato Sodico",
+"presentacion": "Solucion",
+"concentracion": "200 mg/mL 40 mL"
+},
+{
+"nombre_comercial": "Valproato Sodico",
+"nombre_generico": "Valproato Sodico",
+"presentacion": "Jarabe",
+"concentracion": "250 mg/5 mL 120 mL"
+},
+{
+"nombre_comercial": "Valproato Sodico",
+"nombre_generico": "Valproato Sodico",
+"presentacion": "Tableta",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Vancomicina Clorhidrato",
+"nombre_generico": "Vancomicina Clorhidrato",
+"presentacion": "Inyectable",
+"concentracion": "500 mg"
+},
+{
+"nombre_comercial": "Vincristina Sulfato",
+"nombre_generico": "Vincristina Sulfato",
+"presentacion": "Inyectable",
+"concentracion": "1 mg"
+},
+{
+"nombre_comercial": "Neurobión",
+"nombre_generico": "Vitaminas B1 + B6 + B12",
+"presentacion": "Ampolla",
+"concentracion": "—"
+},
+{
+"nombre_comercial": "Voriconazol",
+"nombre_generico": "Voriconazol",
+"presentacion": "Inyectable",
+"concentracion": "200 mg"
+},
+{
+"nombre_comercial": "Voriconazol",
+"nombre_generico": "Voriconazol",
+"presentacion": "Tableta",
+"concentracion": "200 mg"
+},
+{
+"nombre_comercial": "Warfarina Sodica",
+"nombre_generico": "Warfarina Sodica",
+"presentacion": "Tableta",
+"concentracion": "5 mg"
+},
+{
+"nombre_comercial": "Yodo Povidona",
+"nombre_generico": "Yodo Povidona",
+"presentacion": "Solucion",
+"concentracion": "10 g/100 mL 120 mL"
+},
+{
+"nombre_comercial": "Yodo Povidona (Espuma)",
+"nombre_generico": "Yodo Povidona (Espuma)",
+"presentacion": "Solucion",
+"concentracion": "7.5 g/100 mL 120 mL"
+},
+{
+"nombre_comercial": "Stilnox",
+"nombre_generico": "Zolpidem",
+"presentacion": "Tableta",
+"concentracion": "10 mg"
+},
+{
+"nombre_comercial": "Aspirina",
+"nombre_generico": "Ácido acetilsalicílico",
+"presentacion": "Tableta",
+"concentracion": "100 mg"
+},
+{
+"nombre_comercial": "Ácido Fólico",
+"nombre_generico": "Ácido fólico",
+"presentacion": "Tableta",
+"concentracion": "5 mg"
+},
+{
+"nombre_comercial": "Ursofalk",
+"nombre_generico": "Ácido ursodesoxicólico",
+"presentacion": "Cápsula",
+"concentracion": "250 mg"
+},
+{
+"nombre_comercial": "Omega 3",
+"nombre_generico": "Ácidos grasos omega-3 (EPA/DHA)",
+"presentacion": "Cápsula blanda",
+"concentracion": "1000 mg"
+}
+]
