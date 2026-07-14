@@ -666,9 +666,13 @@ const SignatureDB = {
         const { error } = await supabaseClient
           .from('signatures')
           .upsert([{ specialist_id: specialistId, image_data: dataUrl, updated_at: new Date().toISOString() }]);
-        if (error) console.error('Error al guardar firma en Supabase:', error);
+        if (error) {
+          console.error('Error al guardar firma en Supabase:', error);
+          alert('Error al guardar firma en Supabase (Base de Datos): ' + (error.message || JSON.stringify(error)));
+        }
       } catch (err) {
         console.error('Error de red al guardar firma:', err);
+        alert('Error de red al conectar con Supabase para guardar firma: ' + err.message);
       }
     }
     return true;
@@ -680,7 +684,10 @@ const SignatureDB = {
     safeLocalStorage.setItem('kolymedical_signatures', JSON.stringify(localSignaturesCache));
     if (supabaseClient) {
       try {
-        await supabaseClient.from('signatures').delete().eq('specialist_id', specialistId);
+        const { error } = await supabaseClient.from('signatures').delete().eq('specialist_id', specialistId);
+        if (error) {
+          console.error('Error al eliminar firma en Supabase:', error);
+        }
       } catch (err) {
         console.error('Error de red al eliminar firma:', err);
       }
@@ -688,18 +695,42 @@ const SignatureDB = {
     return true;
   },
 
-  syncWithCloud: async function () {
-    if (!supabaseClient) return;
-    try {
-      const { data, error } = await supabaseClient.from('signatures').select('*');
-      if (error) { console.error('Error al consultar firmas en Supabase:', error); return; }
-      if (data) {
-        data.forEach(row => { localSignaturesCache[row.specialist_id] = row.image_data; });
-        safeLocalStorage.setItem('kolymedical_signatures', JSON.stringify(localSignaturesCache));
-      }
-    } catch (err) {
-      console.error('Error de conexión al sincronizar firmas:', err);
+  syncWithCloud: async function (callback) {
+    if (!supabaseClient) {
+      if (callback) callback();
+      return;
     }
+
+    const fetchSignatures = async () => {
+      try {
+        const { data, error } = await supabaseClient.from('signatures').select('*');
+        if (error) {
+          console.error('Error al consultar firmas en Supabase:', error);
+          return;
+        }
+        if (data) {
+          data.forEach(row => { localSignaturesCache[row.specialist_id] = row.image_data; });
+          safeLocalStorage.setItem('kolymedical_signatures', JSON.stringify(localSignaturesCache));
+          if (callback) callback();
+        }
+      } catch (err) {
+        console.error('Error de conexión al sincronizar firmas:', err);
+      }
+    };
+
+    await fetchSignatures();
+
+    // Suscribirse a cambios en tiempo real en la tabla de firmas
+    supabaseClient
+      .channel('signatures-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'signatures' },
+        () => {
+          fetchSignatures();
+        }
+      )
+      .subscribe();
   }
 };
 window.SignatureDB = SignatureDB;
@@ -3025,14 +3056,28 @@ function openClinicalRecord(recordId, opts) {
   const canViewWA = canViewPatientWhatsApp(); // Admin/Comercial ven WhatsApp; médicos no.
   const canEditClinical = !!(currentUser && (currentUser.specialistId || currentUser.role === 'Administrador'));
 
-  // Eliminar modal previo si existe
-  const prev = document.getElementById('clinical-record-modal');
-  if (prev) prev.remove();
+  // Guardar de dónde veníamos para el botón de volver
+  const activeSidebarItem = document.querySelector('.sidebar-item.active');
+  if (activeSidebarItem) {
+    window.__crPrevView = activeSidebarItem.getAttribute('data-view');
+  } else if (!window.__crPrevView) {
+    window.__crPrevView = 'list';
+  }
 
-  const modal = document.createElement('div');
-  modal.className = 'modal active';
-  modal.id = 'clinical-record-modal';
-  modal.style.zIndex = '3500';
+  // Ocultar todas las vistas del dashboard y mostrar la de expediente clínico a pantalla completa
+  document.querySelectorAll('.dashboard-view').forEach(sec => {
+    sec.style.display = 'none';
+  });
+  const viewCr = document.getElementById('view-clinical-record');
+  if (viewCr) {
+    viewCr.style.display = 'block';
+  }
+
+  // Actualizar cabecera del expediente
+  const nameEl = document.getElementById('cr-full-patient-name');
+  if (nameEl) nameEl.textContent = record.patientName;
+  const idEl = document.getElementById('cr-full-record-id');
+  if (idEl) idEl.innerHTML = `Expediente <strong>${record.id}</strong>`;
 
   const phoneHtml = canViewWA
     ? `<a href="https://wa.me/51${record.patientPhone}" target="_blank" style="color:var(--color-accent); font-weight:600; display:inline-flex; align-items:center;">
@@ -3042,105 +3087,95 @@ function openClinicalRecord(recordId, opts) {
     : (isDoctor ? '<span style="color:var(--color-text-muted); font-style:italic;">Oculto (uso comercial)</span>'
                 : `<span style="font-weight:600;">${record.patientPhone || '—'}</span>`);
 
-  modal.innerHTML = `
-    <div class="modal-content" style="max-width: 860px; width: 96%; padding: 0; max-height: 92vh; overflow: hidden; display:flex; flex-direction:column;">
-      <!-- Cabecera -->
-      <div style="background:var(--color-primary); color:#fff; padding:1.25rem 1.5rem; display:flex; justify-content:space-between; align-items:flex-start;">
+  const container = document.getElementById('cr-full-content');
+  if (!container) return;
+
+  container.innerHTML = `
+      <!-- Filiación -->
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1rem; background:var(--color-bg-light); padding:1rem; border-radius:var(--border-radius-sm); margin-bottom:1.5rem;">
+        <div><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">DNI / Cédula</label><div id="cr-dni-view" style="font-weight:600;">${record.dni || '—'}</div></div>
+        <div><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">Edad</label><div style="font-weight:600;">${calcAge(record)} años</div></div>
+        <div><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">Sexo</label><div id="cr-sex-view" style="font-weight:600;">${record.sex || '—'}</div></div>
+        <div><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">Tipo de sangre</label><div id="cr-blood-view" style="font-weight:600;">${record.bloodType || '—'}</div></div>
+        <div><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">Teléfono</label><div>${phoneHtml}</div></div>
+        <div style="grid-column:1/-1;"><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">Alergias</label><div id="cr-allergies-view" style="font-weight:600; color:var(--color-danger);">${record.allergies || 'Ninguna registrada'}</div></div>
+      </div>
+
+      ${canEditClinical ? `
+      <details style="margin-bottom:1.5rem;">
+        <summary style="cursor:pointer; font-weight:600; color:var(--color-primary); font-size:0.9rem; display:inline-flex; align-items:center;">
+          <i data-lucide="edit" class="icon-inline mr-2"></i> Editar datos de filiación
+        </summary>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-top:0.75rem;">
+          <div><label style="font-size:0.8rem;">DNI / Cédula</label><input type="text" id="cr-dni" class="form-control" value="${record.dni || ''}" placeholder="DNI del paciente"></div>
+          <div><label style="font-size:0.8rem;">Fecha de nacimiento</label><input type="date" id="cr-birthdate" class="form-control" value="${record.birthDate || ''}"></div>
+          <div><label style="font-size:0.8rem;">Sexo</label>
+            <select id="cr-sex" class="form-control">
+              <option value="" ${!record.sex ? 'selected' : ''}>—</option>
+              <option value="Masculino" ${record.sex === 'Masculino' ? 'selected' : ''}>Masculino</option>
+              <option value="Femenino" ${record.sex === 'Femenino' ? 'selected' : ''}>Femenino</option>
+            </select>
+          </div>
+          <div><label style="font-size:0.8rem;">Tipo de sangre</label><input type="text" id="cr-blood" class="form-control" value="${record.bloodType || ''}" placeholder="O+"></div>
+          <div style="grid-column: span 2;"><label style="font-size:0.8rem;">Alergias</label><input type="text" id="cr-allergies" class="form-control" value="${record.allergies || ''}" placeholder="Penicilina, AINEs..."></div>
+        </div>
+        <button class="btn btn-secondary" id="cr-save-filiacion" style="margin-top:0.75rem; font-size:0.8rem;">Guardar filiación</button>
+      </details>` : ''}
+ 
+      ${isDoctor || currentUser.role === 'Administrador' ? `
+      <!-- Antecedentes -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
         <div>
-          <h2 style="font-weight:700; margin:0; font-size:1.3rem;">${record.patientName}</h2>
-          <div style="font-size:0.8rem; opacity:0.85; margin-top:0.25rem;">Expediente <strong>${record.id}</strong></div>
+          <h4 style="color:var(--color-primary); font-size:0.95rem; margin-bottom:0.25rem;">Antecedentes heredofamiliares</h4>
+          <div id="cr-family-chips">${historyChipsHtml(record.familyHistory, 'family', canEditClinical)}</div>
+          ${canEditClinical ? '<button class="btn btn-secondary cr-add-history" data-kind="family" style="margin-top:0.5rem; font-size:0.75rem;">+ Agregar (CIE-10)</button>' : ''}
         </div>
-        <button id="cr-close" style="color:#fff; font-size:1.5rem; line-height:1;">&times;</button>
+        <div>
+          <h4 style="color:var(--color-primary); font-size:0.95rem; margin-bottom:0.25rem;">Antecedentes personales</h4>
+          <div id="cr-personal-chips">${historyChipsHtml(record.personalHistory, 'personal', canEditClinical)}</div>
+          ${canEditClinical ? '<button class="btn btn-secondary cr-add-history" data-kind="personal" style="margin-top:0.5rem; font-size:0.75rem;">+ Agregar (CIE-10)</button>' : ''}
+        </div>
+      </div>` : ''}
+ 
+      ${isDoctor || currentUser.role === 'Administrador' ? `
+      <!-- Nueva nota de evolución -->
+      <div id="cr-new-note-box" style="border:2px solid var(--color-accent); border-radius:var(--border-radius-sm); padding:1rem; margin-bottom:1.5rem; background:rgba(0,168,150,0.03);">
+        <h4 style="color:var(--color-primary); font-size:0.95rem; margin-bottom:0.75rem; display:inline-flex; align-items:center;">
+          <i data-lucide="pen-tool" class="icon-inline mr-2"></i> Nueva nota de evolución
+        </h4>
+        <div style="margin-bottom:0.75rem;">
+          <label style="font-size:0.8rem; font-weight:600;">Diagnóstico(s) CIE-10</label>
+          <div id="cr-note-diag-chips">${historyChipsHtml([], 'diag', true)}</div>
+          <button class="btn btn-secondary cr-add-diag" style="margin-top:0.5rem; font-size:0.75rem;">+ Agregar diagnóstico (CIE-10)</button>
+        </div>
+        <textarea id="cr-note-text" class="form-control" rows="4" placeholder="Motivo de consulta, examen físico, evolución, plan de tratamiento..." style="font-size:0.9rem;"></textarea>
+        <button class="btn btn-accent align-icon-text" id="cr-save-note" style="margin-top:0.75rem;">
+          <i data-lucide="save" class="icon-inline"></i> Guardar nota
+        </button>
+      </div>` : ''}
+ 
+      <!-- Historial de consultas -->
+      <h4 style="color:var(--color-primary); font-size:0.95rem; margin-bottom:0.5rem;">Historial de consultas</h4>
+      <div id="cr-notes-timeline" style="margin-bottom:1.5rem;"></div>
+ 
+      ${isDoctor || currentUser.role === 'Administrador' ? `
+      <!-- Recetas / órdenes -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+        <h4 style="color:var(--color-primary); font-size:0.95rem; margin:0;">Recetas y órdenes médicas</h4>
+        <button class="btn btn-primary" id="cr-new-prescription" style="font-size:0.8rem;">+ Nueva receta / orden</button>
       </div>
-
-      <div style="overflow-y:auto; padding:1.5rem; flex:1;">
-        <!-- Filiación -->
-        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1rem; background:var(--color-bg-light); padding:1rem; border-radius:var(--border-radius-sm); margin-bottom:1.5rem;">
-          <div><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">DNI / Cédula</label><div id="cr-dni-view" style="font-weight:600;">${record.dni || '—'}</div></div>
-          <div><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">Edad</label><div style="font-weight:600;">${calcAge(record)} años</div></div>
-          <div><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">Sexo</label><div id="cr-sex-view" style="font-weight:600;">${record.sex || '—'}</div></div>
-          <div><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">Tipo de sangre</label><div id="cr-blood-view" style="font-weight:600;">${record.bloodType || '—'}</div></div>
-          <div><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">Teléfono</label><div>${phoneHtml}</div></div>
-          <div style="grid-column:1/-1;"><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">Alergias</label><div id="cr-allergies-view" style="font-weight:600; color:var(--color-danger);">${record.allergies || 'Ninguna registrada'}</div></div>
-        </div>
-
-        ${canEditClinical ? `
-        <details style="margin-bottom:1.5rem;">
-          <summary style="cursor:pointer; font-weight:600; color:var(--color-primary); font-size:0.9rem; display:inline-flex; align-items:center;">
-            <i data-lucide="edit" class="icon-inline mr-2"></i> Editar datos de filiación
-          </summary>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-top:0.75rem;">
-            <div><label style="font-size:0.8rem;">DNI / Cédula</label><input type="text" id="cr-dni" class="form-control" value="${record.dni || ''}" placeholder="DNI del paciente"></div>
-            <div><label style="font-size:0.8rem;">Fecha de nacimiento</label><input type="date" id="cr-birthdate" class="form-control" value="${record.birthDate || ''}"></div>
-            <div><label style="font-size:0.8rem;">Sexo</label>
-              <select id="cr-sex" class="form-control">
-                <option value="" ${!record.sex ? 'selected' : ''}>—</option>
-                <option value="Masculino" ${record.sex === 'Masculino' ? 'selected' : ''}>Masculino</option>
-                <option value="Femenino" ${record.sex === 'Femenino' ? 'selected' : ''}>Femenino</option>
-              </select>
-            </div>
-            <div><label style="font-size:0.8rem;">Tipo de sangre</label><input type="text" id="cr-blood" class="form-control" value="${record.bloodType || ''}" placeholder="O+"></div>
-            <div style="grid-column: span 2;"><label style="font-size:0.8rem;">Alergias</label><input type="text" id="cr-allergies" class="form-control" value="${record.allergies || ''}" placeholder="Penicilina, AINEs..."></div>
-          </div>
-          <button class="btn btn-secondary" id="cr-save-filiacion" style="margin-top:0.75rem; font-size:0.8rem;">Guardar filiación</button>
-        </details>` : ''}
+      <div id="cr-prescriptions-list" style="margin-bottom:1rem;"></div>` : ''}
  
-        ${isDoctor || currentUser.role === 'Administrador' ? `
-        <!-- Antecedentes -->
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
-          <div>
-            <h4 style="color:var(--color-primary); font-size:0.95rem; margin-bottom:0.25rem;">Antecedentes heredofamiliares</h4>
-            <div id="cr-family-chips">${historyChipsHtml(record.familyHistory, 'family', canEditClinical)}</div>
-            ${canEditClinical ? '<button class="btn btn-secondary cr-add-history" data-kind="family" style="margin-top:0.5rem; font-size:0.75rem;">+ Agregar (CIE-10)</button>' : ''}
-          </div>
-          <div>
-            <h4 style="color:var(--color-primary); font-size:0.95rem; margin-bottom:0.25rem;">Antecedentes personales</h4>
-            <div id="cr-personal-chips">${historyChipsHtml(record.personalHistory, 'personal', canEditClinical)}</div>
-            ${canEditClinical ? '<button class="btn btn-secondary cr-add-history" data-kind="personal" style="margin-top:0.5rem; font-size:0.75rem;">+ Agregar (CIE-10)</button>' : ''}
-          </div>
-        </div>` : ''}
- 
-        ${isDoctor || currentUser.role === 'Administrador' ? `
-        <!-- Nueva nota de evolución -->
-        <div id="cr-new-note-box" style="border:2px solid var(--color-accent); border-radius:var(--border-radius-sm); padding:1rem; margin-bottom:1.5rem; background:rgba(0,168,150,0.03);">
-          <h4 style="color:var(--color-primary); font-size:0.95rem; margin-bottom:0.75rem; display:inline-flex; align-items:center;">
-            <i data-lucide="pen-tool" class="icon-inline mr-2"></i> Nueva nota de evolución
-          </h4>
-          <div style="margin-bottom:0.75rem;">
-            <label style="font-size:0.8rem; font-weight:600;">Diagnóstico(s) CIE-10</label>
-            <div id="cr-note-diag-chips">${historyChipsHtml([], 'diag', true)}</div>
-            <button class="btn btn-secondary cr-add-diag" style="margin-top:0.5rem; font-size:0.75rem;">+ Agregar diagnóstico (CIE-10)</button>
-          </div>
-          <textarea id="cr-note-text" class="form-control" rows="4" placeholder="Motivo de consulta, examen físico, evolución, plan de tratamiento..." style="font-size:0.9rem;"></textarea>
-          <button class="btn btn-accent align-icon-text" id="cr-save-note" style="margin-top:0.75rem;">
-            <i data-lucide="save" class="icon-inline"></i> Guardar nota
-          </button>
-        </div>` : ''}
- 
-        <!-- Historial de consultas -->
-        <h4 style="color:var(--color-primary); font-size:0.95rem; margin-bottom:0.5rem;">Historial de consultas</h4>
-        <div id="cr-notes-timeline" style="margin-bottom:1.5rem;"></div>
- 
-        ${isDoctor || currentUser.role === 'Administrador' ? `
-        <!-- Recetas / órdenes -->
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
-          <h4 style="color:var(--color-primary); font-size:0.95rem; margin:0;">Recetas y órdenes médicas</h4>
-          <button class="btn btn-primary" id="cr-new-prescription" style="font-size:0.8rem;">+ Nueva receta / orden</button>
-        </div>
-        <div id="cr-prescriptions-list" style="margin-bottom:1rem;"></div>` : ''}
- 
-        ${isAdminComm ? `
-        <!-- Ventas / pagos (solo Admin/Comercial) -->
-        <details style="margin-top:1rem;">
-          <summary style="cursor:pointer; font-weight:600; color:var(--color-primary); font-size:0.9rem; display:inline-flex; align-items:center;">
-            <i data-lucide="dollar-sign" class="icon-inline mr-2"></i> Ventas y pagos (uso administrativo)
-          </summary>
-          <p style="font-size:0.85rem; color:var(--color-text-muted); margin-top:0.5rem;">La gestión de ventas y pagos del paciente se administra desde el listado de citas. Total de consultas registradas para este paciente: <strong>${DB.getAppointments().filter(a => a.patientPhone === record.patientPhone).length}</strong>.</p>
-        </details>` : ''}
-      </div>
-    </div>
+      ${isAdminComm ? `
+      <!-- Ventas / pagos (solo Admin/Comercial) -->
+      <details style="margin-top:1rem;">
+        <summary style="cursor:pointer; font-weight:600; color:var(--color-primary); font-size:0.9rem; display:inline-flex; align-items:center;">
+          <i data-lucide="dollar-sign" class="icon-inline mr-2"></i> Ventas y pagos (uso administrativo)
+        </summary>
+        <p style="font-size:0.85rem; color:var(--color-text-muted); margin-top:0.5rem;">La gestión de ventas y pagos del paciente se administra desde el listado de citas. Total de consultas registradas para este paciente: <strong>${DB.getAppointments().filter(a => a.patientPhone === record.patientPhone).length}</strong>.</p>
+      </details>` : ''}
   `;
-  document.body.appendChild(modal);
+
   if (window.lucide) {
     window.lucide.createIcons();
   }
@@ -3148,25 +3183,41 @@ function openClinicalRecord(recordId, opts) {
   // Estado temporal para la nota nueva (diagnósticos seleccionados)
   const noteDiagnoses = [];
 
-  // Cerrar
-  modal.querySelector('#cr-close').addEventListener('click', () => modal.remove());
+  // Configurar botón Volver
+  const backBtn = document.getElementById('cr-back-btn');
+  if (backBtn) {
+    backBtn.onclick = () => {
+      viewCr.style.display = 'none';
+      const prevView = window.__crPrevView || 'list';
+      const sec = document.getElementById(`view-${prevView}`);
+      if (sec) sec.style.display = 'block';
+      // Activar menú lateral correcto
+      document.querySelectorAll('.sidebar-item').forEach(i => {
+        if (i.getAttribute('data-view') === prevView) {
+          i.classList.add('active');
+        } else {
+          i.classList.remove('active');
+        }
+      });
+    };
+  }
 
   // Guardar filiación
-  const saveFiliacion = modal.querySelector('#cr-save-filiacion');
+  const saveFiliacion = container.querySelector('#cr-save-filiacion');
   if (saveFiliacion) {
     saveFiliacion.addEventListener('click', async () => {
-      record.dni = modal.querySelector('#cr-dni').value.trim();
-      record.birthDate = modal.querySelector('#cr-birthdate').value;
-      record.sex = modal.querySelector('#cr-sex').value;
-      record.bloodType = modal.querySelector('#cr-blood').value.trim();
-      record.allergies = modal.querySelector('#cr-allergies').value.trim();
+      record.dni = container.querySelector('#cr-dni').value.trim();
+      record.birthDate = container.querySelector('#cr-birthdate').value;
+      record.sex = container.querySelector('#cr-sex').value;
+      record.bloodType = container.querySelector('#cr-blood').value.trim();
+      record.allergies = container.querySelector('#cr-allergies').value.trim();
       await ClinicalDB.saveRecord(record);
       openClinicalRecord(record.id, opts); // re-render
     });
   }
 
   // Agregar antecedentes vía selector CIE-10
-  modal.querySelectorAll('.cr-add-history').forEach(btn => {
+  container.querySelectorAll('.cr-add-history').forEach(btn => {
     btn.addEventListener('click', () => {
       const kind = btn.getAttribute('data-kind');
       openCie10Picker(async (sel) => {
@@ -3182,7 +3233,7 @@ function openClinicalRecord(recordId, opts) {
   });
 
   // Eliminar chips de antecedentes
-  modal.querySelectorAll('.cr-chip-del').forEach(btn => {
+  container.querySelectorAll('.cr-chip-del').forEach(btn => {
     btn.addEventListener('click', async () => {
       const kind = btn.getAttribute('data-kind');
       const idx = parseInt(btn.getAttribute('data-idx'));
@@ -3196,7 +3247,7 @@ function openClinicalRecord(recordId, opts) {
 
   // Diagnósticos de la nueva nota
   function refreshNoteDiagChips() {
-    const box = modal.querySelector('#cr-note-diag-chips');
+    const box = container.querySelector('#cr-note-diag-chips');
     if (!box) return;
     box.innerHTML = historyChipsHtml(noteDiagnoses, 'diag', true);
     box.querySelectorAll('.cr-chip-del').forEach(b => {
@@ -3206,7 +3257,7 @@ function openClinicalRecord(recordId, opts) {
       });
     });
   }
-  const addDiagBtn = modal.querySelector('.cr-add-diag');
+  const addDiagBtn = container.querySelector('.cr-add-diag');
   if (addDiagBtn) {
     addDiagBtn.addEventListener('click', () => {
       openCie10Picker((sel) => {
@@ -3219,10 +3270,10 @@ function openClinicalRecord(recordId, opts) {
   }
 
   // Guardar nota de evolución
-  const saveNoteBtn = modal.querySelector('#cr-save-note');
+  const saveNoteBtn = container.querySelector('#cr-save-note');
   if (saveNoteBtn) {
     saveNoteBtn.addEventListener('click', async () => {
-      const text = modal.querySelector('#cr-note-text').value.trim();
+      const text = container.querySelector('#cr-note-text').value.trim();
       if (!text && noteDiagnoses.length === 0) {
         alert('Escribe la nota de evolución o agrega al menos un diagnóstico.');
         return;
@@ -3239,9 +3290,9 @@ function openClinicalRecord(recordId, opts) {
   }
 
   // Nueva receta
-  const newPrescBtn = modal.querySelector('#cr-new-prescription');
+  const newPrescBtn = container.querySelector('#cr-new-prescription');
   if (newPrescBtn) {
-    newPrescBtn.addEventListener('click', () => openPrescriptionBuilder(record));
+    newPrescBtn.addEventListener('click', () => openPrescriptionBuilder(record, noteDiagnoses));
   }
 
   // Render timeline de notas y lista de recetas
@@ -3250,8 +3301,8 @@ function openClinicalRecord(recordId, opts) {
 
   // Enfocar la nueva nota si se pidió
   if (opts.focusNote) {
-    const noteBox = modal.querySelector('#cr-new-note-box');
-    const noteText = modal.querySelector('#cr-note-text');
+    const noteBox = container.querySelector('#cr-new-note-box');
+    const noteText = container.querySelector('#cr-note-text');
     if (noteBox) noteBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
     if (noteText) setTimeout(() => noteText.focus(), 300);
   }
@@ -3544,14 +3595,22 @@ function handleSyncUpdate() {
 
 // 🔄 Inicialización de Sincronización en Tiempo Real con Supabase (Citas y Personal)
 DB.syncWithCloud(handleSyncUpdate);
-DB_Users.syncWithCloud();
+DB_Users.syncWithCloud(() => {
+  if (document.getElementById('admin-dashboard')) {
+    renderUsersTable();
+  }
+});
 // Sincronizar el módulo clínico (expedientes, notas, recetas) al iniciar.
 if (typeof ClinicalDB !== 'undefined') {
   ClinicalDB.syncWithCloud();
 }
 // Sincronizar firmas de médicos.
 if (typeof SignatureDB !== 'undefined') {
-  SignatureDB.syncWithCloud();
+  SignatureDB.syncWithCloud(() => {
+    if (document.getElementById('admin-dashboard')) {
+      renderUsersTable();
+    }
+  });
 }
 
 // ==========================================================================
@@ -3894,18 +3953,22 @@ function openEstudioPicker(onSelect) {
 /* ==========================================================================
    💊 GENERADOR DE RECETAS / ÓRDENES + PDF (pdf-lib, 100% en el navegador)
    ========================================================================== */
-function openPrescriptionBuilder(record) {
+function openPrescriptionBuilder(record, currentNoteDiagnoses) {
   const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
   const prev = document.getElementById('prescription-modal');
   if (prev) prev.remove();
 
-  // Diagnóstico sugerido: el más reciente de las notas de evolución.
-  const notes = ClinicalDB.getNotesByRecord(record.id);
+  // Diagnóstico sugerido: primero de la nota activa si existe, si no, de las anteriores.
   let suggestedDiag = '';
-  for (const n of notes) {
-    if (n.diagnosisCodes && n.diagnosisCodes.length) {
-      suggestedDiag = n.diagnosisCodes.map(d => `${d.code} ${d.description}`).join('; ');
-      break;
+  if (currentNoteDiagnoses && currentNoteDiagnoses.length) {
+    suggestedDiag = currentNoteDiagnoses.map(d => `${d.code} ${d.description}`).join('; ');
+  } else {
+    const notes = ClinicalDB.getNotesByRecord(record.id);
+    for (const n of notes) {
+      if (n.diagnosisCodes && n.diagnosisCodes.length) {
+        suggestedDiag = n.diagnosisCodes.map(d => `${d.code} ${d.description}`).join('; ');
+        break;
+      }
     }
   }
 
@@ -3963,8 +4026,12 @@ function openPrescriptionBuilder(record) {
           </span>
           <button class="pr-remove" style="color:var(--color-danger); font-weight:700;">Quitar</button>
         </div>
-        <div class="pr-med-display" style="font-size:0.88rem; margin-bottom:0.4rem; color:var(--color-text-muted);">Ningún medicamento seleccionado.</div>
-        <button class="btn btn-secondary pr-pick-med" style="font-size:0.75rem; margin-bottom:0.5rem;">Seleccionar medicamento</button>
+        <div style="display:flex; gap:0.5rem; align-items:center; margin-bottom:0.5rem;">
+          <button class="btn btn-secondary pr-pick-med" style="font-size:0.75rem; white-space:nowrap; padding:0.3rem 0.5rem; height:auto;">Buscar en catálogo</button>
+          <span style="font-size:0.8rem; color:var(--color-text-muted);">o escribe:</span>
+          <input type="text" class="form-control pr-custom-med-name" placeholder="Medicamento personalizado (Nombre, concentración...)" style="font-size:0.8rem; flex-grow:1; padding:0.25rem 0.5rem; height:auto;">
+        </div>
+        <div class="pr-med-display" style="font-size:0.85rem; margin-bottom:0.4rem; color:var(--color-text-muted); font-style:italic;">Ninguno seleccionado del catálogo.</div>
         <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.4rem;">
           <input type="text" class="form-control pr-dosis" placeholder="Dosis (1 tab)" style="font-size:0.8rem;">
           <input type="text" class="form-control pr-freq" placeholder="Frecuencia (c/8h)" style="font-size:0.8rem;">
@@ -3995,9 +4062,21 @@ function openPrescriptionBuilder(record) {
     });
 
     if (row.tipo === 'medicamento') {
+      const customInput = el.querySelector('.pr-custom-med-name');
+      customInput.addEventListener('input', () => {
+        if (customInput.value.trim() !== '') {
+          row.data = null;
+          el.querySelector('.pr-med-display').innerHTML = '<span style="color:var(--color-accent); font-weight:600;">Usando medicamento escrito a mano.</span>';
+        } else {
+          el.querySelector('.pr-med-display').innerHTML = 'Ninguno seleccionado del catálogo.';
+          el.querySelector('.pr-med-display').style.color = 'var(--color-text-muted)';
+        }
+      });
+
       el.querySelector('.pr-pick-med').addEventListener('click', () => {
         openMedicamentoPicker((m) => {
           row.data = m;
+          customInput.value = '';
           el.querySelector('.pr-med-display').innerHTML = `<strong>${m.nombre_comercial}</strong> (${m.nombre_generico}) — ${m.presentacion} ${m.concentracion}`;
           el.querySelector('.pr-med-display').style.color = 'var(--color-text-dark)';
         });
@@ -4029,17 +4108,31 @@ function openPrescriptionBuilder(record) {
     // Recolectar ítems
     const items = [];
     rows.forEach(row => {
-      if (row.tipo === 'medicamento' && row.data) {
-        items.push({
-          tipo: 'medicamento',
-          nombre: row.data.nombre_comercial,
-          generico: row.data.nombre_generico,
-          presentacion: row.data.presentacion,
-          concentracion: row.data.concentracion,
-          dosis: row.el.querySelector('.pr-dosis').value.trim(),
-          frecuencia: row.el.querySelector('.pr-freq').value.trim(),
-          duracion: row.el.querySelector('.pr-dur').value.trim()
-        });
+      if (row.tipo === 'medicamento') {
+        const customName = row.el.querySelector('.pr-custom-med-name').value.trim();
+        if (customName) {
+          items.push({
+            tipo: 'medicamento',
+            nombre: customName,
+            generico: '',
+            presentacion: '',
+            concentracion: '',
+            dosis: row.el.querySelector('.pr-dosis').value.trim(),
+            frecuencia: row.el.querySelector('.pr-freq').value.trim(),
+            duracion: row.el.querySelector('.pr-dur').value.trim()
+          });
+        } else if (row.data) {
+          items.push({
+            tipo: 'medicamento',
+            nombre: row.data.nombre_comercial,
+            generico: row.data.nombre_generico,
+            presentacion: row.data.presentacion,
+            concentracion: row.data.concentracion,
+            dosis: row.el.querySelector('.pr-dosis').value.trim(),
+            frecuencia: row.el.querySelector('.pr-freq').value.trim(),
+            duracion: row.el.querySelector('.pr-dur').value.trim()
+          });
+        }
       } else if (row.tipo === 'estudio' && row.data) {
         items.push({
           tipo: 'estudio',
@@ -4051,7 +4144,7 @@ function openPrescriptionBuilder(record) {
     });
 
     if (items.length === 0) {
-      alert('Agrega al menos un medicamento o estudio con su selección del catálogo.');
+      alert('Agrega al menos un medicamento (seleccionado o escrito) o un estudio.');
       return;
     }
 
@@ -4078,7 +4171,7 @@ let _logoBytesCache = null;
 async function getLogoBytes() {
   if (_logoBytesCache) return _logoBytesCache;
   try {
-    const res = await fetch('Logosinfondo.png', { cache: 'force-cache' });
+    const res = await fetch('Koly_MEDICAL_banner_cropped.png', { cache: 'force-cache' });
     const buf = await res.arrayBuffer();
     _logoBytesCache = new Uint8Array(buf);
     return _logoBytesCache;
@@ -4115,12 +4208,11 @@ async function generatePrescriptionPDF(record, prescription) {
   if (logoBytes) {
     try {
       const logo = await doc.embedPng(logoBytes);
-      const lw = 54, lh = (logo.height / logo.width) * lw;
+      const lw = 220; // Banner width
+      const lh = (logo.height / logo.width) * lw; // maintaining aspect ratio
       page.drawImage(logo, { x: M, y: height - 40 - lh, width: lw, height: lh });
     } catch (e) { /* si falla, seguimos sin logo */ }
   }
-  page.drawText('KOLYMEDICAL', { x: M + 66, y: height - 58, size: 22, font: fontBold, color: primary });
-  page.drawText('INNOVATION  ·  PRECISION  ·  CARE', { x: M + 67, y: height - 74, size: 8, font: font, color: accent });
 
   // Fecha (arriba derecha)
   const fecha = new Date(prescription.createdAt || Date.now()).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -4232,6 +4324,7 @@ async function generatePrescriptionPDF(record, prescription) {
     }
   }
 
+  let drawnSignature = false;
   // Dibujar la firma si existe
   if (signatureDataUrl) {
     try {
@@ -4252,9 +4345,9 @@ async function generatePrescriptionPDF(record, prescription) {
           embeddedImage = await doc.embedPng(sigBytes);
         }
 
-        const sigWidth = 110;
+        const sigWidth = 160; // Larger signature width
         let sigHeight = (embeddedImage.height / embeddedImage.width) * sigWidth;
-        const maxSigHeight = 45;
+        const maxSigHeight = 75; // Larger max height
         let finalW = sigWidth;
         let finalH = sigHeight;
         if (sigHeight > maxSigHeight) {
@@ -4264,21 +4357,25 @@ async function generatePrescriptionPDF(record, prescription) {
 
         page.drawImage(embeddedImage, {
           x: width / 2 - finalW / 2,
-          y: footY + 24,
+          y: footY + 10, // Adjusted vertical position
           width: finalW,
           height: finalH
         });
+        drawnSignature = true;
       }
     } catch (err) {
       console.error('Error al incrustar la firma en el PDF:', err);
     }
   }
 
-  page.drawLine({ start: { x: width / 2 - 90, y: footY + 22 }, end: { x: width / 2 + 90, y: footY + 22 }, thickness: 0.8, color: dark });
-  const specName = spec ? spec.name : 'Especialista';
-  page.drawText(specName, { x: width / 2 - font.widthOfTextAtSize(specName, 10) / 2, y: footY + 8, size: 10, font: fontBold, color: primary });
-  if (spec && spec.specialty) {
-    page.drawText(spec.specialty, { x: width / 2 - font.widthOfTextAtSize(spec.specialty, 9) / 2, y: footY - 4, size: 9, font, color: muted });
+  // Dibujar línea y textos solo si NO se pudo dibujar la firma digital
+  if (!drawnSignature) {
+    page.drawLine({ start: { x: width / 2 - 90, y: footY + 22 }, end: { x: width / 2 + 90, y: footY + 22 }, thickness: 0.8, color: dark });
+    const specName = spec ? spec.name : 'Especialista';
+    page.drawText(specName, { x: width / 2 - font.widthOfTextAtSize(specName, 10) / 2, y: footY + 8, size: 10, font: fontBold, color: primary });
+    if (spec && spec.specialty) {
+      page.drawText(spec.specialty, { x: width / 2 - font.widthOfTextAtSize(spec.specialty, 9) / 2, y: footY - 4, size: 9, font, color: muted });
+    }
   }
 
   page.drawLine({ start: { x: M, y: 70 }, end: { x: width - M, y: 70 }, thickness: 1, color: accent });
