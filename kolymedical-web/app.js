@@ -1868,6 +1868,38 @@ function renderUsersTable() {
     tr.querySelector('.btn-edit-user').addEventListener('click', () => editUserAccount(u));
     tr.querySelector('.btn-delete-user').addEventListener('click', () => {
       if (confirm(`¿Está seguro de eliminar la cuenta del trabajador ${u.fullname}?`)) {
+        if (u.specialistId) {
+          SPECIALISTS = SPECIALISTS.filter(s => s.id !== u.specialistId);
+          SERVICES = SERVICES.filter(s => s.specialistId !== u.specialistId);
+          safeLocalStorage.setItem('kolymedical_specialists', JSON.stringify(SPECIALISTS));
+          safeLocalStorage.setItem('kolymedical_services', JSON.stringify(SERVICES));
+
+          const filterDocSelect = document.getElementById('admin-filter-doctor');
+          if (filterDocSelect) {
+            filterDocSelect.innerHTML = '<option value="">-- Filtrar por Especialista (Todos) --</option>';
+            SPECIALISTS.forEach(d => {
+              const opt = document.createElement('option');
+              opt.value = d.id;
+              opt.textContent = d.name;
+              filterDocSelect.appendChild(opt);
+            });
+          }
+
+          const adminBookingService = document.getElementById('admin-booking-service');
+          if (adminBookingService) {
+            adminBookingService.innerHTML = '<option value="">-- Selecciona Servicio --</option>';
+            SERVICES.forEach(s => {
+              const opt = document.createElement('option');
+              opt.value = s.id;
+              opt.textContent = `${s.name} — S/ ${s.price}`;
+              adminBookingService.appendChild(opt);
+            });
+          }
+
+          if (typeof renderAvailabilityView === 'function') {
+            renderAvailabilityView();
+          }
+        }
         DB_Users.deleteUser(u.username);
         renderUsersTable();
       }
@@ -4232,7 +4264,7 @@ let _logoBytesCache = null;
 async function getLogoBytes() {
   if (_logoBytesCache) return _logoBytesCache;
   try {
-    const res = await fetch('Koly_MEDICAL_banner_cropped.png', { cache: 'force-cache' });
+    const res = await fetch('Koly MEDICAL I PC LETRAS .png', { cache: 'force-cache' });
     const buf = await res.arrayBuffer();
     _logoBytesCache = new Uint8Array(buf);
     return _logoBytesCache;

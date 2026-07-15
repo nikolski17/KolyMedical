@@ -2534,10 +2534,9 @@ ul {
 }
 
 .admin-header {
-  background: rgba(255, 255, 255, 0.72) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  border-bottom: 1px solid rgba(61, 90, 115, 0.08) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  padding-bottom: 1rem !important;
+  margin-bottom: 2rem !important;
 }
 
 .modal-content {
