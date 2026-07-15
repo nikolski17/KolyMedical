@@ -4264,7 +4264,7 @@ let _logoBytesCache = null;
 async function getLogoBytes() {
   if (_logoBytesCache) return _logoBytesCache;
   try {
-    const res = await fetch('Koly MEDICAL I PC LETRAS .png', { cache: 'force-cache' });
+    const res = await fetch('Koly_MEDICAL_banner_cropped.png', { cache: 'force-cache' });
     const buf = await res.arrayBuffer();
     _logoBytesCache = new Uint8Array(buf);
     return _logoBytesCache;
