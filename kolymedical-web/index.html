@@ -507,6 +507,18 @@
           </svg>
           Neurológicas
         </button>
+        <button class="protocol-tab" data-tab="diabetes">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+          </svg>
+          Diabetes
+        </button>
+        <button class="protocol-tab" data-tab="renal">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+          Insuficiencia Renal
+        </button>
         <button class="protocol-tab" data-tab="fibroscan">
           <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="11" cy="11" r="8" />
@@ -779,6 +791,56 @@
         </div>
       </div>
 
+      <!-- 7.5. Diabetes -->
+      <div class="protocol-content" id="tab-diabetes">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center;">
+          <div>
+            <h3 style="font-size: 1.6rem; color: #fff; margin-bottom: 1.5rem; font-weight: 700;">Soporte Metabólico en Diabetes Mellitus</h3>
+            <p style="color: rgba(255,255,255,0.85); line-height: 1.7; margin-bottom: 1.5rem;">
+              Protocolos de medicina regenerativa y soporte celular enfocados en coadyuvar a la restauración pancreática, mejorar la sensibilidad a la insulina y mitigar las complicaciones crónicas de la diabetes mellitus tipo 2 y tipo 1.
+            </p>
+            <p style="color: rgba(255,255,255,0.85); line-height: 1.7; margin-bottom: 1.5rem;">
+              <strong>Áreas de Soporte Clínico:</strong>
+            </p>
+            <ul style="color: rgba(255,255,255,0.85); margin-left: 1.5rem; margin-bottom: 1.5rem; line-height: 1.6;">
+              <li>Disminución de la resistencia periférica a la insulina.</li>
+              <li>Protección y soporte vascular periférico (prevención de pie diabético).</li>
+              <li>Manejo coadyuvante de neuropatía diabética dolorosa.</li>
+            </ul>
+            <button class="btn btn-accent open-booking-modal">Solicitar Evaluación</button>
+          </div>
+          <div>
+            <img src="img/diabetes_tratamiento.jpg" alt="Tratamiento de Diabetes"
+              style="width: 100%; border-radius: var(--border-radius-md); box-shadow: var(--shadow-lg); object-fit: cover; height: 300px;">
+          </div>
+        </div>
+      </div>
+
+      <!-- 7.6. Insuficiencia Renal -->
+      <div class="protocol-content" id="tab-renal">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center;">
+          <div>
+            <h3 style="font-size: 1.6rem; color: #fff; margin-bottom: 1.5rem; font-weight: 700;">Terapia Celular y Soporte en Insuficiencia Renal</h3>
+            <p style="color: rgba(255,255,255,0.85); line-height: 1.7; margin-bottom: 1.5rem;">
+              Enfoques dirigidos a ralentizar el deterioro de la función renal, modular los procesos inflamatorios glomerulares e intersticiales, y propiciar un ambiente biológico favorable para la preservación de nefronas residuales.
+            </p>
+            <p style="color: rgba(255,255,255,0.85); line-height: 1.7; margin-bottom: 1.5rem;">
+              <strong>Objetivos del Protocolo:</strong>
+            </p>
+            <ul style="color: rgba(255,255,255,0.85); margin-left: 1.5rem; margin-bottom: 1.5rem; line-height: 1.6;">
+              <li>Reducir el estrés oxidativo y la fibrosis renal progresiva.</li>
+              <li>Preservar la tasa de filtrado glomerular residual de manera complementaria.</li>
+              <li>Mejorar el estado general, la anemia y el bienestar del paciente.</li>
+            </ul>
+            <button class="btn btn-accent open-booking-modal">Solicitar Evaluación</button>
+          </div>
+          <div>
+            <img src="img/insuficiencia_renal_tratamiento.jpg" alt="Tratamiento de Insuficiencia Renal"
+              style="width: 100%; border-radius: var(--border-radius-md); box-shadow: var(--shadow-lg); object-fit: cover; height: 300px;">
+          </div>
+        </div>
+      </div>
+
       <!-- 8. Estudio FibroScan -->
       <div class="protocol-content" id="tab-fibroscan">
         <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 2rem; align-items: center;">
@@ -800,7 +862,7 @@
           </div>
           <div>
             <img src="img/fibroscan_estudio.jpg" alt="Examen Fibroscan"
-              style="width: 100%; border-radius: var(--border-radius-md); box-shadow: var(--shadow-lg); object-fit: cover; height: 280px; margin-bottom: 1rem;">
+              style="width: 100%; border-radius: var(--border-radius-md); box-shadow: var(--shadow-lg); object-fit: contain; max-height: 280px; margin-bottom: 1rem;">
           </div>
         </div>
       </div>

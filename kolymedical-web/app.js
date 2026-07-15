@@ -130,6 +130,32 @@ try {
 
   const cachedServices = safeLocalStorage.getItem('kolymedical_services');
   SERVICES = cachedServices ? JSON.parse(cachedServices) : INITIAL_SERVICES;
+
+  // Limpieza de servicios duplicados y corrección de nombres genéricos
+  if (SERVICES && SERVICES.length > 0) {
+    SERVICES = SERVICES.filter(s => {
+      if (s.id.startsWith('service_')) {
+        if (s.specialistId === 'amelia' && SERVICES.some(x => x.id === 'nutricion')) return false;
+        if (s.specialistId === 'pedraza' && SERVICES.some(x => x.id === 'med_reg')) return false;
+        if (s.specialistId === 'morales' && SERVICES.some(x => x.id === 'gastro')) return false;
+        if (s.specialistId === 'montes' && SERVICES.some(x => x.id === 'otorrino')) return false;
+        if (s.specialistId === 'ruslan' && SERVICES.some(x => x.id === 'fibroscan')) return false;
+        if (s.specialistId === 'melendes' && SERVICES.some(x => x.id === 'psicologia')) return false;
+      }
+      return true;
+    });
+
+    SERVICES.forEach(s => {
+      if (s.id.startsWith('service_')) {
+        const doc = SPECIALISTS.find(d => d.id === s.specialistId);
+        if (doc) {
+          s.name = `Consulta — ${doc.specialty || 'Medicina General'}`;
+        }
+      }
+    });
+
+    safeLocalStorage.setItem('kolymedical_services', JSON.stringify(SERVICES));
+  }
 } catch (e) {
   localAppointmentsCache = INITIAL_APPOINTMENTS;
   localUsersCache = INITIAL_USERS;
@@ -1004,11 +1030,15 @@ function initPublicWeb() {
 
   // Llenar selectores del paso 1
   const selectService = document.getElementById('booking-service');
+  const renderedServiceNames = new Set();
   SERVICES.forEach(s => {
-    const opt = document.createElement('option');
-    opt.value = s.id;
-    opt.textContent = `${s.name} — S/ ${s.price}`;
-    selectService.appendChild(opt);
+    if (!renderedServiceNames.has(s.name)) {
+      renderedServiceNames.add(s.name);
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = `${s.name} — S/ ${s.price}`;
+      selectService.appendChild(opt);
+    }
   });
 
   // Evento al cambiar de servicio para autoseleccionar doctor y validar modalidad
@@ -1024,13 +1054,28 @@ function initPublicWeb() {
 
     if (serviceVal) {
       const service = SERVICES.find(s => s.id === serviceVal);
-      const doc = SPECIALISTS.find(d => d.id === service.specialistId);
-      if (doc) {
-        const opt = document.createElement('option');
-        opt.value = doc.id;
-        opt.textContent = doc.name;
-        opt.selected = true;
-        selectDoctor.appendChild(opt);
+      let matchingDocs = [];
+      if (service && service.specialistId) {
+        const baseDoc = SPECIALISTS.find(d => d.id === service.specialistId);
+        if (baseDoc) {
+          matchingDocs = SPECIALISTS.filter(d => d.specialty === baseDoc.specialty);
+        } else {
+          const directDoc = SPECIALISTS.find(d => d.id === service.specialistId);
+          if (directDoc) matchingDocs.push(directDoc);
+        }
+      }
+
+      if (matchingDocs.length > 0) {
+        matchingDocs.forEach(doc => {
+          const opt = document.createElement('option');
+          opt.value = doc.id;
+          opt.textContent = doc.name;
+          if (matchingDocs.length === 1) opt.selected = true;
+          selectDoctor.appendChild(opt);
+        });
+        selectDoctor.disabled = (matchingDocs.length <= 1);
+      } else {
+        selectDoctor.disabled = true;
       }
 
       // Si es Fibroscan, obligar presencial por el Dr. Ruslan Golovliov
@@ -1049,6 +1094,7 @@ function initPublicWeb() {
       } else if (serviceVal === 'curacion_heridas') {
         // Servicio a domicilio: no cuenta con médico a cargo
         selectDoctor.innerHTML = '<option value="">No requiere médico asignado</option>';
+        selectDoctor.disabled = true;
         // Asegurar que exista opción "A Domicilio"
         let hasDomicilio = false;
         for (let i = 0; i < selectModality.options.length; i++) {
@@ -1080,6 +1126,7 @@ function initPublicWeb() {
     } else {
       selectModality.disabled = false;
       modalityNote.style.display = 'none';
+      selectDoctor.disabled = true;
     }
   });
 
@@ -1090,6 +1137,7 @@ function initPublicWeb() {
   inputDate.min = today;
   inputDate.addEventListener('change', generateTimeSlots);
   selectService.addEventListener('change', generateTimeSlots);
+  selectDoctor.addEventListener('change', generateTimeSlots);
 
   function generateTimeSlots() {
     const dateVal = inputDate.value;
@@ -1100,10 +1148,14 @@ function initPublicWeb() {
     if (!dateVal || !serviceVal) return;
 
     const service = SERVICES.find(s => s.id === serviceVal);
-    const doctor = SPECIALISTS.find(d => d.id === service.specialistId);
+    const selectedDoctorId = selectDoctor.value || (service ? service.specialistId : null);
+    const doctor = SPECIALISTS.find(d => d.id === selectedDoctorId);
 
-    if (serviceVal === 'fibroscan') {
-      timeGrid.innerHTML = '<p style="color: var(--color-primary-light); font-size: 0.85rem; padding: 0.5rem; grid-column: span 4;">El estudio se programa solo para el día seleccionado. El asesor comercial se comunicará contigo para coordinar la hora exacta.</p>';
+    if (serviceVal === 'fibroscan' || serviceVal === 'med_reg') {
+      const msg = serviceVal === 'fibroscan'
+        ? 'El estudio se programa solo para el día seleccionado. El asesor comercial se comunicará contigo para coordinar la hora exacta.'
+        : 'La consulta con el Dr. Pedraza se agenda como fecha probable. Debido a la alta demanda de su agenda, nuestro equipo se comunicará contigo para coordinar la hora exacta de la cita.';
+      timeGrid.innerHTML = `<p style="color: var(--color-primary-light); font-size: 0.85rem; padding: 0.5rem; grid-column: span 4;">${msg}</p>`;
       document.getElementById('booking-selected-time').value = 'Por coordinar';
       return;
     }
@@ -1141,6 +1193,21 @@ function initPublicWeb() {
       }
       timeGrid.appendChild(slot);
     });
+
+    // Agregar slot extra de "Horario según disponibilidad de agenda"
+    const extraSlot = document.createElement('div');
+    extraSlot.className = 'time-slot';
+    extraSlot.textContent = 'Por coordinar (Sujeto a disponibilidad de agenda)';
+    extraSlot.style.gridColumn = 'span 4';
+    extraSlot.style.fontSize = '0.78rem';
+    extraSlot.style.padding = '0.75rem';
+    extraSlot.style.marginTop = '0.5rem';
+    extraSlot.addEventListener('click', () => {
+      document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected'));
+      extraSlot.classList.add('selected');
+      document.getElementById('booking-selected-time').value = 'Por coordinar (Sujeto a disponibilidad de agenda)';
+    });
+    timeGrid.appendChild(extraSlot);
   }
 
   // Navegación de Pasos
@@ -1888,11 +1955,15 @@ function renderUsersTable() {
           const adminBookingService = document.getElementById('admin-booking-service');
           if (adminBookingService) {
             adminBookingService.innerHTML = '<option value="">-- Selecciona Servicio --</option>';
+            const adminRenderedServiceNames = new Set();
             SERVICES.forEach(s => {
-              const opt = document.createElement('option');
-              opt.value = s.id;
-              opt.textContent = `${s.name} — S/ ${s.price}`;
-              adminBookingService.appendChild(opt);
+              if (!adminRenderedServiceNames.has(s.name)) {
+                adminRenderedServiceNames.add(s.name);
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.textContent = `${s.name} — S/ ${s.price}`;
+                adminBookingService.appendChild(opt);
+              }
             });
           }
 
@@ -2164,11 +2235,15 @@ function initUserManagementForm() {
     const adminBookingService = document.getElementById('admin-booking-service');
     if (adminBookingService) {
       adminBookingService.innerHTML = '<option value="">-- Selecciona Servicio --</option>';
+      const adminRenderedServiceNames = new Set();
       SERVICES.forEach(s => {
-        const opt = document.createElement('option');
-        opt.value = s.id;
-        opt.textContent = `${s.name} — S/ ${s.price}`;
-        adminBookingService.appendChild(opt);
+        if (!adminRenderedServiceNames.has(s.name)) {
+          adminRenderedServiceNames.add(s.name);
+          const opt = document.createElement('option');
+          opt.value = s.id;
+          opt.textContent = `${s.name} — S/ ${s.price}`;
+          adminBookingService.appendChild(opt);
+        }
       });
     }
 
@@ -3484,11 +3559,15 @@ function initAdminBookingForm() {
   const adminDateInput = document.getElementById('admin-booking-date');
 
   // Llenar selectores del form
+  const adminRenderedServiceNames = new Set();
   SERVICES.forEach(s => {
-    const opt = document.createElement('option');
-    opt.value = s.id;
-    opt.textContent = `${s.name} — S/ ${s.price}`;
-    selectService.appendChild(opt);
+    if (!adminRenderedServiceNames.has(s.name)) {
+      adminRenderedServiceNames.add(s.name);
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = `${s.name} — S/ ${s.price}`;
+      selectService.appendChild(opt);
+    }
   });
 
   if (adminDateInput) {
@@ -3497,6 +3576,7 @@ function initAdminBookingForm() {
 
     adminDateInput.addEventListener('change', generateAdminTimeSlots);
     selectService.addEventListener('change', generateAdminTimeSlots);
+    selectDoctor.addEventListener('change', generateAdminTimeSlots);
   }
 
   function generateAdminTimeSlots() {
@@ -3509,10 +3589,14 @@ function initAdminBookingForm() {
     if (!dateVal || !serviceVal) return;
 
     const service = SERVICES.find(s => s.id === serviceVal);
-    const doctor = SPECIALISTS.find(d => d.id === service.specialistId);
+    const selectedDoctorId = selectDoctor.value || (service ? service.specialistId : null);
+    const doctor = SPECIALISTS.find(d => d.id === selectedDoctorId);
 
-    if (serviceVal === 'fibroscan') {
-      timeGrid.innerHTML = '<p style="color: var(--color-primary-light); font-size: 0.8rem; padding: 0.25rem; grid-column: span 4;">El estudio se programa solo para el día seleccionado. El asesor comercial coordinará la hora exacta con el paciente.</p>';
+    if (serviceVal === 'fibroscan' || serviceVal === 'med_reg') {
+      const msg = serviceVal === 'fibroscan'
+        ? 'El estudio se programa solo para el día seleccionado. El asesor comercial coordinará la hora exacta con el paciente.'
+        : 'La consulta con el Dr. Pedraza se programa para el día seleccionado. El horario se coordinará posteriormente con el paciente.';
+      timeGrid.innerHTML = `<p style="color: var(--color-primary-light); font-size: 0.8rem; padding: 0.25rem; grid-column: span 4;">${msg}</p>`;
       document.getElementById('admin-booking-time').value = 'Por coordinar';
       return;
     }
@@ -3564,6 +3648,33 @@ function initAdminBookingForm() {
       }
       timeGrid.appendChild(slot);
     });
+
+    // Agregar slot extra de "Horario según disponibilidad de agenda" en el panel administrativo
+    const extraSlot = document.createElement('div');
+    extraSlot.className = 'time-slot';
+    extraSlot.textContent = 'Por coordinar (Sujeto a disponibilidad de agenda)';
+    extraSlot.style.gridColumn = 'span 4';
+    extraSlot.style.padding = '0.5rem';
+    extraSlot.style.fontSize = '0.78rem';
+    extraSlot.style.border = '1px solid var(--color-border)';
+    extraSlot.style.borderRadius = '4px';
+    extraSlot.style.textAlign = 'center';
+    extraSlot.style.cursor = 'pointer';
+    extraSlot.style.backgroundColor = 'transparent';
+    extraSlot.style.color = 'var(--color-primary-dark)';
+
+    extraSlot.addEventListener('click', () => {
+      timeGrid.querySelectorAll('.time-slot').forEach(s => {
+        if (!s.classList.contains('disabled')) {
+          s.style.backgroundColor = 'transparent';
+          s.style.color = 'var(--color-primary-dark)';
+        }
+      });
+      extraSlot.style.backgroundColor = 'var(--color-accent)';
+      extraSlot.style.color = '#fff';
+      document.getElementById('admin-booking-time').value = 'Por coordinar (Sujeto a disponibilidad de agenda)';
+    });
+    timeGrid.appendChild(extraSlot);
   }
 
   selectService.addEventListener('change', () => {
@@ -3572,13 +3683,28 @@ function initAdminBookingForm() {
     selectDoctor.innerHTML = '<option value="">-- Selecciona Especialista --</option>';
     if (serviceVal) {
       const service = SERVICES.find(s => s.id === serviceVal);
-      const doc = SPECIALISTS.find(d => d.id === service.specialistId);
-      if (doc) {
-        const opt = document.createElement('option');
-        opt.value = doc.id;
-        opt.textContent = doc.name;
-        opt.selected = true;
-        selectDoctor.appendChild(opt);
+      let matchingDocs = [];
+      if (service && service.specialistId) {
+        const baseDoc = SPECIALISTS.find(d => d.id === service.specialistId);
+        if (baseDoc) {
+          matchingDocs = SPECIALISTS.filter(d => d.specialty === baseDoc.specialty);
+        } else {
+          const directDoc = SPECIALISTS.find(d => d.id === service.specialistId);
+          if (directDoc) matchingDocs.push(directDoc);
+        }
+      }
+
+      if (matchingDocs.length > 0) {
+        matchingDocs.forEach(doc => {
+          const opt = document.createElement('option');
+          opt.value = doc.id;
+          opt.textContent = doc.name;
+          if (matchingDocs.length === 1) opt.selected = true;
+          selectDoctor.appendChild(opt);
+        });
+        selectDoctor.disabled = (matchingDocs.length <= 1);
+      } else {
+        selectDoctor.disabled = true;
       }
 
       if (serviceVal === 'fibroscan') {
@@ -3592,6 +3718,7 @@ function initAdminBookingForm() {
         selectModality.disabled = true;
       } else if (serviceVal === 'curacion_heridas') {
         selectDoctor.innerHTML = '<option value="">No requiere médico asignado</option>';
+        selectDoctor.disabled = true;
         let hasDomicilio = false;
         for (let i = 0; i < selectModality.options.length; i++) {
           if (selectModality.options[i].value === 'A Domicilio') hasDomicilio = true;
@@ -3615,6 +3742,7 @@ function initAdminBookingForm() {
       }
     } else {
       selectModality.disabled = false;
+      selectDoctor.disabled = true;
     }
   });
 
