@@ -218,6 +218,7 @@ ul {
   font-size: 1.4rem;
   font-weight: 700;
   color: var(--color-primary);
+  margin-right: 3rem; /* Espacio de unos 2 cm entre logo y el menú */
 }
 
 .logo-icon {
@@ -2503,6 +2504,9 @@ ul {
 @media (min-width: 1025px) and (max-width: 1200px) {
   .logo-container img {
     height: 36px !important;
+  }
+  .logo-container {
+    margin-right: 1.5rem !important; /* Reducir espacio en laptops para evitar colisión */
   }
   .nav-links {
     gap: 0.9rem !important;
