@@ -134,14 +134,13 @@ try {
   // Limpieza de servicios duplicados y corrección de nombres genéricos
   if (SERVICES && SERVICES.length > 0) {
     SERVICES = SERVICES.filter(s => {
-      if (s.id.startsWith('service_')) {
-        if (s.specialistId === 'amelia' && SERVICES.some(x => x.id === 'nutricion')) return false;
-        if (s.specialistId === 'pedraza' && SERVICES.some(x => x.id === 'med_reg')) return false;
-        if (s.specialistId === 'morales' && SERVICES.some(x => x.id === 'gastro')) return false;
-        if (s.specialistId === 'montes' && SERVICES.some(x => x.id === 'otorrino')) return false;
-        if (s.specialistId === 'ruslan' && SERVICES.some(x => x.id === 'fibroscan')) return false;
-        if (s.specialistId === 'melendes' && SERVICES.some(x => x.id === 'psicologia')) return false;
-      }
+      // Eliminar el servicio antiguo predefinido si existe el nuevo autogenerado/actualizado por el sistema
+      if (s.id === 'nutricion' && SERVICES.some(x => x.id === 'service_amelia')) return false;
+      if (s.id === 'med_reg' && SERVICES.some(x => x.id === 'service_pedraza')) return false;
+      if (s.id === 'gastro' && SERVICES.some(x => x.id === 'service_morales')) return false;
+      if (s.id === 'otorrino' && SERVICES.some(x => x.id === 'service_montes')) return false;
+      if (s.id === 'fibroscan' && SERVICES.some(x => x.id === 'service_ruslan')) return false;
+      if (s.id === 'psicologia' && SERVICES.some(x => x.id === 'service_melendes')) return false;
       return true;
     });
 
@@ -149,7 +148,12 @@ try {
       if (s.id.startsWith('service_')) {
         const doc = SPECIALISTS.find(d => d.id === s.specialistId);
         if (doc) {
-          s.name = `Consulta — ${doc.specialty || 'Medicina General'}`;
+          // Usar acentos correctos al normalizar nombres autogenerados
+          let specName = doc.specialty || 'Medicina General';
+          if (specName.toLowerCase() === 'nutricionista clinica' || specName.toLowerCase() === 'nutricion clinica') {
+            specName = 'Nutrición Clínica';
+          }
+          s.name = `Consulta — ${specName}`;
         }
       }
     });
@@ -1032,8 +1036,10 @@ function initPublicWeb() {
   const selectService = document.getElementById('booking-service');
   const renderedServiceNames = new Set();
   SERVICES.forEach(s => {
-    if (!renderedServiceNames.has(s.name)) {
-      renderedServiceNames.add(s.name);
+    // Normalizar a minúsculas y sin acentos para evitar duplicados por variaciones de tildes
+    const normalizedName = s.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    if (!renderedServiceNames.has(normalizedName)) {
+      renderedServiceNames.add(normalizedName);
       const opt = document.createElement('option');
       opt.value = s.id;
       opt.textContent = `${s.name} — S/ ${s.price}`;
@@ -1957,8 +1963,9 @@ function renderUsersTable() {
             adminBookingService.innerHTML = '<option value="">-- Selecciona Servicio --</option>';
             const adminRenderedServiceNames = new Set();
             SERVICES.forEach(s => {
-              if (!adminRenderedServiceNames.has(s.name)) {
-                adminRenderedServiceNames.add(s.name);
+              const normalizedName = s.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+              if (!adminRenderedServiceNames.has(normalizedName)) {
+                adminRenderedServiceNames.add(normalizedName);
                 const opt = document.createElement('option');
                 opt.value = s.id;
                 opt.textContent = `${s.name} — S/ ${s.price}`;
@@ -2237,8 +2244,9 @@ function initUserManagementForm() {
       adminBookingService.innerHTML = '<option value="">-- Selecciona Servicio --</option>';
       const adminRenderedServiceNames = new Set();
       SERVICES.forEach(s => {
-        if (!adminRenderedServiceNames.has(s.name)) {
-          adminRenderedServiceNames.add(s.name);
+        const normalizedName = s.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        if (!adminRenderedServiceNames.has(normalizedName)) {
+          adminRenderedServiceNames.add(normalizedName);
           const opt = document.createElement('option');
           opt.value = s.id;
           opt.textContent = `${s.name} — S/ ${s.price}`;
@@ -3561,8 +3569,9 @@ function initAdminBookingForm() {
   // Llenar selectores del form
   const adminRenderedServiceNames = new Set();
   SERVICES.forEach(s => {
-    if (!adminRenderedServiceNames.has(s.name)) {
-      adminRenderedServiceNames.add(s.name);
+    const normalizedName = s.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    if (!adminRenderedServiceNames.has(normalizedName)) {
+      adminRenderedServiceNames.add(normalizedName);
       const opt = document.createElement('option');
       opt.value = s.id;
       opt.textContent = `${s.name} — S/ ${s.price}`;
