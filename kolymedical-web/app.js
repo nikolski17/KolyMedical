@@ -1034,6 +1034,7 @@ function initPublicWeb() {
 
   // Llenar selectores del paso 1
   const selectService = document.getElementById('booking-service');
+  const selectDoctor = document.getElementById('booking-doctor');
   const renderedServiceNames = new Set();
   SERVICES.forEach(s => {
     // Normalizar a minúsculas y sin acentos para evitar duplicados por variaciones de tildes
@@ -1050,7 +1051,6 @@ function initPublicWeb() {
   // Evento al cambiar de servicio para autoseleccionar doctor y validar modalidad
   selectService.addEventListener('change', () => {
     const serviceVal = selectService.value;
-    const selectDoctor = document.getElementById('booking-doctor');
     const selectModality = document.getElementById('booking-modality');
     const modalityNote = document.getElementById('booking-modality-note');
 
