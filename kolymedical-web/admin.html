@@ -274,7 +274,12 @@
                 <input type="text" id="admin-booking-name" class="form-control" required
                   placeholder="Ej. Carlos Mendoza">
               </div>
-              <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+              <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                <div>
+                  <label for="admin-booking-dni">DNI / Cédula:</label>
+                  <input type="text" id="admin-booking-dni" class="form-control" placeholder="12345678"
+                    maxlength="15">
+                </div>
                 <div>
                   <label for="admin-booking-age">Edad:</label>
                   <input type="number" id="admin-booking-age" class="form-control" required placeholder="45" min="1"
@@ -313,11 +318,30 @@
                 </div>
               </div>
               <div class="form-group">
+                <label for="admin-booking-motivo">Motivo de Consulta:</label>
+                <textarea id="admin-booking-motivo" class="form-control" rows="2"
+                  placeholder="Ej. Control de rutina, dolor abdominal, seguimiento de tratamiento..."
+                  style="resize: vertical; font-size: 0.9rem;"></textarea>
+              </div>
+              <div class="form-group">
                 <label for="admin-booking-modality">Modalidad:</label>
                 <select id="admin-booking-modality" class="form-control">
                   <option value="Presencial">Presencial</option>
                   <option value="Virtual">Virtual</option>
                 </select>
+              </div>
+              <div class="form-group" id="admin-booking-meetlink-group" style="display: none;">
+                <label for="admin-booking-meetlink">
+                  <span style="display: flex; align-items: center; gap: 0.4rem;">
+                    🔗 Link de Reunión (Google Meet / Zoom):
+                  </span>
+                </label>
+                <input type="url" id="admin-booking-meetlink" class="form-control"
+                  placeholder="https://meet.google.com/abc-defg-hij"
+                  style="font-size: 0.9rem;">
+                <p style="margin: 0.25rem 0 0; font-size: 0.72rem; color: var(--color-text-muted);">
+                  Este enlace será visible para el especialista y el comercial.
+                </p>
               </div>
               <div class="form-group">
                 <label for="admin-booking-tracker">Agente de Seguimiento:</label>
@@ -495,6 +519,16 @@
           </div>
 
           <form id="availability-form" onsubmit="event.preventDefault();">
+            <div class="form-group" style="margin-bottom: 1.5rem; background: rgba(0, 168, 150, 0.05); padding: 0.75rem 1rem; border-radius: var(--border-radius-sm); border: 1px dashed var(--color-accent);">
+              <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.92rem; color:var(--color-primary-dark); font-weight:600; cursor:pointer; margin: 0;">
+                <input type="checkbox" id="avail-coordinar" name="coordinar" value="true">
+                <span>Por coordinar (Sujeto a disponibilidad de agenda)</span>
+              </label>
+              <p style="margin: 0.25rem 0 0 1.5rem; font-size: 0.75rem; color: var(--color-text-muted);">
+                Si se marca, no se mostrarán horarios fijos en el reservador para este especialista, indicando que el equipo coordinará con el paciente.
+              </p>
+            </div>
+
             <div class="form-group">
               <label>Días Laborables:</label>
               <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-top: 0.5rem;">

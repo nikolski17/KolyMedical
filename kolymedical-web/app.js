@@ -5,7 +5,7 @@
 // 1. Base de Datos de Configuración Inicial (Mock Data)
 let SPECIALISTS = [];
 const INITIAL_SPECIALISTS = [
-  { id: 'pedraza', name: 'Dr. Pedraza', specialty: 'Medicina Regenerativa', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '12:00', slotDuration: 60 },
+  { id: 'pedraza', name: 'Dr. Pedraza', specialty: 'Medicina Regenerativa', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '12:00', slotDuration: 60, coordinarSolo: true },
   { id: 'amelia', name: 'Lic. Amelia', specialty: 'Nutrición Clínica', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '16:30', slotDuration: 30 },
   { id: 'morales', name: 'Dr. Joel Morales', specialty: 'Gastroenterología', workDays: [1, 2, 3, 4, 5, 6], workStart: '10:00', workEnd: '17:00', slotDuration: 30 },
   { id: 'ruslan', name: 'Dr. Ruslan Golovliov', specialty: 'Estudio FibroScan', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '17:00', slotDuration: 30 },
@@ -128,6 +128,13 @@ try {
   const cachedSpecialists = safeLocalStorage.getItem('kolymedical_specialists');
   SPECIALISTS = cachedSpecialists ? JSON.parse(cachedSpecialists) : INITIAL_SPECIALISTS;
 
+  // Asegurar compatibilidad para Dr. Pedraza (coordinarSolo) en perfiles de caché existentes
+  const pedrazaObj = SPECIALISTS.find(d => d.id === 'pedraza');
+  if (pedrazaObj && pedrazaObj.coordinarSolo === undefined) {
+    pedrazaObj.coordinarSolo = true;
+    safeLocalStorage.setItem('kolymedical_specialists', JSON.stringify(SPECIALISTS));
+  }
+
   const cachedServices = safeLocalStorage.getItem('kolymedical_services');
   SERVICES = cachedServices ? JSON.parse(cachedServices) : INITIAL_SERVICES;
 
@@ -188,11 +195,14 @@ function mapAptToDb(apt) {
     patient_name: apt.patientName,
     patient_age: apt.patientAge,
     patient_phone: apt.patientPhone,
+    patient_dni: apt.patientDni || null,
     service_id: apt.serviceId,
     specialist_id: apt.specialistId,
     date: apt.date,
     time: apt.time,
     modality: apt.modality,
+    motivo_consulta: apt.motivoConsulta || null,
+    meeting_link: apt.meetingLink || null,
     status: apt.status,
     tracked_by: apt.trackedBy,
     clinical_notes: apt.clinicalNotes || null
@@ -205,11 +215,14 @@ function mapAptFromDb(dbApt) {
     patientName: dbApt.patient_name,
     patientAge: dbApt.patient_age,
     patientPhone: dbApt.patient_phone,
+    patientDni: dbApt.patient_dni || '',
     serviceId: dbApt.service_id,
     specialistId: dbApt.specialist_id,
     date: dbApt.date,
     time: dbApt.time,
     modality: dbApt.modality,
+    motivoConsulta: dbApt.motivo_consulta || '',
+    meetingLink: dbApt.meeting_link || '',
     status: dbApt.status,
     trackedBy: dbApt.tracked_by,
     clinicalNotes: dbApt.clinical_notes || null
@@ -1157,10 +1170,10 @@ function initPublicWeb() {
     const selectedDoctorId = selectDoctor.value || (service ? service.specialistId : null);
     const doctor = SPECIALISTS.find(d => d.id === selectedDoctorId);
 
-    if (serviceVal === 'fibroscan' || serviceVal === 'med_reg') {
+    if (serviceVal === 'fibroscan' || serviceVal === 'med_reg' || (doctor && doctor.coordinarSolo)) {
       const msg = serviceVal === 'fibroscan'
         ? 'El estudio se programa solo para el día seleccionado. El asesor comercial se comunicará contigo para coordinar la hora exacta.'
-        : 'La consulta con el Dr. Pedraza se agenda como fecha probable. Debido a la alta demanda de su agenda, nuestro equipo se comunicará contigo para coordinar la hora exacta de la cita.';
+        : `La consulta con el ${doctor ? doctor.name : 'especialista'} se agenda como fecha probable. Debido a la alta demanda de su agenda, nuestro equipo se comunicará contigo para coordinar la hora exacta de la cita.`;
       timeGrid.innerHTML = `<p style="color: var(--color-primary-light); font-size: 0.85rem; padding: 0.5rem; grid-column: span 4;">${msg}</p>`;
       document.getElementById('booking-selected-time').value = 'Por coordinar';
       return;
@@ -1815,6 +1828,16 @@ function loadDoctorAvailabilityIntoForm() {
   const doctor = SPECIALISTS.find(d => d.id === docId);
   if (!doctor) return;
 
+  const chkCoordinar = document.getElementById('avail-coordinar');
+  if (chkCoordinar) {
+    chkCoordinar.checked = !!doctor.coordinarSolo;
+    const isCoordinar = chkCoordinar.checked;
+    document.querySelectorAll('input[name="workday"]').forEach(chk => chk.disabled = isCoordinar);
+    document.getElementById('avail-start').disabled = isCoordinar;
+    document.getElementById('avail-end').disabled = isCoordinar;
+    document.getElementById('avail-duration').disabled = isCoordinar;
+  }
+
   const dayChecks = document.querySelectorAll('input[name="workday"]');
   dayChecks.forEach(chk => {
     chk.checked = doctor.workDays && doctor.workDays.includes(parseInt(chk.value));
@@ -1834,6 +1857,17 @@ function initAvailabilityManagement() {
   }
 
   if (form) {
+    const chkCoordinar = document.getElementById('avail-coordinar');
+    if (chkCoordinar) {
+      chkCoordinar.addEventListener('change', () => {
+        const isCoordinar = chkCoordinar.checked;
+        document.querySelectorAll('input[name="workday"]').forEach(chk => chk.disabled = isCoordinar);
+        document.getElementById('avail-start').disabled = isCoordinar;
+        document.getElementById('avail-end').disabled = isCoordinar;
+        document.getElementById('avail-duration').disabled = isCoordinar;
+      });
+    }
+
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       const docId = selectDoc.value;
@@ -1842,32 +1876,45 @@ function initAvailabilityManagement() {
       const doctorIndex = SPECIALISTS.findIndex(d => d.id === docId);
       if (doctorIndex === -1) return;
 
-      const selectedDays = [];
-      const dayChecks = document.querySelectorAll('input[name="workday"]');
-      dayChecks.forEach(chk => {
-        if (chk.checked) {
-          selectedDays.push(parseInt(chk.value));
+      const isCoordinar = chkCoordinar ? chkCoordinar.checked : false;
+
+      if (isCoordinar) {
+        SPECIALISTS[doctorIndex].coordinarSolo = true;
+        // Valores por defecto seguros para que no rompa consultas internas
+        SPECIALISTS[doctorIndex].workDays = [1, 2, 3, 4, 5, 6];
+        SPECIALISTS[doctorIndex].workStart = '09:00';
+        SPECIALISTS[doctorIndex].workEnd = '17:00';
+        SPECIALISTS[doctorIndex].slotDuration = 60;
+      } else {
+        SPECIALISTS[doctorIndex].coordinarSolo = false;
+
+        const selectedDays = [];
+        const dayChecks = document.querySelectorAll('input[name="workday"]');
+        dayChecks.forEach(chk => {
+          if (chk.checked) {
+            selectedDays.push(parseInt(chk.value));
+          }
+        });
+
+        const workStart = document.getElementById('avail-start').value;
+        const workEnd = document.getElementById('avail-end').value;
+        const slotDuration = parseInt(document.getElementById('avail-duration').value);
+
+        if (selectedDays.length === 0) {
+          alert('Por favor, seleccione al menos un día laborable.');
+          return;
         }
-      });
 
-      const workStart = document.getElementById('avail-start').value;
-      const workEnd = document.getElementById('avail-end').value;
-      const slotDuration = parseInt(document.getElementById('avail-duration').value);
+        if (parseTimeToMinutes(workStart) >= parseTimeToMinutes(workEnd)) {
+          alert('La hora de inicio debe ser anterior a la hora de cierre.');
+          return;
+        }
 
-      if (selectedDays.length === 0) {
-        alert('Por favor, seleccione al menos un día laborable.');
-        return;
+        SPECIALISTS[doctorIndex].workDays = selectedDays;
+        SPECIALISTS[doctorIndex].workStart = workStart;
+        SPECIALISTS[doctorIndex].workEnd = workEnd;
+        SPECIALISTS[doctorIndex].slotDuration = slotDuration;
       }
-
-      if (parseTimeToMinutes(workStart) >= parseTimeToMinutes(workEnd)) {
-        alert('La hora de inicio debe ser anterior a la hora de cierre.');
-        return;
-      }
-
-      SPECIALISTS[doctorIndex].workDays = selectedDays;
-      SPECIALISTS[doctorIndex].workStart = workStart;
-      SPECIALISTS[doctorIndex].workEnd = workEnd;
-      SPECIALISTS[doctorIndex].slotDuration = slotDuration;
 
       safeLocalStorage.setItem('kolymedical_specialists', JSON.stringify(SPECIALISTS));
       alert('Configuración de disponibilidad guardada correctamente.');
@@ -2363,9 +2410,11 @@ function updateStats() {
 // 📅 Renderizar Calendario Visual Interactivo
 function timeToMinutesOffset(timeStr) {
   if (!timeStr) return 0;
+  if (timeStr === 'Por coordinar') return -1; // Señal especial para citas sin hora fija
   const parts = timeStr.trim().split(':');
   const hours = parseInt(parts[0], 10);
   const minutes = parseInt(parts[1], 10);
+  if (isNaN(hours) || isNaN(minutes)) return -1; // Protección contra formatos inesperados
   const totalMin = hours * 60 + minutes;
   return totalMin - 480; // Minutos transcurridos desde las 08:00 (480 minutos)
 }
@@ -2664,6 +2713,8 @@ function renderCalendarWidget() {
 
       dayApts.forEach(apt => {
         let startRow = timeToMinutesOffset(apt.time);
+        const isPorCoordinar = startRow === -1;
+        if (isPorCoordinar) startRow = 0; // Posicionar al inicio del día (08:00)
         let endRow = startRow + 60; // 60 minutos por defecto
 
         if (startRow < 0) startRow = 0;
@@ -2673,10 +2724,11 @@ function renderCalendarWidget() {
         const doc = SPECIALISTS.find(d => d.id === apt.specialistId);
         const card = document.createElement('div');
         card.className = `timeline-apt-card ${apt.modality === 'Virtual' ? 'modality-virtual' : 'modality-presencial'}`;
+        if (isPorCoordinar) card.style.border = '2px dashed var(--color-accent)';
         card.style.gridColumn = colIndex;
         card.style.gridRow = `${startRow + 1} / ${endRow + 1}`;
         card.innerHTML = `
-          <div style="font-weight: 700;">${apt.time}</div>
+          <div style="font-weight: 700;">${isPorCoordinar ? '🕐 Por coordinar' : apt.time}</div>
           <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${apt.patientName}</div>
           <div style="font-size: 0.65rem; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${doc ? doc.name : ''}</div>
         `;
@@ -2778,6 +2830,8 @@ function renderCalendarWidget() {
 
     dayApts.forEach(apt => {
       let startRow = timeToMinutesOffset(apt.time);
+      const isPorCoordinar = startRow === -1;
+      if (isPorCoordinar) startRow = 0;
       let endRow = startRow + 60;
 
       if (startRow < 0) startRow = 0;
@@ -2787,10 +2841,11 @@ function renderCalendarWidget() {
       const doc = SPECIALISTS.find(d => d.id === apt.specialistId);
       const card = document.createElement('div');
       card.className = `timeline-apt-card ${apt.modality === 'Virtual' ? 'modality-virtual' : 'modality-presencial'}`;
+      if (isPorCoordinar) card.style.border = '2px dashed var(--color-accent)';
       card.style.gridColumn = 2; // Columna única de contenido
       card.style.gridRow = `${startRow + 1} / ${endRow + 1}`;
       card.innerHTML = `
-        <div style="font-weight: 700; font-size: 0.78rem;">${apt.time}</div>
+        <div style="font-weight: 700; font-size: 0.78rem;">${isPorCoordinar ? '🕐 Por coordinar' : apt.time}</div>
         <div style="font-size: 0.78rem; font-weight: 700; margin-bottom: 2px;">${apt.patientName}</div>
         <div style="font-size: 0.68rem; opacity: 0.9;">Especialista: ${doc ? doc.name : 'No asignado'}</div>
       `;
@@ -2922,13 +2977,30 @@ function showAppointmentDetail(apt) {
       <h3 style="color:var(--color-primary); font-weight:700; margin-bottom:1.5rem; border-bottom:1px solid var(--color-border); padding-bottom:0.5rem;">Detalle de la Cita</h3>
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 1rem; font-size: 0.9rem;">
         <p style="margin:0;"><strong>Paciente:</strong> <br>${apt.patientName} (${apt.patientAge} años)</p>
+        <p style="margin:0;"><strong>DNI / Cédula:</strong> <br>${apt.patientDni || '<em>No registrado</em>'}</p>
         <p style="margin:0;"><strong>Teléfono:</strong> <br>${phoneDetailHtml}</p>
         <p style="margin:0;"><strong>Comercial:</strong> <br>${agentInfo}</p>
         <p style="margin:0;"><strong>Modalidad:</strong> <br>${apt.modality}</p>
         <p style="margin:0;"><strong>Servicio:</strong> <br>${service ? service.name : 'N/A'}</p>
         <p style="margin:0;"><strong>Especialista:</strong> <br>${doctor ? doctor.name : 'N/A'}</p>
-        <p style="margin:0; grid-column: span 2;"><strong>Fecha y Hora:</strong> <br>${apt.date} a las ${apt.time}</p>
+        <p style="margin:0;"><strong>Fecha y Hora:</strong> <br>${apt.date} a las ${apt.time}</p>
+        ${apt.modality === 'Virtual' ? `
+        <p style="margin:0; grid-column: span 2;">
+          <strong>Enlace de Reunión (Virtual):</strong> <br>
+          ${apt.meetingLink 
+            ? `<a href="${apt.meetingLink}" target="_blank" class="btn btn-accent" style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; padding: 0.4rem 0.8rem; margin-top: 0.25rem;"><i data-lucide="video" class="icon-inline"></i> Unirse a Reunión</a>`
+            : '<em>No asignado por el comercial</em>'
+          }
+        </p>
+        ` : ''}
       </div>
+
+      ${apt.motivoConsulta ? `
+      <div style="background: rgba(0, 168, 150, 0.04); border: 1px solid rgba(0, 168, 150, 0.15); padding: 0.75rem; border-radius: var(--border-radius-sm); margin-bottom: 1rem; font-size: 0.9rem;">
+        <strong>Motivo de Consulta:</strong>
+        <p style="margin: 0.25rem 0 0; color: var(--color-text-dark);">${apt.motivoConsulta}</p>
+      </div>
+      ` : ''}
       
       <div class="form-group" style="margin-top: 1rem;">
         <label style="font-weight:600; color:var(--color-primary-dark);">Estado de Cita:</label>
@@ -3006,7 +3078,7 @@ function renderAppointmentsTable() {
   if (titleEl) titleEl.textContent = 'Últimas Citas Agendadas';
   const headEl = document.getElementById('appointments-table-head');
   if (headEl) {
-    headEl.innerHTML = '<tr><th>Paciente</th><th>Teléfono</th><th>Servicio</th><th>Especialista</th><th>Fecha / Hora</th><th>Estado</th></tr>';
+    headEl.innerHTML = '<tr><th>Paciente</th><th>Teléfono</th><th>Servicio</th><th>Especialista</th><th>Fecha / Hora</th><th>Modalidad</th><th>Estado</th></tr>';
   }
 
   tbody.innerHTML = '';
@@ -3026,7 +3098,8 @@ function renderAppointmentsTable() {
   const filteredApts = appointments.filter(apt => {
     const record = ClinicalDB.getRecordByPatient(apt.patientPhone, apt.patientName);
     const matchesDni = record && record.dni && record.dni.toLowerCase().includes(searchQuery);
-    const matchesSearch = apt.patientName.toLowerCase().includes(searchQuery) || apt.patientPhone.includes(searchQuery) || matchesDni;
+    const matchesAptDni = apt.patientDni && apt.patientDni.toLowerCase().includes(searchQuery);
+    const matchesSearch = apt.patientName.toLowerCase().includes(searchQuery) || apt.patientPhone.includes(searchQuery) || matchesDni || matchesAptDni;
     const matchesDoctor = !filterDoc || apt.specialistId === filterDoc;
     return matchesSearch && matchesDoctor;
   });
@@ -3061,14 +3134,24 @@ function renderAppointmentsTable() {
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><strong>${apt.patientName}</strong><br><span style="font-size:0.75rem; color:var(--color-text-muted);">${apt.patientAge} años | Seg: ${apt.trackedBy || 'Sin asignar'}</span></td>
+      <td>
+        <strong>${apt.patientName}</strong><br>
+        <span style="font-size:0.75rem; color:var(--color-text-muted);">
+          ${apt.patientAge} años | DNI: ${apt.patientDni || '—'}<br>
+          Seg: ${apt.trackedBy || 'Sin asignar'}
+          ${apt.motivoConsulta ? `<br><em style="color:var(--color-primary-light);">Motivo: ${apt.motivoConsulta}</em>` : ''}
+        </span>
+      </td>
       <td>
         ${phoneCellHtml}
       </td>
       <td>${service ? service.name : 'N/A'}</td>
       <td>${doctor ? doctor.name : 'N/A'}</td>
       <td>${apt.date}<br><span style="font-weight:600; color:var(--color-primary-dark);">${apt.time}</span></td>
-      <td><span class="status-badge status-${apt.modality === 'Virtual' ? 'confirmada' : 'realizada'}">${apt.modality}</span></td>
+      <td>
+        <span class="status-badge status-${apt.modality === 'Virtual' ? 'confirmada' : 'realizada'}">${apt.modality}</span>
+        ${apt.modality === 'Virtual' && apt.meetingLink ? `<br><a href="${apt.meetingLink}" target="_blank" style="color:var(--color-accent); font-size:0.7rem; font-weight:600; display:inline-flex; align-items:center; gap:0.2rem; margin-top:2px;"><i data-lucide="video" style="width:11px; height:11px;"></i> Reunión</a>` : ''}
+      </td>
       <td>
         <select class="form-control status-select" data-id="${apt.id}" style="padding: 0.3rem 0.5rem; font-size:0.85rem; width:130px;">
           <option value="pendiente" ${apt.status === 'pendiente' ? 'selected' : ''}>Pendiente</option>
@@ -3110,7 +3193,8 @@ function renderAppointmentsTable() {
 
 // Devuelve un objeto Date de la cita (fecha + hora).
 function appointmentDateTime(apt) {
-  return new Date(`${apt.date}T${apt.time || '00:00'}`);
+  const timeVal = (apt.time && apt.time !== 'Por coordinar') ? apt.time : '00:00';
+  return new Date(`${apt.date}T${timeVal}`);
 }
 
 // Reemplaza la tabla del panel del médico por las "Próximas Consultas".
@@ -3125,7 +3209,7 @@ function renderUpcomingConsultations() {
   if (titleEl) titleEl.textContent = 'Próximas Consultas';
   const headEl = document.getElementById('appointments-table-head');
   if (headEl) {
-    headEl.innerHTML = '<tr><th>Paciente</th><th>Servicio</th><th>Fecha / Hora</th><th>Estado</th><th style="text-align:center;">Expediente</th></tr>';
+    headEl.innerHTML = '<tr><th>Paciente</th><th>Servicio</th><th>Motivo / Modalidad</th><th>Fecha / Hora</th><th>Estado</th><th style="text-align:center;">Expediente</th></tr>';
   }
 
   const now = new Date();
@@ -3141,7 +3225,7 @@ function renderUpcomingConsultations() {
 
   tbody.innerHTML = '';
   if (pageApts.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--color-text-muted); padding:1.5rem;">No tienes consultas próximas programadas.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--color-text-muted); padding:1.5rem;">No tienes consultas próximas programadas.</td></tr>';
     return;
   }
 
@@ -3151,8 +3235,18 @@ function renderUpcomingConsultations() {
     const isToday = dt.toDateString() === now.toDateString();
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><strong>${apt.patientName}</strong><br><span style="font-size:0.75rem; color:var(--color-text-muted);">${apt.patientAge || '—'} años</span></td>
+      <td>
+        <strong>${apt.patientName}</strong><br>
+        <span style="font-size:0.75rem; color:var(--color-text-muted);">
+          ${apt.patientAge || '—'} años | DNI: ${apt.patientDni || '—'}
+        </span>
+      </td>
       <td>${service ? service.name : 'N/A'}</td>
+      <td>
+        <strong>${apt.modality}</strong>
+        ${apt.modality === 'Virtual' && apt.meetingLink ? `<br><a href="${apt.meetingLink}" target="_blank" style="color:var(--color-accent); font-size:0.72rem; font-weight:600; display:inline-flex; align-items:center; gap:0.25rem;"><i data-lucide="video" style="width:12px; height:12px;"></i> Unirse</a>` : ''}
+        ${apt.motivoConsulta ? `<br><span style="font-size:0.72rem; color:var(--color-text-muted); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; max-width:180px;" title="${apt.motivoConsulta}">${apt.motivoConsulta}</span>` : ''}
+      </td>
       <td>${isToday ? '<span style="color:var(--color-accent); font-weight:700;">Hoy</span>' : apt.date}<br><span style="font-weight:600; color:var(--color-primary-dark);">${apt.time}</span></td>
       <td><span class="status-badge status-${apt.status === 'confirmada' ? 'confirmada' : apt.status === 'realizada' ? 'realizada' : 'confirmada'}">${apt.status}</span></td>
       <td style="text-align:center;">
@@ -3168,7 +3262,7 @@ function renderUpcomingConsultations() {
   // Fila "Ver más" si hay más consultas
   if (apts.length > shown) {
     const trMore = document.createElement('tr');
-    trMore.innerHTML = `<td colspan="5" style="text-align:center; padding:0.75rem;">
+    trMore.innerHTML = `<td colspan="6" style="text-align:center; padding:0.75rem;">
       <button class="btn btn-secondary" id="btn-upcoming-more" style="font-size:0.8rem;">Ver más (${apts.length - shown} restantes)</button>
     </td>`;
     trMore.querySelector('#btn-upcoming-more').addEventListener('click', () => {
@@ -3601,10 +3695,8 @@ function initAdminBookingForm() {
     const selectedDoctorId = selectDoctor.value || (service ? service.specialistId : null);
     const doctor = SPECIALISTS.find(d => d.id === selectedDoctorId);
 
-    if (serviceVal === 'fibroscan' || serviceVal === 'med_reg') {
-      const msg = serviceVal === 'fibroscan'
-        ? 'El estudio se programa solo para el día seleccionado. El asesor comercial coordinará la hora exacta con el paciente.'
-        : 'La consulta con el Dr. Pedraza se programa para el día seleccionado. El horario se coordinará posteriormente con el paciente.';
+    if (serviceVal === 'fibroscan') {
+      const msg = 'El estudio se programa solo para el día seleccionado. El asesor comercial coordinará la hora exacta con el paciente.';
       timeGrid.innerHTML = `<p style="color: var(--color-primary-light); font-size: 0.8rem; padding: 0.25rem; grid-column: span 4;">${msg}</p>`;
       document.getElementById('admin-booking-time').value = 'Por coordinar';
       return;
@@ -3755,6 +3847,18 @@ function initAdminBookingForm() {
     }
   });
 
+  // Toggle del campo de link de reunión al cambiar modalidad
+  const selectModalityAdmin = document.getElementById('admin-booking-modality');
+  const meetlinkGroup = document.getElementById('admin-booking-meetlink-group');
+  if (selectModalityAdmin && meetlinkGroup) {
+    selectModalityAdmin.addEventListener('change', () => {
+      meetlinkGroup.style.display = selectModalityAdmin.value === 'Virtual' ? 'block' : 'none';
+      if (selectModalityAdmin.value !== 'Virtual') {
+        document.getElementById('admin-booking-meetlink').value = '';
+      }
+    });
+  }
+
   const btnAdd = document.getElementById('btn-admin-add-apt');
   btnAdd.addEventListener('click', () => {
     const serviceId = selectService.value;
@@ -3762,10 +3866,13 @@ function initAdminBookingForm() {
     const date = document.getElementById('admin-booking-date').value;
     const time = document.getElementById('admin-booking-time').value;
     const patientName = document.getElementById('admin-booking-name').value.trim();
+    const patientDni = (document.getElementById('admin-booking-dni').value || '').trim();
     const patientAge = parseInt(document.getElementById('admin-booking-age').value);
     const patientPhone = document.getElementById('admin-booking-phone').value.trim();
     const modality = document.getElementById('admin-booking-modality').value;
     const tracker = document.getElementById('admin-booking-tracker').value;
+    const motivoConsulta = (document.getElementById('admin-booking-motivo').value || '').trim();
+    const meetingLink = (document.getElementById('admin-booking-meetlink').value || '').trim();
 
     if (serviceId === 'curacion_heridas') {
       alert('La "Curación de Heridas a Domicilio" es un servicio sin médico ni horario que se coordina por WhatsApp. Contacte al paciente directamente para acordar la visita a domicilio.');
@@ -3779,6 +3886,7 @@ function initAdminBookingForm() {
 
     const newApt = {
       patientName,
+      patientDni,
       patientAge,
       patientPhone,
       serviceId,
@@ -3786,6 +3894,8 @@ function initAdminBookingForm() {
       date,
       time,
       modality,
+      motivoConsulta,
+      meetingLink: modality === 'Virtual' ? meetingLink : '',
       status: 'confirmada', // Por defecto confirmada ya que la agendó el personal
       trackedBy: tracker
     };
@@ -3797,6 +3907,7 @@ function initAdminBookingForm() {
     document.getElementById('admin-booking-form-el').reset();
     selectDoctor.innerHTML = '<option value="">-- Selecciona Especialista --</option>';
     document.getElementById('admin-time-slots-grid').innerHTML = '<p style="color: var(--color-text-muted); font-size: 0.8rem; padding: 0.25rem; grid-column: span 4;">Selecciona servicio y fecha primero.</p>';
+    if (meetlinkGroup) meetlinkGroup.style.display = 'none';
 
     // Actualizar Vistas
     updateStats();
