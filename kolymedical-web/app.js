@@ -29,6 +29,15 @@ const AGENT_CONTACTS = {
   'Andrea': { name: 'Andrea Mendoza', phone: '988776655' }
 };
 
+function formatWhatsAppPhone(phoneStr) {
+  if (!phoneStr) return '';
+  const clean = phoneStr.replace(/\D/g, ''); // Deja solo dígitos
+  if (clean.length === 9) {
+    return '51' + clean;
+  }
+  return clean;
+}
+
 function sendWhatsAppReminder(apt) {
   const service = SERVICES.find(s => s.id === apt.serviceId);
   const doctor = SPECIALISTS.find(d => d.id === apt.specialistId);
@@ -39,7 +48,8 @@ function sendWhatsAppReminder(apt) {
   const msg = `Hola ${apt.patientName}, te saludamos de KolyMedical. Le recordamos que tiene una cita programada para mañana ${dateStr} a las ${timeStr} (${modality}) con el ${doctor ? doctor.name : ''}. Por favor, confirme su asistencia respondiendo a este de WhatsApp. ¡Gracias!`;
 
   const encodedMsg = encodeURIComponent(msg);
-  const url = `https://wa.me/51${apt.patientPhone}?text=${encodedMsg}`;
+  const cleanPhone = formatWhatsAppPhone(apt.patientPhone);
+  const url = `https://wa.me/${cleanPhone}?text=${encodedMsg}`;
   window.open(url, '_blank');
 }
 
@@ -205,7 +215,9 @@ function mapAptToDb(apt) {
     meeting_link: apt.meetingLink || null,
     status: apt.status,
     tracked_by: apt.trackedBy,
-    clinical_notes: apt.clinicalNotes || null
+    clinical_notes: apt.clinicalNotes || null,
+    is_procedure: apt.isProcedure || false,
+    duration_hours: apt.durationHours || 1
   };
 }
 
@@ -225,7 +237,9 @@ function mapAptFromDb(dbApt) {
     meetingLink: dbApt.meeting_link || '',
     status: dbApt.status,
     trackedBy: dbApt.tracked_by,
-    clinicalNotes: dbApt.clinical_notes || null
+    clinicalNotes: dbApt.clinical_notes || null,
+    isProcedure: dbApt.is_procedure || false,
+    durationHours: dbApt.duration_hours || 1
   };
 }
 
@@ -338,6 +352,46 @@ const DB = {
             .update({ clinical_notes: notes })
             .eq('id', id);
           if (error) console.error('Error al actualizar notas en Supabase:', error);
+        } catch (err) {
+          console.error('Error de red al conectar con Supabase:', err);
+        }
+      }
+      return true;
+    }
+    return false;
+  },
+
+  updateAppointmentDetails: async function (id, updatedFields) {
+    const index = localAppointmentsCache.findIndex(a => a.id === id);
+    if (index !== -1) {
+      localAppointmentsCache[index] = { ...localAppointmentsCache[index], ...updatedFields };
+      safeLocalStorage.setItem('kolymedical_appointments', JSON.stringify(localAppointmentsCache));
+      
+      if (supabaseClient) {
+        try {
+          const dbData = {};
+          if (updatedFields.patientName !== undefined) dbData.patient_name = updatedFields.patientName;
+          if (updatedFields.patientDni !== undefined) dbData.patient_dni = updatedFields.patientDni;
+          if (updatedFields.patientAge !== undefined) dbData.patient_age = updatedFields.patientAge;
+          if (updatedFields.patientPhone !== undefined) dbData.patient_phone = updatedFields.patientPhone;
+          if (updatedFields.modality !== undefined) dbData.modality = updatedFields.modality;
+          if (updatedFields.serviceId !== undefined) dbData.service_id = updatedFields.serviceId;
+          if (updatedFields.specialistId !== undefined) dbData.specialist_id = updatedFields.specialistId;
+          if (updatedFields.date !== undefined) dbData.date = updatedFields.date;
+          if (updatedFields.time !== undefined) dbData.time = updatedFields.time;
+          if (updatedFields.trackedBy !== undefined) dbData.tracked_by = updatedFields.trackedBy;
+          if (updatedFields.meetingLink !== undefined) dbData.meeting_link = updatedFields.meetingLink;
+          if (updatedFields.motivoConsulta !== undefined) dbData.motivo_consulta = updatedFields.motivoConsulta;
+          if (updatedFields.status !== undefined) dbData.status = updatedFields.status;
+          if (updatedFields.isProcedure !== undefined) dbData.is_procedure = updatedFields.isProcedure;
+          if (updatedFields.durationHours !== undefined) dbData.duration_hours = updatedFields.durationHours;
+          if (updatedFields.clinicalNotes !== undefined) dbData.clinical_notes = updatedFields.clinicalNotes;
+
+          const { error } = await supabaseClient
+            .from('appointments')
+            .update(dbData)
+            .eq('id', id);
+          if (error) console.error('Error al actualizar detalles de cita en Supabase:', error);
         } catch (err) {
           console.error('Error de red al conectar con Supabase:', err);
         }
@@ -565,24 +619,70 @@ const ClinicalDB = {
     return record;
   },
 
+  deleteRecord: async function (id) {
+    localRecordsCache = localRecordsCache.filter(r => r.id !== id);
+    safeLocalStorage.setItem('kolymedical_clinical_records', JSON.stringify(localRecordsCache));
+    
+    localNotesCache = localNotesCache.filter(n => n.recordId !== id);
+    safeLocalStorage.setItem('kolymedical_evolution_notes', JSON.stringify(localNotesCache));
+    
+    localPrescriptionsCache = localPrescriptionsCache.filter(p => p.recordId !== id);
+    safeLocalStorage.setItem('kolymedical_prescriptions', JSON.stringify(localPrescriptionsCache));
+
+    if (supabaseClient) {
+      try {
+        const { error } = await supabaseClient
+          .from('clinical_records')
+          .delete()
+          .eq('id', id);
+        if (error) console.error('Error al borrar expediente de Supabase:', error);
+      } catch (err) {
+        console.error('Error de red al borrar expediente de Supabase:', err);
+      }
+    }
+  },
+
   // Crea el expediente base a partir de los datos de una cita, si aún no existe.
   ensureRecordFromAppointment: async function (apt) {
     let record = this.getRecordByPatient(apt.patientPhone, apt.patientName);
-    if (record) return record;
-    record = {
-      id: this.generateRecordId(),
-      patientName: apt.patientName,
-      patientPhone: apt.patientPhone,
-      birthDate: '',
-      patientAge: apt.patientAge || '',
-      sex: '',
-      bloodType: '',
-      allergies: '',
-      familyHistory: [],
-      personalHistory: [],
-      createdAt: new Date().toISOString()
-    };
-    await this.saveRecord(record);
+    let isNew = false;
+    if (!record) {
+      isNew = true;
+      record = {
+        id: this.generateRecordId(),
+        patientName: apt.patientName,
+        patientPhone: apt.patientPhone,
+        dni: apt.patientDni || '',
+        birthDate: '',
+        patientAge: apt.patientAge || '',
+        sex: '',
+        bloodType: '',
+        allergies: '',
+        familyHistory: [],
+        personalHistory: [],
+        createdAt: new Date().toISOString()
+      };
+    } else {
+      let changed = false;
+      if (apt.patientDni && record.dni !== apt.patientDni) {
+        record.dni = apt.patientDni;
+        changed = true;
+      }
+      if (apt.patientName && record.patientName !== apt.patientName) {
+        record.patientName = apt.patientName;
+        changed = true;
+      }
+      if (apt.patientAge && record.patientAge !== apt.patientAge) {
+        record.patientAge = apt.patientAge;
+        changed = true;
+      }
+      if (changed) {
+        await this.saveRecord(record);
+      }
+    }
+    if (isNew) {
+      await this.saveRecord(record);
+    }
     return record;
   },
 
@@ -614,6 +714,10 @@ const ClinicalDB = {
   },
 
   // ---------- Recetas / órdenes (prescriptions) ----------
+  getPrescriptions: function () {
+    return localPrescriptionsCache;
+  },
+
   getPrescriptionsByRecord: function (recordId) {
     return localPrescriptionsCache
       .filter(p => p.recordId === recordId)
@@ -1632,10 +1736,11 @@ function renderDashboard() {
   const listMenuItem = document.querySelector('.sidebar-item[data-view="list"]');
   if (listMenuItem) {
     const isCommercial = currentUser && currentUser.role === 'Comercial';
+    listMenuItem.style.display = isCommercial ? 'none' : 'block';
     const svgIcon = listMenuItem.querySelector('svg');
     listMenuItem.innerHTML = '';
     if (svgIcon) listMenuItem.appendChild(svgIcon);
-    listMenuItem.appendChild(document.createTextNode(isCommercial ? ' Listado de Pacientes' : ' Historias Clínicas'));
+    listMenuItem.appendChild(document.createTextNode(' Historias Clínicas'));
   }
 
   // Dinamizar el selector de agentes del agendamiento interno
@@ -1663,22 +1768,27 @@ function renderDashboard() {
 
   // Tareas de roles:
   const menuSuggestions = document.getElementById('menu-suggestions');
+  const menuPrescriptions = document.getElementById('menu-prescriptions');
   if (currentUser && currentUser.role === 'Administrador') {
     if (menuUsers) menuUsers.style.display = 'block';
     if (menuAvailability) menuAvailability.style.display = 'block';
     if (menuSuggestions) menuSuggestions.style.display = 'block';
+    if (menuPrescriptions) menuPrescriptions.style.display = 'block';
   } else if (currentUser && currentUser.specialistId) {
     if (menuUsers) menuUsers.style.display = 'none';
     if (menuAvailability) menuAvailability.style.display = 'block';
     if (menuSuggestions) menuSuggestions.style.display = 'none';
+    if (menuPrescriptions) menuPrescriptions.style.display = 'none';
   } else if (currentUser && currentUser.role === 'Comercial') {
     if (menuUsers) menuUsers.style.display = 'none';
     if (menuAvailability) menuAvailability.style.display = 'none';
     if (menuSuggestions) menuSuggestions.style.display = 'block';
+    if (menuPrescriptions) menuPrescriptions.style.display = 'block';
   } else {
     if (menuUsers) menuUsers.style.display = 'none';
     if (menuAvailability) menuAvailability.style.display = 'none';
     if (menuSuggestions) menuSuggestions.style.display = 'none';
+    if (menuPrescriptions) menuPrescriptions.style.display = 'none';
   }
 
   // 🔒 "Ingresos Proyectados" y "Agendar Cita Interna" solo para Administrador y Comercial.
@@ -1750,6 +1860,8 @@ function renderDashboard() {
         renderAvailabilityView();
       } else if (viewName === 'suggestions') {
         renderSuggestionsTable();
+      } else if (viewName === 'prescriptions') {
+        renderAllPrescriptionsTable();
       }
     });
   });
@@ -2730,7 +2842,7 @@ function renderCalendarWidget() {
         let startRow = timeToMinutesOffset(apt.time);
         const isPorCoordinar = startRow === -1;
         if (isPorCoordinar) startRow = 0; // Posicionar al inicio del día (08:00)
-        let endRow = startRow + 60; // 60 minutos por defecto
+        let endRow = startRow + (apt.isProcedure ? (apt.durationHours * 60) : 60);
 
         if (startRow < 0) startRow = 0;
         if (endRow > 720) endRow = 720;
@@ -2847,7 +2959,7 @@ function renderCalendarWidget() {
       let startRow = timeToMinutesOffset(apt.time);
       const isPorCoordinar = startRow === -1;
       if (isPorCoordinar) startRow = 0;
-      let endRow = startRow + 60;
+      let endRow = startRow + (apt.isProcedure ? (apt.durationHours * 60) : 60);
 
       if (startRow < 0) startRow = 0;
       if (endRow > 720) endRow = 720;
@@ -2915,12 +3027,12 @@ function showAppointmentDetail(apt) {
   const doctor = (apt.serviceId === 'curacion_heridas' || !apt.specialistId) ? null : SPECIALISTS.find(d => d.id === apt.specialistId);
   const agentInfo = AGENT_CONTACTS[apt.trackedBy] ? `${AGENT_CONTACTS[apt.trackedBy].name} (Cel: ${AGENT_CONTACTS[apt.trackedBy].phone})` : (apt.trackedBy || 'Sin asignar');
 
-  // Teléfono: enlace de WhatsApp solo para Administrador/Comercial; texto plano para especialistas.
   const phoneDetailHtml = canViewPatientWhatsApp()
-    ? `<a href="https://wa.me/51${apt.patientPhone}" target="_blank" style="color:var(--color-accent); font-weight:600;">${apt.patientPhone} 💬</a>`
+    ? `<a href="https://wa.me/${formatWhatsAppPhone(apt.patientPhone)}" target="_blank" style="color:var(--color-accent); font-weight:600;">${apt.patientPhone} 💬</a>`
     : `<span style="font-weight:600; color:var(--color-primary-dark);">${apt.patientPhone}</span>`;
 
   const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
+  const isEditAllowed = currentUser && (currentUser.role === 'Administrador' || currentUser.role === 'Comercial');
   const canEditNotes = currentUser && (currentUser.role === 'Administrador' || currentUser.specialistId === apt.specialistId);
 
   // Notas clínicas de esta cita
@@ -2983,13 +3095,79 @@ function showAppointmentDetail(apt) {
     `;
   }
 
-  // Crear modal de detalle dinámicamente
-  const detailModal = document.createElement('div');
-  detailModal.className = 'modal active';
-  detailModal.style.zIndex = '3000';
-  detailModal.innerHTML = `
-    <div class="modal-content" style="max-width: 500px; padding: 2rem; max-height: 90vh; overflow-y: auto;">
-      <h3 style="color:var(--color-primary); font-weight:700; margin-bottom:1.5rem; border-bottom:1px solid var(--color-border); padding-bottom:0.5rem;">Detalle de la Cita</h3>
+  // Generar cuadrícula de detalles: editable para Admin/Comercial, estática para otros
+  let gridHtml = '';
+  if (isEditAllowed) {
+    const servicesOpts = SERVICES.map(s => `<option value="${s.id}" ${s.id === apt.serviceId ? 'selected' : ''}>${s.name}</option>`).join('');
+    const specialistOpts = SPECIALISTS.map(d => `<option value="${d.id}" ${d.id === apt.specialistId ? 'selected' : ''}>${d.name}</option>`).join('');
+    const agentsOpts = `
+      <option value="Brayan" ${apt.trackedBy === 'Brayan' ? 'selected' : ''}>Brayan</option>
+      <option value="Andrea" ${apt.trackedBy === 'Andrea' ? 'selected' : ''}>Andrea</option>
+    `;
+
+    gridHtml = `
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 1rem; font-size: 0.85rem;">
+        <div>
+          <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Paciente:</label>
+          <input type="text" id="detail-apt-name" class="form-control" value="${apt.patientName}" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
+        </div>
+        <div>
+          <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">DNI / Cédula:</label>
+          <input type="text" id="detail-apt-dni" class="form-control" value="${apt.patientDni || ''}" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
+        </div>
+        <div>
+          <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Edad:</label>
+          <input type="number" id="detail-apt-age" class="form-control" value="${apt.patientAge}" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
+        </div>
+        <div>
+          <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Teléfono (WhatsApp):</label>
+          <input type="text" id="detail-apt-phone" class="form-control" value="${apt.patientPhone}" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
+        </div>
+        <div>
+          <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Asesor Comercial:</label>
+          <select id="detail-apt-tracker" class="form-control" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
+            ${agentsOpts}
+          </select>
+        </div>
+        <div>
+          <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Modalidad:</label>
+          <select id="detail-apt-modality" class="form-control" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
+            <option value="Presencial" ${apt.modality === 'Presencial' ? 'selected' : ''}>Presencial</option>
+            <option value="Virtual" ${apt.modality === 'Virtual' ? 'selected' : ''}>Virtual</option>
+          </select>
+        </div>
+        <div style="grid-column: span 2;">
+          <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Servicio:</label>
+          <select id="detail-apt-service" class="form-control" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
+            ${servicesOpts}
+          </select>
+        </div>
+        <div style="grid-column: span 2;">
+          <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Médico Especialista:</label>
+          <select id="detail-apt-doctor" class="form-control" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
+            ${specialistOpts}
+          </select>
+        </div>
+        <div>
+          <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Fecha:</label>
+          <input type="date" id="detail-apt-date" class="form-control" value="${apt.date}" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
+        </div>
+        <div>
+          <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Hora:</label>
+          <input type="text" id="detail-apt-time" class="form-control" value="${apt.time}" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
+        </div>
+        <div style="grid-column: span 2;" id="detail-apt-meetlink-group">
+          <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Enlace de Reunión (Virtual):</label>
+          <input type="url" id="detail-apt-meetlink" class="form-control" value="${apt.meetingLink || ''}" placeholder="https://meet.google.com/..." style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
+        </div>
+        <div style="grid-column: span 2;">
+          <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Motivo de Consulta:</label>
+          <textarea id="detail-apt-motivo" class="form-control" rows="2" style="font-size:0.85rem; padding:0.25rem 0.5rem;">${apt.motivoConsulta || ''}</textarea>
+        </div>
+      </div>
+    `;
+  } else {
+    gridHtml = `
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 1rem; font-size: 0.9rem;">
         <p style="margin:0;"><strong>Paciente:</strong> <br>${apt.patientName} (${apt.patientAge} años)</p>
         <p style="margin:0;"><strong>DNI / Cédula:</strong> <br>${apt.patientDni || '<em>No registrado</em>'}</p>
@@ -3016,6 +3194,18 @@ function showAppointmentDetail(apt) {
         <p style="margin: 0.25rem 0 0; color: var(--color-text-dark);">${apt.motivoConsulta}</p>
       </div>
       ` : ''}
+    `;
+  }
+
+  // Crear modal de detalle dinámicamente
+  const detailModal = document.createElement('div');
+  detailModal.className = 'modal active';
+  detailModal.style.zIndex = '3000';
+  detailModal.innerHTML = `
+    <div class="modal-content" style="max-width: 500px; padding: 2rem; max-height: 90vh; overflow-y: auto;">
+      <h3 style="color:var(--color-primary); font-weight:700; margin-bottom:1.5rem; border-bottom:1px solid var(--color-border); padding-bottom:0.5rem;">Detalle de la Cita</h3>
+      
+      ${gridHtml}
       
       <div class="form-group" style="margin-top: 1rem;">
         <label style="font-weight:600; color:var(--color-primary-dark);">Estado de Cita:</label>
@@ -3031,9 +3221,11 @@ function showAppointmentDetail(apt) {
       ${historyHtml}
 
       <div style="display:flex; gap:1rem; margin-top:2rem; justify-content:space-between; flex-wrap:wrap;">
+        ${currentUser && currentUser.role !== 'Comercial' ? `
         <button class="btn btn-accent align-icon-text" id="detail-open-record-btn" style="font-size:0.85rem;">
           <i data-lucide="clipboard-list" class="icon-inline"></i> Abrir expediente clínico
         </button>
+        ` : '<div></div>'}
         <div style="display:flex; gap:1rem;">
           <button class="btn btn-secondary" id="detail-close-btn">Cerrar</button>
           <button class="btn btn-primary" id="detail-save-btn">Guardar Cambios</button>
@@ -3046,12 +3238,14 @@ function showAppointmentDetail(apt) {
     window.lucide.createIcons();
   }
 
-  document.getElementById('detail-open-record-btn').addEventListener('click', async () => {
-    detailModal.remove();
-    const record = await ClinicalDB.ensureRecordFromAppointment(apt);
-    const cu = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
-    openClinicalRecord(record.id, { appointmentId: apt.id, focusNote: !!(cu && cu.specialistId) });
-  });
+  const openRecordBtn = document.getElementById('detail-open-record-btn');
+  if (openRecordBtn) {
+    openRecordBtn.addEventListener('click', async () => {
+      detailModal.remove();
+      const record = await ClinicalDB.ensureRecordFromAppointment(apt);
+      openClinicalRecord(record.id, { appointmentId: apt.id, focusNote: !!(currentUser && currentUser.specialistId) });
+    });
+  }
 
   document.getElementById('detail-close-btn').addEventListener('click', () => {
     detailModal.remove();
@@ -3059,7 +3253,39 @@ function showAppointmentDetail(apt) {
 
   document.getElementById('detail-save-btn').addEventListener('click', async () => {
     const newStatus = document.getElementById('detail-apt-status').value;
-    await DB.updateAppointmentStatus(apt.id, newStatus);
+
+    if (isEditAllowed) {
+      const patientName = document.getElementById('detail-apt-name').value.trim();
+      const patientDni = document.getElementById('detail-apt-dni').value.trim();
+      const patientAge = parseInt(document.getElementById('detail-apt-age').value) || 0;
+      const patientPhone = document.getElementById('detail-apt-phone').value.trim();
+      const trackedBy = document.getElementById('detail-apt-tracker').value;
+      const modality = document.getElementById('detail-apt-modality').value;
+      const serviceId = document.getElementById('detail-apt-service').value;
+      const specialistId = document.getElementById('detail-apt-doctor').value;
+      const date = document.getElementById('detail-apt-date').value;
+      const time = document.getElementById('detail-apt-time').value.trim();
+      const meetingLink = document.getElementById('detail-apt-meetlink') ? document.getElementById('detail-apt-meetlink').value.trim() : '';
+      const motivoConsulta = document.getElementById('detail-apt-motivo') ? document.getElementById('detail-apt-motivo').value.trim() : '';
+
+      await DB.updateAppointmentDetails(apt.id, {
+        patientName,
+        patientDni,
+        patientAge,
+        patientPhone,
+        trackedBy,
+        modality,
+        serviceId,
+        specialistId,
+        date,
+        time,
+        meetingLink,
+        motivoConsulta,
+        status: newStatus
+      });
+    } else {
+      await DB.updateAppointmentStatus(apt.id, newStatus);
+    }
 
     const notesArea = document.getElementById('detail-apt-notes');
     if (notesArea) {
@@ -3137,7 +3363,7 @@ function renderAppointmentsTable() {
     // Celda de teléfono: enlace + recordatorio de WhatsApp solo si el rol lo permite.
     const phoneCellHtml = canViewWA
       ? `<div style="display:flex; flex-direction:column; gap:0.25rem;">
-          <a href="https://wa.me/51${apt.patientPhone}" target="_blank" style="color:var(--color-accent); font-weight:600; display:inline-flex; align-items:center;">
+          <a href="https://wa.me/${formatWhatsAppPhone(apt.patientPhone)}" target="_blank" style="color:var(--color-accent); font-weight:600; display:inline-flex; align-items:center;">
             ${apt.patientPhone}
             <i data-lucide="message-square" class="icon-inline ml-2" style="width:14px; height:14px; color:#25D366; top:0;"></i>
           </a>
@@ -3365,7 +3591,7 @@ function openClinicalRecord(recordId, opts) {
   if (idEl) idEl.innerHTML = `Expediente <strong>${record.id}</strong>`;
 
   const phoneHtml = canViewWA
-    ? `<a href="https://wa.me/51${record.patientPhone}" target="_blank" style="color:var(--color-accent); font-weight:600; display:inline-flex; align-items:center;">
+    ? `<a href="https://wa.me/${formatWhatsAppPhone(record.patientPhone)}" target="_blank" style="color:var(--color-accent); font-weight:600; display:inline-flex; align-items:center;">
         ${record.patientPhone}
         <i data-lucide="message-square" class="icon-inline ml-1" style="width:14px; height:14px; color:#25D366; top:0;"></i>
        </a>`
@@ -3459,6 +3685,13 @@ function openClinicalRecord(recordId, opts) {
         </summary>
         <p style="font-size:0.85rem; color:var(--color-text-muted); margin-top:0.5rem;">La gestión de ventas y pagos del paciente se administra desde el listado de citas. Total de consultas registradas para este paciente: <strong>${DB.getAppointments().filter(a => a.patientPhone === record.patientPhone).length}</strong>.</p>
       </details>` : ''}
+
+      ${isDoctor ? `
+      <div style="margin-top: 2rem; border-top: 2px solid var(--color-accent); padding-top: 1.5rem; display: flex; justify-content: flex-end; gap: 1rem;">
+        <button class="btn btn-accent align-icon-text" id="cr-finish-appointment-btn" style="padding: 0.6rem 1.2rem; font-weight: 700; font-size: 0.95rem; justify-content: center; box-shadow: 0 4px 6px rgba(0, 168, 150, 0.2);">
+          <i data-lucide="check-circle-2" class="icon-inline" style="width:18px; height:18px;"></i> Finalizar Consulta y Cerrar Expediente
+        </button>
+      </div>` : ''}
   `;
 
   if (window.lucide) {
@@ -3584,6 +3817,49 @@ function openClinicalRecord(recordId, opts) {
   renderNotesTimeline(record.id);
   renderPrescriptionsList(record.id);
 
+  // Finalizar Consulta y Cerrar Expediente (para Médicos)
+  const finishAptBtn = container.querySelector('#cr-finish-appointment-btn');
+  if (finishAptBtn) {
+    finishAptBtn.addEventListener('click', async () => {
+      // 1. Guardar filiación automáticamente
+      const dniInput = container.querySelector('#cr-dni');
+      if (dniInput) {
+        record.dni = dniInput.value.trim();
+        record.birthDate = container.querySelector('#cr-birthdate').value;
+        record.sex = container.querySelector('#cr-sex').value;
+        record.bloodType = container.querySelector('#cr-blood').value.trim();
+        record.allergies = container.querySelector('#cr-allergies').value.trim();
+        await ClinicalDB.saveRecord(record);
+      }
+      
+      // 2. Si tiene appointmentId, marcar la cita como realizada
+      if (opts && opts.appointmentId) {
+        await DB.updateAppointmentStatus(opts.appointmentId, 'realizada');
+      }
+      
+      alert('Consulta finalizada con éxito. El estado de la cita se ha actualizado a Realizada.');
+      
+      // 3. Retornar al dashboard
+      viewCr.style.display = 'none';
+      const prevView = window.__crPrevView || 'list';
+      const sec = document.getElementById(`view-${prevView}`);
+      if (sec) sec.style.display = 'block';
+      // Activar menú lateral correcto
+      document.querySelectorAll('.sidebar-item').forEach(i => {
+        if (i.getAttribute('data-view') === prevView) {
+          i.classList.add('active');
+        } else {
+          i.classList.remove('active');
+        }
+      });
+
+      // Refrescar vistas
+      updateStats();
+      renderCalendarWidget();
+      renderAppointmentsTable();
+    });
+  }
+
   // Enfocar la nueva nota si se pidió
   if (opts.focusNote) {
     const noteBox = container.querySelector('#cr-new-note-box');
@@ -3697,6 +3973,26 @@ function initAdminBookingForm() {
     selectDoctor.addEventListener('change', generateAdminTimeSlots);
   }
 
+  function checkBusyTime(hourStr, dateVal, doctorId, slotDurationMins) {
+    const slotStart = parseTimeToMinutes(hourStr);
+    const slotEnd = slotStart + slotDurationMins;
+    
+    const appointments = DB.getAppointments();
+    const dayApts = appointments.filter(a => a.date === dateVal && a.specialistId === doctorId && a.status !== 'cancelada');
+    
+    for (const apt of dayApts) {
+      if (apt.time === 'Por coordinar') continue;
+      const aptStart = parseTimeToMinutes(apt.time);
+      const aptDuration = apt.isProcedure ? (apt.durationHours * 60) : 60;
+      const aptEnd = aptStart + aptDuration;
+      
+      if (slotStart < aptEnd && slotEnd > aptStart) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   function generateAdminTimeSlots() {
     const dateVal = adminDateInput.value;
     const serviceVal = selectService.value;
@@ -3728,15 +4024,19 @@ function initAdminBookingForm() {
       return;
     }
 
-    // Obtener citas ya agendadas en esta fecha
-    const appointments = DB.getAppointments();
-    const busyTimes = appointments
-      .filter(a => a.date === dateVal && a.specialistId === doctor.id && a.status !== 'cancelada')
-      .map(a => a.time);
+    // Calcular duración en minutos solicitada para esta cita
+    const radioProcedimiento = document.querySelector('input[name="admin-booking-type"][value="procedimiento"]');
+    const isProcedure = radioProcedimiento ? radioProcedimiento.checked : false;
+    let slotDurationMins = parseInt(doctor.slotDuration) || 60;
+    if (isProcedure) {
+      const durationVal = document.getElementById('admin-booking-duration').value;
+      slotDurationMins = parseInt(durationVal) * 60;
+    }
 
     // Renderizar horas disponibles del doctor
     availableHours.forEach(hour => {
-      const isBusy = busyTimes.includes(hour);
+      // Un slot de inicio es ocupado si durante su transcurso (slotDurationMins) hay colisión
+      const isBusy = checkBusyTime(hour, dateVal, doctor.id, slotDurationMins);
       const slot = document.createElement('div');
       slot.className = `time-slot ${isBusy ? 'disabled' : ''}`;
       slot.textContent = hour;
@@ -3874,6 +4174,25 @@ function initAdminBookingForm() {
     });
   }
 
+  // Manejar el cambio de tipo de registro (Consulta vs Procedimiento)
+  const radioConsulta = document.querySelector('input[name="admin-booking-type"][value="consulta"]');
+  const radioProcedimiento = document.querySelector('input[name="admin-booking-type"][value="procedimiento"]');
+  const durationGroup = document.getElementById('admin-booking-duration-group');
+  const durationSelect = document.getElementById('admin-booking-duration');
+
+  if (radioConsulta && radioProcedimiento && durationGroup) {
+    const handleTypeChange = () => {
+      const isProc = radioProcedimiento.checked;
+      durationGroup.style.display = isProc ? 'block' : 'none';
+      generateAdminTimeSlots();
+    };
+    radioConsulta.addEventListener('change', handleTypeChange);
+    radioProcedimiento.addEventListener('change', handleTypeChange);
+  }
+  if (durationSelect) {
+    durationSelect.addEventListener('change', generateAdminTimeSlots);
+  }
+
   const btnAdd = document.getElementById('btn-admin-add-apt');
   btnAdd.addEventListener('click', () => {
     const serviceId = selectService.value;
@@ -3888,6 +4207,10 @@ function initAdminBookingForm() {
     const tracker = document.getElementById('admin-booking-tracker').value;
     const motivoConsulta = (document.getElementById('admin-booking-motivo').value || '').trim();
     const meetingLink = (document.getElementById('admin-booking-meetlink').value || '').trim();
+
+    const bookingType = document.querySelector('input[name="admin-booking-type"]:checked') ? document.querySelector('input[name="admin-booking-type"]:checked').value : 'consulta';
+    const isProcedure = bookingType === 'procedimiento';
+    const durationHours = isProcedure ? parseInt(durationSelect.value) : 1;
 
     if (serviceId === 'curacion_heridas') {
       alert('La "Curación de Heridas a Domicilio" es un servicio sin médico ni horario que se coordina por WhatsApp. Contacte al paciente directamente para acordar la visita a domicilio.');
@@ -3912,7 +4235,9 @@ function initAdminBookingForm() {
       motivoConsulta,
       meetingLink: modality === 'Virtual' ? meetingLink : '',
       status: 'confirmada', // Por defecto confirmada ya que la agendó el personal
-      trackedBy: tracker
+      trackedBy: tracker,
+      isProcedure,
+      durationHours
     };
 
     DB.saveAppointment(newApt);
@@ -3920,6 +4245,7 @@ function initAdminBookingForm() {
 
     // Resetear formulario
     document.getElementById('admin-booking-form-el').reset();
+    if (durationGroup) durationGroup.style.display = 'none';
     selectDoctor.innerHTML = '<option value="">-- Selecciona Especialista --</option>';
     document.getElementById('admin-time-slots-grid').innerHTML = '<p style="color: var(--color-text-muted); font-size: 0.8rem; padding: 0.25rem; grid-column: span 4;">Selecciona servicio y fecha primero.</p>';
     if (meetlinkGroup) meetlinkGroup.style.display = 'none';
@@ -4784,3 +5110,90 @@ function wrapText(text, font, size, maxWidth) {
   if (line) lines.push(line);
   return lines.length ? lines : ['—'];
 }
+
+function renderAllPrescriptionsTable() {
+  const tbody = document.getElementById('prescriptions-table-body-detailed');
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+
+  const searchEl = document.getElementById('prescriptions-search');
+  const searchQuery = searchEl ? searchEl.value.toLowerCase().trim() : '';
+
+  const prescriptions = ClinicalDB.getPrescriptions() || [];
+  
+  const filtered = prescriptions.filter(p => {
+    const record = ClinicalDB.getRecordById(p.recordId);
+    if (!record) return false;
+
+    const patientName = (record.patientName || '').toLowerCase();
+    const patientDni = (record.dni || '').toLowerCase();
+    const formattedDate = new Date(p.createdAt).toISOString().split('T')[0]; // YYYY-MM-DD
+    const diagnosis = (p.diagnosis || '').toLowerCase();
+
+    const matchesSearch = 
+      patientName.includes(searchQuery) ||
+      patientDni.includes(searchQuery) ||
+      formattedDate.includes(searchQuery) ||
+      diagnosis.includes(searchQuery);
+
+    return matchesSearch;
+  });
+
+  // Sort newest first
+  filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--color-text-muted); padding:2rem;">No se encontraron recetas médicas en el repositorio.</td></tr>';
+    return;
+  }
+
+  filtered.forEach(p => {
+    const record = ClinicalDB.getRecordById(p.recordId);
+    const doctor = SPECIALISTS.find(d => d.id === p.specialistId);
+    const dateStr = p.createdAt ? new Date(p.createdAt).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+    
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${record ? record.patientName : 'Paciente Desconocido'}</strong><br><span style="font-size:0.75rem; color:var(--color-text-muted);">${record ? record.patientPhone : ''}</span></td>
+      <td>${record && record.dni ? record.dni : '—'}</td>
+      <td>${p.diagnosis || '—'}</td>
+      <td>${dateStr}</td>
+      <td>${doctor ? doctor.name : '—'}</td>
+      <td style="text-align:center;">
+        <button class="btn btn-secondary btn-download-pdf-general align-icon-text" style="padding:0.3rem 0.6rem; font-size:0.8rem;" title="Descargar receta PDF">
+          <i data-lucide="file-text" class="icon-inline" style="width:14px; height:14px;"></i> PDF
+        </button>
+      </td>
+    `;
+
+    tr.querySelector('.btn-download-pdf-general').addEventListener('click', () => {
+      if (record) {
+        generatePrescriptionPDF(record, p);
+      } else {
+        alert('No se pudo encontrar el expediente de este paciente para generar la receta.');
+      }
+    });
+
+    tbody.appendChild(tr);
+  });
+
+  if (window.lucide) {
+    window.lucide.createIcons();
+  }
+}
+
+// Inicializar buscador de recetas
+document.addEventListener('DOMContentLoaded', () => {
+  const prescriptionsSearch = document.getElementById('prescriptions-search');
+  if (prescriptionsSearch) {
+    prescriptionsSearch.addEventListener('input', renderAllPrescriptionsTable);
+  }
+  const clearSearchBtn = document.getElementById('btn-clear-prescriptions-search');
+  if (clearSearchBtn) {
+    clearSearchBtn.addEventListener('click', () => {
+      if (prescriptionsSearch) prescriptionsSearch.value = '';
+      renderAllPrescriptionsTable();
+    });
+  }
+});

@@ -133,6 +133,17 @@
             </svg>
             Gestión de Personal
           </button>
+          <button class="sidebar-item" data-view="prescriptions" id="menu-prescriptions" style="display: none;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" class="sidebar-icon">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            Buscador de Recetas
+          </button>
         </nav>
 
         <!-- Cuadro de frases sutiles (tipo vidrio opaco / glassmorphism) -->
@@ -269,6 +280,25 @@
               <h2>Agendar Cita Interna</h2>
             </div>
             <form id="admin-booking-form-el" onsubmit="event.preventDefault();">
+              <div class="form-group" style="margin-bottom: 0.8rem;">
+                <label style="font-weight: 600; display: block; margin-bottom: 0.3rem;">Tipo de Registro:</label>
+                <div style="display: flex; gap: 1.5rem; align-items: center; background: var(--color-bg-light); padding: 0.4rem 0.8rem; border-radius: var(--border-radius-sm); border: 1px solid var(--color-border);">
+                  <label style="display: inline-flex; align-items: center; gap: 0.4rem; font-weight: normal; cursor: pointer; margin: 0; font-size: 0.85rem;">
+                    <input type="radio" name="admin-booking-type" value="consulta" checked style="cursor: pointer; width: 14px; height: 14px;"> Consulta
+                  </label>
+                  <label style="display: inline-flex; align-items: center; gap: 0.4rem; font-weight: normal; cursor: pointer; margin: 0; font-size: 0.85rem;">
+                    <input type="radio" name="admin-booking-type" value="procedimiento" style="cursor: pointer; width: 14px; height: 14px;"> Procedimiento
+                  </label>
+                </div>
+              </div>
+              <div class="form-group" id="admin-booking-duration-group" style="display: none; margin-bottom: 0.8rem;">
+                <label for="admin-booking-duration" style="font-weight: 600;">Duración del Procedimiento:</label>
+                <select id="admin-booking-duration" class="form-control" style="font-size: 0.85rem; height: 35px;">
+                  <option value="2">2 horas</option>
+                  <option value="4">4 horas</option>
+                  <option value="6">6 horas</option>
+                </select>
+              </div>
               <div class="form-group">
                 <label for="admin-booking-name">Nombre Paciente:</label>
                 <input type="text" id="admin-booking-name" class="form-control" required
@@ -612,6 +642,45 @@
         </div>
       </div>
 
+      <!-- VISTA: REPOSITORIO GENERAL DE RECETAS -->
+      <div id="view-prescriptions" class="dashboard-view" style="display: none;">
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h2>Repositorio General de Recetas Médicas</h2>
+          </div>
+          <p style="color:var(--color-text-muted); font-size:0.9rem; margin-bottom:1.5rem;">Buscador general de recetas y órdenes médicas emitidas por los especialistas.</p>
+
+          <!-- Controles de Filtros -->
+          <div class="table-controls" style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; margin-bottom: 1.5rem;">
+            <div class="search-box" style="flex: 1;">
+              <input type="text" id="prescriptions-search" class="search-input"
+                placeholder="Buscar receta por nombre de paciente, DNI o fecha (AAAA-MM-DD)..." style="width: 100%;">
+            </div>
+            <button class="btn btn-secondary align-icon-text" id="btn-clear-prescriptions-search">
+              Limpiar
+            </button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Paciente</th>
+                  <th>DNI / Cédula</th>
+                  <th>Diagnóstico</th>
+                  <th>Fecha de Emisión</th>
+                  <th>Médico Emisor</th>
+                  <th style="text-align:center;">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="prescriptions-table-body-detailed">
+                <!-- Se alimenta dinámicamente -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <!-- VISTA 5: MI PERFIL / CAMBIO DE CONTRASEÑA -->
       <div id="view-profile" class="dashboard-view" style="display: none;">
         <div class="admin-card" style="max-width: 500px; margin: 0 auto;">
@@ -726,7 +795,7 @@
 
           const phoneHtml = `
             <div style="display:flex; flex-direction:column; gap:0.25rem;">
-              <a href="https://wa.me/51${apt.patientPhone}" target="_blank" style="color:var(--color-accent); font-weight:600; display:inline-flex; align-items:center;">
+              <a href="https://wa.me/${formatWhatsAppPhone(apt.patientPhone)}" target="_blank" style="color:var(--color-accent); font-weight:600; display:inline-flex; align-items:center;">
                 ${apt.patientPhone}
                 <i data-lucide="message-square" class="icon-inline ml-2" style="width:14px; height:14px; color:#25D366; top:0;"></i>
               </a>
@@ -752,17 +821,9 @@
                   <option value="realizada" ${apt.status === 'realizada' ? 'selected' : ''}>Realizada</option>
                   <option value="cancelada" ${apt.status === 'cancelada' ? 'selected' : ''}>Cancelada</option>
                 </select>
-                <button class="btn btn-accent btn-view-record-detailed align-icon-text" data-id="${apt.id}" style="padding:0.3rem 0.6rem; display:inline-flex; align-items:center; justify-content:center;" title="Ver historia clínica">
-                  <i data-lucide="clipboard-list" class="icon-inline" style="width: 16px; height: 16px; top: 0;"></i>
-                </button>
               </div>
             </td>
           `;
-
-          tr.querySelector('.btn-view-record-detailed').addEventListener('click', async () => {
-            const record = await ClinicalDB.ensureRecordFromAppointment(apt);
-            openClinicalRecord(record.id);
-          });
 
           tr.querySelector('.status-select-detailed').addEventListener('change', (e) => {
             const newStatus = e.target.value;
@@ -845,6 +906,11 @@
                 <button class="btn btn-accent btn-view-record-detailed align-icon-text" data-id="${rec.id}" style="padding:0.3rem 0.6rem; display:inline-flex; align-items:center; justify-content:center;" title="Ver historia clínica">
                   <i data-lucide="clipboard-list" class="icon-inline mr-1" style="width: 16px; height: 16px; top: 0;"></i> Ver Historia
                 </button>
+                ${currentUser.role === 'Administrador' ? `
+                <button class="btn btn-danger btn-delete-record-detailed align-icon-text" data-id="${rec.id}" style="padding:0.3rem 0.6rem; display:inline-flex; align-items:center; justify-content:center; background-color: var(--color-danger); border-color: var(--color-danger);" title="Borrar historia clínica">
+                  <i data-lucide="trash-2" class="icon-inline mr-1" style="width: 16px; height: 16px; top: 0; color: #fff;"></i> Borrar
+                </button>
+                ` : ''}
               </div>
             </td>
           `;
@@ -852,6 +918,16 @@
           tr.querySelector('.btn-view-record-detailed').addEventListener('click', () => {
             openClinicalRecord(rec.id);
           });
+
+          const deleteBtn = tr.querySelector('.btn-delete-record-detailed');
+          if (deleteBtn) {
+            deleteBtn.addEventListener('click', async () => {
+              if (confirm(`¿Estás seguro de que deseas borrar permanentemente el expediente clínico de ${rec.patientName}? Esta acción eliminará todas sus consultas, recetas e historial de forma definitiva.`)) {
+                await ClinicalDB.deleteRecord(rec.id);
+                renderDetailedTable();
+              }
+            });
+          }
 
           tbody.appendChild(tr);
         });
