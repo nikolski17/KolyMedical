@@ -7,6 +7,19 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Diccionario de Especialidades Médicas para formatear el título del evento
+const SPECIALTIES: Record<string, string> = {
+  med_reg: "MEDICINA REGENERATIVA",
+  fibroscan: "FIBROSCAN",
+  nutricion: "NUTRICION",
+  otorrino: "OTORRINOLARINGOLOGIA",
+  curacion_heridas: "CURACION DE HERIDAS",
+  sueroterapia: "SUEROTERAPIA",
+  psicologia: "PSICOLOGIA",
+  ginecologia: "GINECOLOGIA",
+  ecografia: "ECOGRAFIA"
+};
+
 serve(async (req) => {
   // Manejar solicitudes preflight OPTIONS de CORS
   if (req.method === "OPTIONS") {
@@ -86,14 +99,8 @@ serve(async (req) => {
       const eventData = await createRes.json();
       console.log(`Evento creado en Google Calendar. ID: ${eventData.id}`);
 
-      // Extraer enlace de Google Meet si fue generado
-      let meetingLink = "";
-      if (eventData.conferenceData && eventData.conferenceData.entryPoints) {
-        const meetEntryPoint = eventData.conferenceData.entryPoints.find((ep: any) => ep.entryPointType === "video");
-        if (meetEntryPoint) {
-          meetingLink = meetEntryPoint.uri;
-        }
-      }
+      // Extraer enlace de Google Meet directamente desde hangoutLink
+      const meetingLink = eventData.hangoutLink || "";
 
       // Actualizar la cita en la base de datos con el ID del evento de Google y el link de Meet
       const { error: patchError } = await supabase
@@ -156,11 +163,7 @@ serve(async (req) => {
 
         if (createRes.ok) {
           const eventData = await createRes.json();
-          let meetingLink = "";
-          if (eventData.conferenceData && eventData.conferenceData.entryPoints) {
-            const meetEntryPoint = eventData.conferenceData.entryPoints.find((ep: any) => ep.entryPointType === "video");
-            if (meetEntryPoint) meetingLink = meetEntryPoint.uri;
-          }
+          const meetingLink = eventData.hangoutLink || "";
           await supabase.from("appointments").update({
             google_event_id: eventData.id,
             meeting_link: meetingLink || record.meeting_link
@@ -224,8 +227,13 @@ function buildGoogleEvent(record: any) {
   const durationHours = record.duration_hours || 1;
   const endDate = new Date(startDate.getTime() + durationHours * 60 * 60 * 1000);
 
+  // Formatear el Título según la especialidad y el paciente
+  const specName = SPECIALTIES[record.service_id] || "CONSULTA GENERAL";
+  const typeText = record.modality === "Virtual" ? "CONSULTA VIRTUAL" : "CITA PRESENCIAL";
+  const summaryText = `${typeText} - ${specName} - ${record.patient_name.toUpperCase()}`;
+
   const event: any = {
-    summary: `[Cita] ${record.patient_name} - KolyMedical`,
+    summary: summaryText,
     description: `Detalles de la Cita:\n` +
                  `- Paciente: ${record.patient_name} (${record.patient_age} años)\n` +
                  `- DNI: ${record.patient_dni || 'No registrado'}\n` +

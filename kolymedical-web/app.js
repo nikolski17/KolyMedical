@@ -3023,238 +3023,228 @@ function canViewPatientWhatsApp() {
 // Mostrar Detalle de Cita en un Modal flotante simple
 // Mostrar Detalle de Cita en un Modal flotante simple con Historia Clínica
 function showAppointmentDetail(apt) {
-  const service = SERVICES.find(s => s.id === apt.serviceId);
-  const doctor = (apt.serviceId === 'curacion_heridas' || !apt.specialistId) ? null : SPECIALISTS.find(d => d.id === apt.specialistId);
-  const agentInfo = AGENT_CONTACTS[apt.trackedBy] ? `${AGENT_CONTACTS[apt.trackedBy].name} (Cel: ${AGENT_CONTACTS[apt.trackedBy].phone})` : (apt.trackedBy || 'Sin asignar');
-
-  const phoneDetailHtml = canViewPatientWhatsApp()
-    ? `<a href="https://wa.me/${formatWhatsAppPhone(apt.patientPhone)}" target="_blank" style="color:var(--color-accent); font-weight:600;">${apt.patientPhone} 💬</a>`
-    : `<span style="font-weight:600; color:var(--color-primary-dark);">${apt.patientPhone}</span>`;
-
   const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
   const isEditAllowed = currentUser && (currentUser.role === 'Administrador' || currentUser.role === 'Comercial');
-  const canEditNotes = currentUser && (currentUser.role === 'Administrador' || currentUser.specialistId === apt.specialistId);
-
-  // Notas clínicas de esta cita
-  let notesHtml = '';
-  if (canEditNotes) {
-    notesHtml = `
-      <div class="form-group" style="margin-top: 1rem;">
-        <label style="font-weight:600; color:var(--color-primary-dark);">Notas Clínicas (Evolución Médica):</label>
-        <textarea class="form-control" id="detail-apt-notes" rows="4" placeholder="Ingrese diagnóstico, tratamiento, evolución o insumos..." style="font-size: 0.9rem; line-height: 1.4;">${apt.clinicalNotes || ''}</textarea>
-      </div>
-    `;
-  } else {
-    notesHtml = `
-      <div class="form-group" style="margin-top: 1rem;">
-        <label style="font-weight:600; color:var(--color-primary-dark);">Notas Clínicas:</label>
-        <div style="background:#f8fafb; padding:0.75rem; border-radius:var(--border-radius-sm); border:1px solid var(--color-border); font-size:0.9rem; color:var(--color-text-dark); max-height:120px; overflow-y:auto; white-space:pre-line;">
-          ${apt.clinicalNotes || '<em>Sin notas registradas por el especialista.</em>'}
-        </div>
-      </div>
-    `;
-  }
-
-  // Buscar historial clínico (citas previas del mismo paciente que tengan notas)
-  const allApts = DB.getAppointments();
-  const patientHistory = allApts.filter(a =>
-    a.id !== apt.id &&
-    (a.patientPhone === apt.patientPhone || a.patientName.toLowerCase() === apt.patientName.toLowerCase()) &&
-    a.clinicalNotes
-  );
-
-  let historyHtml = '';
-  if (patientHistory.length > 0) {
-    historyHtml += `
-      <div style="margin-top: 1.5rem; border-top: 1px dashed var(--color-border); padding-top: 1rem;">
-        <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.9rem; display:block; margin-bottom:0.5rem;">Historial Clínico Compartido (Consultas Previas):</label>
-        <div style="max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem;">
-    `;
-    patientHistory.forEach(h => {
-      const spec = SPECIALISTS.find(d => d.id === h.specialistId);
-      historyHtml += `
-        <div style="background: rgba(61,90,115,0.03); border:1px solid rgba(61,90,115,0.08); padding:0.6rem; border-radius:var(--border-radius-sm);">
-          <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--color-accent); font-weight:600; margin-bottom:0.25rem;">
-            <span>${spec ? spec.name : 'Especialista'}</span>
-            <span>${h.date}</span>
-          </div>
-          <p style="font-size:0.8rem; margin:0; color:var(--color-text-dark); white-space:pre-line; line-height: 1.4;">${h.clinicalNotes}</p>
-        </div>
-      `;
-    });
-    historyHtml += `
-        </div>
-      </div>
-    `;
-  } else {
-    historyHtml += `
-      <div style="margin-top: 1.5rem; border-top: 1px dashed var(--color-border); padding-top: 1rem;">
-        <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.9rem; display:block; margin-bottom:0.3rem;">Historial Clínico Compartido:</label>
-        <p style="font-size:0.8rem; color:var(--color-text-muted); margin:0; font-style:italic;">No hay consultas previas con notas registradas para este paciente.</p>
-      </div>
-    `;
-  }
-
-  // Generar cuadrícula de detalles: editable para Admin/Comercial, estática para otros
-  let gridHtml = '';
-  if (isEditAllowed) {
-    const servicesOpts = SERVICES.map(s => `<option value="${s.id}" ${s.id === apt.serviceId ? 'selected' : ''}>${s.name}</option>`).join('');
-    const specialistOpts = SPECIALISTS.map(d => `<option value="${d.id}" ${d.id === apt.specialistId ? 'selected' : ''}>${d.name}</option>`).join('');
-    const agentsOpts = `
-      <option value="Brayan" ${apt.trackedBy === 'Brayan' ? 'selected' : ''}>Brayan</option>
-      <option value="Andrea" ${apt.trackedBy === 'Andrea' ? 'selected' : ''}>Andrea</option>
-    `;
-
-    gridHtml = `
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 1rem; font-size: 0.85rem;">
-        <div>
-          <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Paciente:</label>
-          <input type="text" id="detail-apt-name" class="form-control" value="${apt.patientName}" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
-        </div>
-        <div>
-          <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">DNI / Cédula:</label>
-          <input type="text" id="detail-apt-dni" class="form-control" value="${apt.patientDni || ''}" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
-        </div>
-        <div>
-          <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Edad:</label>
-          <input type="number" id="detail-apt-age" class="form-control" value="${apt.patientAge}" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
-        </div>
-        <div>
-          <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Teléfono (WhatsApp):</label>
-          <input type="text" id="detail-apt-phone" class="form-control" value="${apt.patientPhone}" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
-        </div>
-        <div>
-          <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Asesor Comercial:</label>
-          <select id="detail-apt-tracker" class="form-control" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
-            ${agentsOpts}
-          </select>
-        </div>
-        <div>
-          <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Modalidad:</label>
-          <select id="detail-apt-modality" class="form-control" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
-            <option value="Presencial" ${apt.modality === 'Presencial' ? 'selected' : ''}>Presencial</option>
-            <option value="Virtual" ${apt.modality === 'Virtual' ? 'selected' : ''}>Virtual</option>
-          </select>
-        </div>
-        <div style="grid-column: span 2;">
-          <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Servicio:</label>
-          <select id="detail-apt-service" class="form-control" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
-            ${servicesOpts}
-          </select>
-        </div>
-        <div style="grid-column: span 2;">
-          <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Médico Especialista:</label>
-          <select id="detail-apt-doctor" class="form-control" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
-            ${specialistOpts}
-          </select>
-        </div>
-        <div>
-          <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Fecha:</label>
-          <input type="date" id="detail-apt-date" class="form-control" value="${apt.date}" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
-        </div>
-        <div>
-          <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Hora:</label>
-          <input type="text" id="detail-apt-time" class="form-control" value="${apt.time}" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
-        </div>
-        <div style="grid-column: span 2;" id="detail-apt-meetlink-group">
-          <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Enlace de Reunión (Virtual):</label>
-          <input type="url" id="detail-apt-meetlink" class="form-control" value="${apt.meetingLink || ''}" placeholder="https://meet.google.com/..." style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
-        </div>
-        <div style="grid-column: span 2;">
-          <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Motivo de Consulta:</label>
-          <textarea id="detail-apt-motivo" class="form-control" rows="2" style="font-size:0.85rem; padding:0.25rem 0.5rem;">${apt.motivoConsulta || ''}</textarea>
-        </div>
-      </div>
-    `;
-  } else {
-    gridHtml = `
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 1rem; font-size: 0.9rem;">
-        <p style="margin:0;"><strong>Paciente:</strong> <br>${apt.patientName} (${apt.patientAge} años)</p>
-        <p style="margin:0;"><strong>DNI / Cédula:</strong> <br>${apt.patientDni || '<em>No registrado</em>'}</p>
-        <p style="margin:0;"><strong>Teléfono:</strong> <br>${phoneDetailHtml}</p>
-        <p style="margin:0;"><strong>Comercial:</strong> <br>${agentInfo}</p>
-        <p style="margin:0;"><strong>Modalidad:</strong> <br>${apt.modality}</p>
-        <p style="margin:0;"><strong>Servicio:</strong> <br>${service ? service.name : 'N/A'}</p>
-        <p style="margin:0;"><strong>Especialista:</strong> <br>${doctor ? doctor.name : 'N/A'}</p>
-        <p style="margin:0;"><strong>Fecha y Hora:</strong> <br>${apt.date} a las ${apt.time}</p>
-        ${apt.modality === 'Virtual' ? `
-        <p style="margin:0; grid-column: span 2;">
-          <strong>Enlace de Reunión (Virtual):</strong> <br>
-          ${apt.meetingLink 
-            ? `<a href="${apt.meetingLink}" target="_blank" class="btn btn-accent" style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; padding: 0.4rem 0.8rem; margin-top: 0.25rem;"><i data-lucide="video" class="icon-inline"></i> Unirse a Reunión</a>`
-            : '<em>No asignado por el comercial</em>'
-          }
-        </p>
-        ` : ''}
-      </div>
-
-      ${apt.motivoConsulta ? `
-      <div style="background: rgba(0, 168, 150, 0.04); border: 1px solid rgba(0, 168, 150, 0.15); padding: 0.75rem; border-radius: var(--border-radius-sm); margin-bottom: 1rem; font-size: 0.9rem;">
-        <strong>Motivo de Consulta:</strong>
-        <p style="margin: 0.25rem 0 0; color: var(--color-text-dark);">${apt.motivoConsulta}</p>
-      </div>
-      ` : ''}
-    `;
-  }
+  const hasHistoryAccess = currentUser && currentUser.role !== 'Comercial';
 
   // Crear modal de detalle dinámicamente
   const detailModal = document.createElement('div');
   detailModal.className = 'modal active';
   detailModal.style.zIndex = '3000';
-  detailModal.innerHTML = `
-    <div class="modal-content" style="max-width: 500px; padding: 2rem; max-height: 90vh; overflow-y: auto;">
-      <h3 style="color:var(--color-primary); font-weight:700; margin-bottom:1.5rem; border-bottom:1px solid var(--color-border); padding-bottom:0.5rem;">Detalle de la Cita</h3>
-      
-      ${gridHtml}
-      
-      <div class="form-group" style="margin-top: 1rem;">
-        <label style="font-weight:600; color:var(--color-primary-dark);">Estado de Cita:</label>
-        <select class="form-control" id="detail-apt-status" style="font-size: 0.9rem;">
-          <option value="pendiente" ${apt.status === 'pendiente' ? 'selected' : ''}>Pendiente</option>
-          <option value="confirmada" ${apt.status === 'confirmada' ? 'selected' : ''}>Confirmada</option>
-          <option value="realizada" ${apt.status === 'realizada' ? 'selected' : ''}>Realizada</option>
-          <option value="cancelada" ${apt.status === 'cancelada' ? 'selected' : ''}>Cancelada</option>
-        </select>
-      </div>
+  document.body.appendChild(detailModal);
 
-      ${notesHtml}
-      ${historyHtml}
+  function renderReadOnlyView() {
+    // Buscar datos actualizados de la cita en memoria por si se editó
+    const currentApt = DB.getAppointments().find(a => a.id === apt.id) || apt;
+    const service = SERVICES.find(s => s.id === currentApt.serviceId);
+    const doctor = (currentApt.serviceId === 'curacion_heridas' || !currentApt.specialistId) ? null : SPECIALISTS.find(d => d.id === currentApt.specialistId);
+    const agentInfo = AGENT_CONTACTS[currentApt.trackedBy] ? `${AGENT_CONTACTS[currentApt.trackedBy].name} (Cel: ${AGENT_CONTACTS[currentApt.trackedBy].phone})` : (currentApt.trackedBy || 'Sin asignar');
+    
+    const phoneDetailHtml = canViewPatientWhatsApp()
+      ? `<a href="https://wa.me/${formatWhatsAppPhone(currentApt.patientPhone)}" target="_blank" style="color:var(--color-accent); font-weight:600;">${currentApt.patientPhone} 💬</a>`
+      : `<span style="font-weight:600; color:var(--color-primary-dark);">${currentApt.patientPhone}</span>`;
 
-      <div style="display:flex; gap:1rem; margin-top:2rem; justify-content:space-between; flex-wrap:wrap;">
-        ${currentUser && currentUser.role !== 'Comercial' ? `
-        <button class="btn btn-accent align-icon-text" id="detail-open-record-btn" style="font-size:0.85rem;">
-          <i data-lucide="clipboard-list" class="icon-inline"></i> Abrir expediente clínico
-        </button>
-        ` : '<div></div>'}
-        <div style="display:flex; gap:1rem;">
-          <button class="btn btn-secondary" id="detail-close-btn">Cerrar</button>
-          <button class="btn btn-primary" id="detail-save-btn">Guardar Cambios</button>
+    // Historial clínico de consultas previas
+    const allApts = DB.getAppointments();
+    const patientHistory = allApts.filter(a =>
+      a.id !== currentApt.id &&
+      (a.patientPhone === currentApt.patientPhone || a.patientName.toLowerCase() === currentApt.patientName.toLowerCase()) &&
+      a.clinicalNotes
+    );
+
+    let historyHtml = '';
+    if (patientHistory.length > 0) {
+      historyHtml += `
+        <div style="margin-top: 1.25rem; border-top: 1px dashed var(--color-border); padding-top: 0.8rem;">
+          <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.85rem; display:block; margin-bottom:0.4rem;">Consultas Previas con Notas:</label>
+          <div style="max-height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem;">
+      `;
+      patientHistory.forEach(h => {
+        const spec = SPECIALISTS.find(d => d.id === h.specialistId);
+        historyHtml += `
+          <div style="background: rgba(61,90,115,0.03); border:1px solid rgba(61,90,115,0.08); padding:0.5rem; border-radius:var(--border-radius-sm);">
+            <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:var(--color-accent); font-weight:600; margin-bottom:0.2rem;">
+              <span>${spec ? spec.name : 'Especialista'}</span>
+              <span>${h.date}</span>
+            </div>
+            <p style="font-size:0.78rem; margin:0; color:var(--color-text-dark); white-space:pre-line; line-height: 1.3;">${h.clinicalNotes}</p>
+          </div>
+        `;
+      });
+      historyHtml += `</div></div>`;
+    }
+
+    detailModal.innerHTML = `
+      <div class="modal-content" style="max-width: 500px; padding: 2rem; max-height: 90vh; overflow-y: auto;">
+        <h3 style="color:var(--color-primary); font-weight:700; margin-bottom:1.5rem; border-bottom:1px solid var(--color-border); padding-bottom:0.5rem;">Detalle de la Cita</h3>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 1rem; font-size: 0.88rem;">
+          <p style="margin:0;"><strong>Paciente:</strong> <br>${currentApt.patientName} (${currentApt.patientAge} años)</p>
+          <p style="margin:0;"><strong>DNI / Cédula:</strong> <br>${currentApt.patientDni || '<em>No registrado</em>'}</p>
+          <p style="margin:0;"><strong>Teléfono:</strong> <br>${phoneDetailHtml}</p>
+          <p style="margin:0;"><strong>Comercial:</strong> <br>${agentInfo}</p>
+          <p style="margin:0;"><strong>Modalidad:</strong> <br>${currentApt.modality}</p>
+          <p style="margin:0;"><strong>Estado:</strong> <br><span class="status-badge status-${currentApt.status}" style="margin-top:2px;">${currentApt.status.toUpperCase()}</span></p>
+          <p style="margin:0;"><strong>Servicio:</strong> <br>${service ? service.name : 'N/A'}</p>
+          <p style="margin:0;"><strong>Especialista:</strong> <br>${doctor ? doctor.name : 'N/A'}</p>
+          <p style="margin:0; grid-column: span 2;"><strong>Fecha y Hora:</strong> <br>${currentApt.date} a las ${currentApt.time}</p>
+          ${currentApt.modality === 'Virtual' ? `
+          <p style="margin:0; grid-column: span 2;">
+            <strong>Enlace de Reunión (Virtual):</strong> <br>
+            ${currentApt.meetingLink 
+              ? `<a href="${currentApt.meetingLink}" target="_blank" class="btn btn-accent" style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; padding: 0.4rem 0.8rem; margin-top: 0.25rem;"><i data-lucide="video" class="icon-inline"></i> Unirse a Reunión</a>`
+              : '<em>No asignado / Generando...</em>'
+            }
+          </p>
+          ` : ''}
+        </div>
+
+        ${currentApt.motivoConsulta ? `
+        <div style="background: rgba(0, 168, 150, 0.04); border: 1px solid rgba(0, 168, 150, 0.15); padding: 0.75rem; border-radius: var(--border-radius-sm); margin-bottom: 1rem; font-size: 0.88rem;">
+          <strong>Motivo de Consulta:</strong>
+          <p style="margin: 0.25rem 0 0; color: var(--color-text-dark);">${currentApt.motivoConsulta}</p>
+        </div>
+        ` : ''}
+
+        <div class="form-group" style="margin-top: 1rem;">
+          <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.85rem;">Notas Clínicas (Evolución Médica):</label>
+          <div style="background:#f8fafb; padding:0.75rem; border-radius:var(--border-radius-sm); border:1px solid var(--color-border); font-size:0.88rem; color:var(--color-text-dark); max-height:100px; overflow-y:auto; white-space:pre-line;">
+            ${currentApt.clinicalNotes || '<em>Sin notas registradas por el especialista.</em>'}
+          </div>
+        </div>
+
+        ${historyHtml}
+
+        <div style="display:flex; gap:0.8rem; margin-top:2rem; justify-content:space-between; flex-wrap:wrap; align-items:center;">
+          ${hasHistoryAccess ? `
+          <button class="btn btn-accent align-icon-text" id="detail-open-record-btn" style="font-size:0.85rem; padding:0.5rem 1rem;">
+            <i data-lucide="clipboard-list" class="icon-inline"></i> Abrir expediente clínico
+          </button>
+          ` : '<div></div>'}
+          <div style="display:flex; gap:0.6rem;">
+            <button class="btn btn-secondary" id="detail-close-btn" style="padding:0.5rem 1rem;">Cerrar</button>
+            ${isEditAllowed ? `
+            <button class="btn btn-primary align-icon-text" id="detail-edit-btn" style="padding:0.5rem 1rem;">
+              <i data-lucide="edit" class="icon-inline"></i> Editar Cita
+            </button>
+            ` : ''}
+          </div>
         </div>
       </div>
-    </div>
-  `;
-  document.body.appendChild(detailModal);
-  if (window.lucide) {
-    window.lucide.createIcons();
-  }
+    `;
 
-  const openRecordBtn = document.getElementById('detail-open-record-btn');
-  if (openRecordBtn) {
-    openRecordBtn.addEventListener('click', async () => {
+    if (window.lucide) window.lucide.createIcons();
+
+    // Event listeners
+    const openRecordBtn = document.getElementById('detail-open-record-btn');
+    if (openRecordBtn) {
+      openRecordBtn.addEventListener('click', async () => {
+        detailModal.remove();
+        const record = await ClinicalDB.ensureRecordFromAppointment(currentApt);
+        openClinicalRecord(record.id, { appointmentId: currentApt.id, focusNote: !!(currentUser && currentUser.specialistId) });
+      });
+    }
+
+    document.getElementById('detail-close-btn').addEventListener('click', () => {
       detailModal.remove();
-      const record = await ClinicalDB.ensureRecordFromAppointment(apt);
-      openClinicalRecord(record.id, { appointmentId: apt.id, focusNote: !!(currentUser && currentUser.specialistId) });
     });
+
+    const editBtn = document.getElementById('detail-edit-btn');
+    if (editBtn) {
+      editBtn.addEventListener('click', () => {
+        renderEditView(currentApt);
+      });
+    }
   }
 
-  document.getElementById('detail-close-btn').addEventListener('click', () => {
-    detailModal.remove();
-  });
+  function renderEditView(currentApt) {
+    const servicesOpts = SERVICES.map(s => `<option value="${s.id}" ${s.id === currentApt.serviceId ? 'selected' : ''}>${s.name}</option>`).join('');
+    const specialistOpts = SPECIALISTS.map(d => `<option value="${d.id}" ${d.id === currentApt.specialistId ? 'selected' : ''}>${d.name}</option>`).join('');
+    const agentsOpts = `
+      <option value="Brayan" ${currentApt.trackedBy === 'Brayan' ? 'selected' : ''}>Brayan</option>
+      <option value="Andrea" ${currentApt.trackedBy === 'Andrea' ? 'selected' : ''}>Andrea</option>
+    `;
 
-  document.getElementById('detail-save-btn').addEventListener('click', async () => {
-    const newStatus = document.getElementById('detail-apt-status').value;
+    detailModal.innerHTML = `
+      <div class="modal-content" style="max-width: 500px; padding: 2rem; max-height: 90vh; overflow-y: auto;">
+        <h3 style="color:var(--color-primary); font-weight:700; margin-bottom:1.5rem; border-bottom:1px solid var(--color-border); padding-bottom:0.5rem;">Editar Datos de la Cita</h3>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 1.25rem; font-size: 0.85rem;">
+          <div>
+            <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Paciente:</label>
+            <input type="text" id="detail-apt-name" class="form-control" value="${currentApt.patientName}" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
+          </div>
+          <div>
+            <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">DNI / Cédula:</label>
+            <input type="text" id="detail-apt-dni" class="form-control" value="${currentApt.patientDni || ''}" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
+          </div>
+          <div>
+            <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Edad:</label>
+            <input type="number" id="detail-apt-age" class="form-control" value="${currentApt.patientAge}" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
+          </div>
+          <div>
+            <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Teléfono (WhatsApp):</label>
+            <input type="text" id="detail-apt-phone" class="form-control" value="${currentApt.patientPhone}" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
+          </div>
+          <div>
+            <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Asesor Comercial:</label>
+            <select id="detail-apt-tracker" class="form-control" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px; width:100%;">
+              ${agentsOpts}
+            </select>
+          </div>
+          <div>
+            <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Modalidad:</label>
+            <select id="detail-apt-modality" class="form-control" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px; width:100%;">
+              <option value="Presencial" ${currentApt.modality === 'Presencial' ? 'selected' : ''}>Presencial</option>
+              <option value="Virtual" ${currentApt.modality === 'Virtual' ? 'selected' : ''}>Virtual</option>
+            </select>
+          </div>
+          <div style="grid-column: span 2;">
+            <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Servicio:</label>
+            <select id="detail-apt-service" class="form-control" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px; width:100%;">
+              ${servicesOpts}
+            </select>
+          </div>
+          <div style="grid-column: span 2;">
+            <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Médico Especialista:</label>
+            <select id="detail-apt-doctor" class="form-control" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px; width:100%;">
+              ${specialistOpts}
+            </select>
+          </div>
+          <div>
+            <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Fecha:</label>
+            <input type="date" id="detail-apt-date" class="form-control" value="${currentApt.date}" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
+          </div>
+          <div>
+            <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Hora:</label>
+            <input type="text" id="detail-apt-time" class="form-control" value="${currentApt.time}" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
+          </div>
+          <div style="grid-column: span 2;">
+            <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Enlace de Reunión (Virtual):</label>
+            <input type="url" id="detail-apt-meetlink" class="form-control" value="${currentApt.meetingLink || ''}" placeholder="https://meet.google.com/..." style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
+          </div>
+          <div style="grid-column: span 2;">
+            <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Motivo de Consulta:</label>
+            <textarea id="detail-apt-motivo" class="form-control" rows="2" style="font-size:0.85rem; padding:0.25rem 0.5rem;">${currentApt.motivoConsulta || ''}</textarea>
+          </div>
+        </div>
 
-    if (isEditAllowed) {
+        <div style="display:flex; gap:1rem; margin-top:2rem; justify-content:flex-end;">
+          <button class="btn btn-secondary" id="detail-edit-cancel-btn">Cancelar</button>
+          <button class="btn btn-primary align-icon-text" id="detail-edit-save-btn">
+            <i data-lucide="save" class="icon-inline"></i> Guardar Cambios
+          </button>
+        </div>
+      </div>
+    `;
+
+    if (window.lucide) window.lucide.createIcons();
+
+    document.getElementById('detail-edit-cancel-btn').addEventListener('click', () => {
+      renderReadOnlyView();
+    });
+
+    document.getElementById('detail-edit-save-btn').addEventListener('click', async () => {
       const patientName = document.getElementById('detail-apt-name').value.trim();
       const patientDni = document.getElementById('detail-apt-dni').value.trim();
       const patientAge = parseInt(document.getElementById('detail-apt-age').value) || 0;
@@ -3265,10 +3255,10 @@ function showAppointmentDetail(apt) {
       const specialistId = document.getElementById('detail-apt-doctor').value;
       const date = document.getElementById('detail-apt-date').value;
       const time = document.getElementById('detail-apt-time').value.trim();
-      const meetingLink = document.getElementById('detail-apt-meetlink') ? document.getElementById('detail-apt-meetlink').value.trim() : '';
-      const motivoConsulta = document.getElementById('detail-apt-motivo') ? document.getElementById('detail-apt-motivo').value.trim() : '';
+      const meetingLink = document.getElementById('detail-apt-meetlink').value.trim();
+      const motivoConsulta = document.getElementById('detail-apt-motivo').value.trim();
 
-      await DB.updateAppointmentDetails(apt.id, {
+      await DB.updateAppointmentDetails(currentApt.id, {
         patientName,
         patientDni,
         patientAge,
@@ -3281,23 +3271,19 @@ function showAppointmentDetail(apt) {
         time,
         meetingLink,
         motivoConsulta,
-        status: newStatus
+        status: currentApt.status // Mantener el estado original de la cita
       });
-    } else {
-      await DB.updateAppointmentStatus(apt.id, newStatus);
-    }
 
-    const notesArea = document.getElementById('detail-apt-notes');
-    if (notesArea) {
-      const newNotes = notesArea.value.trim();
-      await DB.updateAppointmentNotes(apt.id, newNotes);
-    }
+      alert('Cita actualizada correctamente.');
+      detailModal.remove();
+      updateStats();
+      renderCalendarWidget();
+      renderAppointmentsTable();
+    });
+  }
 
-    detailModal.remove();
-    updateStats();
-    renderCalendarWidget();
-    renderAppointmentsTable();
-  });
+  // Carga inicial de la vista de solo lectura
+  renderReadOnlyView();
 }
 
 // 📋 Renderizar Listado de Citas en Tabla
