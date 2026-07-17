@@ -1329,8 +1329,10 @@ function initPublicWeb() {
     const date = document.getElementById('booking-date').value;
     const time = document.getElementById('booking-selected-time').value;
     const patientName = document.getElementById('booking-name').value.trim();
+    const patientDni = (document.getElementById('booking-dni').value || '').trim();
     const patientAge = parseInt(document.getElementById('booking-age').value);
     const patientPhone = document.getElementById('booking-phone').value.trim();
+    const motivoConsulta = (document.getElementById('booking-motivo').value || '').trim();
 
     let assignedTracker = 'Brayan'; // Default fallback
     const trackers = DB_Users.getUsers().filter(u => u.role === 'Comercial' && u.trackedBy).map(u => u.trackedBy);
@@ -1351,6 +1353,7 @@ function initPublicWeb() {
 
     const newApt = {
       patientName,
+      patientDni,
       patientAge,
       patientPhone,
       serviceId,
@@ -1358,6 +1361,7 @@ function initPublicWeb() {
       date,
       time,
       modality,
+      motivoConsulta,
       status: 'pendiente',
       trackedBy: assignedTracker
     };
@@ -1367,17 +1371,22 @@ function initPublicWeb() {
     // Generar link de confirmación de WhatsApp
     const service = SERVICES.find(s => s.id === serviceId);
     const doctor = SPECIALISTS.find(d => d.id === specialistId);
-    const textMsg = encodeURIComponent(
-      `*Nueva Reserva KolyMedical*\n\n` +
+    let msgBody = `*Nueva Reserva KolyMedical*\n\n` +
       `Hola KolyMedical, deseo confirmar mi cita:\n` +
-      `- *Paciente:* ${patientName} (${patientAge} años)\n` +
-      `- *Servicio:* ${service.name}\n` +
+      `- *Paciente:* ${patientName} (${patientAge} años)\n`;
+    if (patientDni) {
+      msgBody += `- *DNI:* ${patientDni}\n`;
+    }
+    msgBody += `- *Servicio:* ${service.name}\n` +
       `- *Especialista:* ${doctor.name}\n` +
       `- *Fecha:* ${date}\n` +
       `- *Hora:* ${time}\n` +
       `- *Modalidad:* ${modality}\n` +
-      `- *Teléfono:* ${patientPhone}`
-    );
+      `- *Teléfono:* ${patientPhone}\n`;
+    if (motivoConsulta) {
+      msgBody += `- *Motivo:* ${motivoConsulta}\n`;
+    }
+    const textMsg = encodeURIComponent(msgBody);
     const wsUrl = `https://wa.me/51987346934?text=${textMsg}`; // Colocar el número de WhatsApp oficial
 
     // Reemplazar contenido por éxito
@@ -1405,19 +1414,23 @@ function initPublicWeb() {
   // Curación de heridas a domicilio: la web solo permite coordinar por WhatsApp.
   function sendHomeCareWhatsApp() {
     const patientName = document.getElementById('booking-name').value.trim();
+    const patientDni = (document.getElementById('booking-dni').value || '').trim();
     const patientAge = parseInt(document.getElementById('booking-age').value);
     const patientPhone = document.getElementById('booking-phone').value.trim();
     const address = document.getElementById('booking-address').value.trim();
+    const motivoConsulta = (document.getElementById('booking-motivo').value || '').trim();
     const service = SERVICES.find(s => s.id === 'curacion_heridas');
 
     const textMsg = encodeURIComponent(
       `*Solicitud de Curación de Heridas a Domicilio - KolyMedical*\n\n` +
       `Hola KolyMedical, deseo coordinar el servicio a domicilio:\n` +
       `- *Paciente:* ${patientName} (${patientAge} años)\n` +
+      (patientDni ? `- *DNI:* ${patientDni}\n` : '') +
       `- *Servicio:* ${service.name}\n` +
       `- *Costo:* S/ ${service.price}\n` +
       `- *Dirección exacta:* ${address}\n` +
-      `- *Teléfono:* ${patientPhone}`
+      `- *Teléfono:* ${patientPhone}\n` +
+      (motivoConsulta ? `- *Motivo/Descripción:* ${motivoConsulta}\n` : '')
     );
     const wsUrl = `https://wa.me/51987346934?text=${textMsg}`;
 
@@ -1451,8 +1464,10 @@ function initPublicWeb() {
     document.getElementById('booking-selected-time').value = '';
     document.getElementById('time-slots-grid').innerHTML = '<p style="color: var(--color-text-muted); font-size: 0.85rem; padding: 0.5rem; grid-column: span 4;">Selecciona una especialidad y fecha primero.</p>';
     document.getElementById('booking-name').value = '';
+    document.getElementById('booking-dni').value = '';
     document.getElementById('booking-age').value = '';
     document.getElementById('booking-phone').value = '';
+    document.getElementById('booking-motivo').value = '';
     const addressField = document.getElementById('booking-address');
     if (addressField) addressField.value = '';
     const addressGroupReset = document.getElementById('booking-address-group');
