@@ -219,8 +219,8 @@ serve(async (req) => {
 
 // Función para construir la estructura de evento de la Calendar API
 function buildGoogleEvent(record: any) {
-  // Configurar horario de inicio y fin
-  const startIso = `${record.date}T${record.time}:00`;
+  // Configurar horario de inicio y fin en zona horaria de Perú (America/Lima: UTC-5)
+  const startIso = `${record.date}T${record.time}:00-05:00`;
   const startDate = new Date(startIso);
   
   // Duración en horas (procedimientos: 2h, 4h, 6h; consultas normales: 1h)
