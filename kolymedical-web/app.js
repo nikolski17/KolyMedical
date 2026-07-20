@@ -10,7 +10,7 @@ const INITIAL_SPECIALISTS = [
   { id: 'morales', name: 'Dr. Joel Morales', specialty: 'Gastroenterología', workDays: [1, 2, 3, 4, 5, 6], workStart: '10:00', workEnd: '17:00', slotDuration: 30 },
   { id: 'ruslan', name: 'Dr. Ruslan Golovliov', specialty: 'Estudio FibroScan', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '17:00', slotDuration: 30 },
   { id: 'montes', name: 'Dr. Guido Montes', specialty: 'Otorrinolaringología', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '16:30', slotDuration: 60 },
-  { id: 'melendes', name: 'Lic. Ricardo Melendes', specialty: 'Psicología Clínica', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '16:00', slotDuration: 45 }
+  { id: 'melendez', name: 'Lic. Ricardo Meléndez', specialty: 'Psicología Clínica', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '16:00', slotDuration: 45 }
 ];
 
 let SERVICES = [];
@@ -21,7 +21,7 @@ const INITIAL_SERVICES = [
   { id: 'otorrino', name: 'Consulta — Otorrinolaringología', price: 100, specialistId: 'montes', duration: 60 },
   { id: 'fibroscan', name: 'Estudio — FibroScan', price: 650, specialistId: 'ruslan', duration: 30 },
   { id: 'curacion_heridas', name: 'Curación de Heridas Crónicas (A Domicilio)', price: 350, specialistId: null, duration: 60 },
-  { id: 'psicologia', name: 'Consulta — Psicología Clínica', price: 100, specialistId: 'melendes', duration: 60 }
+  { id: 'psicologia', name: 'Consulta — Psicología Clínica', price: 100, specialistId: 'melendez', duration: 60 }
 ];
 
 const AGENT_CONTACTS = {
@@ -53,12 +53,8 @@ function sendWhatsAppReminder(apt) {
   window.open(url, '_blank');
 }
 
-const INITIAL_APPOINTMENTS = [
-  { id: 'apt-1', patientName: 'Carlos Mendoza', patientAge: 45, patientPhone: '987654321', serviceId: 'med_reg', specialistId: 'pedraza', date: getRelativeDate(0), time: '10:00', modality: 'Presencial', status: 'confirmada', trackedBy: 'Brayan' },
-  { id: 'apt-2', patientName: 'María Rodríguez', patientAge: 52, patientPhone: '912345678', serviceId: 'fibroscan', specialistId: 'ruslan', date: getRelativeDate(1), time: '11:00', modality: 'Presencial', status: 'pendiente', trackedBy: 'Andrea' },
-  { id: 'apt-3', patientName: 'Juan Pérez', patientAge: 38, patientPhone: '955443322', serviceId: 'nutricion', specialistId: 'amelia', date: getRelativeDate(0), time: '15:00', modality: 'Virtual', status: 'realizada', trackedBy: 'Brayan' },
-  { id: 'apt-4', patientName: 'Lucía Torres', patientAge: 60, patientPhone: '998877665', serviceId: 'otorrino', specialistId: 'montes', date: getRelativeDate(2), time: '09:00', modality: 'Virtual', status: 'confirmada', trackedBy: 'Andrea' }
-];
+// ⚠️ Citas iniciales vacías para registrar sólo datos reales
+const INITIAL_APPOINTMENTS = [];
 
 const INITIAL_USERS = [
   { username: 'admin', fullname: 'Super Administrador', password: 'admin123', role: 'Administrador' },
@@ -69,7 +65,7 @@ const INITIAL_USERS = [
   { username: 'drmorales', fullname: 'Dr. Joel Morales', password: 'doc123', role: 'Médico', specialistId: 'morales' },
   { username: 'drruslan', fullname: 'Dr. Ruslan Golovliov', password: 'doc123', role: 'Médico', specialistId: 'ruslan' },
   { username: 'drguido', fullname: 'Dr. Guido Montes', password: 'doc123', role: 'Médico', specialistId: 'montes' },
-  { username: 'licmelendes', fullname: 'Lic. Ricardo Melendes', password: 'doc123', role: 'Psicólogo', specialistId: 'melendes' }
+  { username: 'licmelendez', fullname: 'Lic. Ricardo Meléndez', password: 'doc123', role: 'Psicólogo', specialistId: 'melendez' }
 ];
 
 // Helper para generar fechas relativas a hoy
@@ -131,6 +127,9 @@ let localPrescriptionsCache = []; // prescriptions
 try {
   const cachedApts = safeLocalStorage.getItem('kolymedical_appointments');
   localAppointmentsCache = cachedApts ? JSON.parse(cachedApts) : INITIAL_APPOINTMENTS;
+  // Filtrar citas de prueba antiguas si existieran
+  localAppointmentsCache = localAppointmentsCache.filter(a => !['apt-1', 'apt-2', 'apt-3', 'apt-4'].includes(a.id));
+  safeLocalStorage.setItem('kolymedical_appointments', JSON.stringify(localAppointmentsCache));
 
   const cachedUsers = safeLocalStorage.getItem('kolymedical_users');
   localUsersCache = cachedUsers ? JSON.parse(cachedUsers) : INITIAL_USERS;
@@ -250,7 +249,12 @@ function mapUserToDb(u) {
     password: u.password,
     role: u.role,
     tracked_by: u.trackedBy || null,
-    specialist_id: u.specialistId || null
+    specialist_id: u.specialistId || null,
+    work_days: u.workDays || null,
+    work_start: u.workStart || null,
+    work_end: u.workEnd || null,
+    slot_duration: u.slotDuration || null,
+    coordinar_solo: u.coordinarSolo !== undefined ? u.coordinarSolo : null
   };
 }
 
@@ -261,7 +265,12 @@ function mapUserFromDb(dbU) {
     password: dbU.password,
     role: dbU.role,
     trackedBy: dbU.tracked_by || undefined,
-    specialistId: dbU.specialist_id || undefined
+    specialistId: dbU.specialist_id || undefined,
+    workDays: dbU.work_days || undefined,
+    workStart: dbU.work_start || undefined,
+    workEnd: dbU.work_end || undefined,
+    slotDuration: dbU.slot_duration || undefined,
+    coordinarSolo: dbU.coordinar_solo !== undefined ? dbU.coordinar_solo : undefined
   };
 }
 
@@ -1472,6 +1481,15 @@ function initPublicWeb() {
 
     DB.saveAppointment(newApt);
 
+    // Enviar evento de conversión a Google Analytics GA4
+    if (typeof window.gtag === 'function') {
+      window.gtag('event', 'generate_lead', {
+        event_category: 'Reserva',
+        event_label: service ? service.name : serviceId,
+        value: service ? service.price : 100
+      });
+    }
+
     // Generar link de confirmación de WhatsApp
     const service = SERVICES.find(s => s.id === serviceId);
     const doctor = SPECIALISTS.find(d => d.id === specialistId);
@@ -1656,6 +1674,7 @@ const DB_Users = {
         if (data) {
           localUsersCache = data.map(mapUserFromDb);
           safeLocalStorage.setItem('kolymedical_users', JSON.stringify(localUsersCache));
+          syncSpecialistsFromUsers();
           if (callback) callback();
         }
       } catch (err) {
@@ -1677,6 +1696,53 @@ const DB_Users = {
       .subscribe();
   }
 };
+
+function syncSpecialistsFromUsers() {
+  const users = DB_Users.getUsers();
+  users.forEach(u => {
+    if (isSpecialistRole(u.role) || u.specialistId) {
+      const specId = u.specialistId || generateSpecialistId(u.username);
+      u.specialistId = specId;
+
+      const specIndex = SPECIALISTS.findIndex(s => s.id === specId);
+      const specObj = {
+        id: specId,
+        name: u.fullname,
+        specialty: u.role,
+        workDays: u.workDays || [1, 2, 3, 4, 5, 6],
+        workStart: u.workStart || '09:00',
+        workEnd: u.workEnd || '17:00',
+        slotDuration: u.slotDuration || 30,
+        coordinarSolo: u.coordinarSolo !== undefined ? u.coordinarSolo : (specId === 'pedraza')
+      };
+
+      if (specIndex !== -1) {
+        SPECIALISTS[specIndex] = { ...SPECIALISTS[specIndex], ...specObj };
+      } else {
+        SPECIALISTS.push(specObj);
+      }
+
+      // Servicio
+      const serviceId = (specId === 'melendez' || specId === 'melendes') ? 'psicologia' : `service_${specId}`;
+      const serviceIndex = SERVICES.findIndex(s => s.specialistId === specId || s.id === serviceId);
+      const serviceObj = {
+        id: serviceId,
+        name: `Consulta — ${u.role} (${u.fullname})`,
+        price: 100,
+        specialistId: specId,
+        duration: u.slotDuration || 30
+      };
+      if (serviceIndex !== -1) {
+        SERVICES[serviceIndex] = { ...SERVICES[serviceIndex], ...serviceObj };
+      } else {
+        SERVICES.push(serviceObj);
+      }
+    }
+  });
+
+  safeLocalStorage.setItem('kolymedical_specialists', JSON.stringify(SPECIALISTS));
+  safeLocalStorage.setItem('kolymedical_services', JSON.stringify(SERVICES));
+}
 
 const CLINIC_QUOTES = [
   "«La medicina es el arte de acompañar al paciente en su recuperación.»",
@@ -1879,7 +1945,8 @@ function renderDashboard() {
   initProfileForm();
   initAvailabilityManagement();
 
-  // Renderizar Vista Inicial (Estadísticas y Citas)
+  // Renderizar Vista Inicial (Estadísticas, Citas y Notificaciones)
+  initNotificationsHandler();
   updateStats();
   renderCalendarWidget();
   renderAppointmentsTable();
@@ -2044,7 +2111,20 @@ function initAvailabilityManagement() {
       }
 
       safeLocalStorage.setItem('kolymedical_specialists', JSON.stringify(SPECIALISTS));
-      alert('Configuración de disponibilidad guardada correctamente.');
+
+      // Sincronizar también en el objeto de usuario y guardar en Supabase
+      const allUsers = DB_Users.getUsers();
+      const userMatch = allUsers.find(u => u.specialistId === docId);
+      if (userMatch) {
+        userMatch.workDays = SPECIALISTS[doctorIndex].workDays;
+        userMatch.workStart = SPECIALISTS[doctorIndex].workStart;
+        userMatch.workEnd = SPECIALISTS[doctorIndex].workEnd;
+        userMatch.slotDuration = SPECIALISTS[doctorIndex].slotDuration;
+        userMatch.coordinarSolo = SPECIALISTS[doctorIndex].coordinarSolo;
+        DB_Users.saveUser(userMatch);
+      }
+
+      alert('Configuración de disponibilidad guardada y sincronizada correctamente.');
     });
   }
 }
@@ -2532,6 +2612,103 @@ function updateStats() {
       `;
     }).join('');
   }
+
+  // Actualizar bandeja de notificaciones en la cabecera
+  renderNotifications();
+}
+
+function renderNotifications() {
+  const dropdownContainer = document.getElementById('notifications-dropdown-container');
+  if (!dropdownContainer) return;
+
+  const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
+  if (!currentUser || (currentUser.role !== 'Administrador' && currentUser.role !== 'Comercial')) {
+    dropdownContainer.style.display = 'none';
+    return;
+  }
+  dropdownContainer.style.display = 'inline-block';
+
+  let appointments = DB.getAppointments();
+  if (currentUser.role === 'Comercial' && currentUser.trackedBy) {
+    appointments = appointments.filter(a => a.trackedBy === currentUser.trackedBy);
+  }
+
+  // Notificaciones: solicitudes pendientes o con hora "Por coordinar"
+  const pendingApts = appointments.filter(a => a.status === 'pendiente' || a.time === 'Por coordinar' || (a.time && a.time.includes('Por coordinar')));
+
+  const badge = document.getElementById('notifications-badge');
+  const list = document.getElementById('notifications-list');
+
+  if (badge) {
+    if (pendingApts.length > 0) {
+      badge.textContent = pendingApts.length;
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  if (list) {
+    if (pendingApts.length === 0) {
+      list.innerHTML = '<p style="padding: 1rem; text-align: center; color: var(--color-text-muted); font-size: 0.8rem; margin: 0;">No hay notificaciones nuevas.</p>';
+    } else {
+      list.innerHTML = '';
+      pendingApts.forEach(apt => {
+        const service = SERVICES.find(s => s.id === apt.serviceId);
+        const item = document.createElement('div');
+        item.style.cssText = 'padding: 0.75rem 1rem; border-bottom: 1px solid var(--color-border); cursor: pointer; transition: var(--transition-fast);';
+        item.className = 'notification-item';
+        item.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.25rem;">
+            <strong style="font-size:0.85rem; color:var(--color-primary-dark);">${apt.patientName}</strong>
+            <span class="status-badge status-pendiente" style="font-size:0.65rem; padding:0.1rem 0.35rem;">NUEVA</span>
+          </div>
+          <p style="margin:0 0 0.4rem 0; font-size:0.78rem; color:var(--color-text-muted); line-height: 1.3;">
+            ${service ? service.name : 'Consulta'}<br>
+            Teléfono: <strong style="color:var(--color-accent);">${apt.patientPhone}</strong><br>
+            Fecha: ${apt.date} | ${apt.time}
+          </p>
+          <button class="btn btn-accent btn-notify-action" style="padding:0.25rem 0.5rem; font-size:0.72rem; width:100%; text-align:center; height:auto;">
+            Coordinar / Editar Cita
+          </button>
+        `;
+        item.addEventListener('click', () => {
+          const menu = document.getElementById('notifications-menu');
+          if (menu) menu.style.display = 'none';
+          showAppointmentDetail(apt);
+        });
+        list.appendChild(item);
+      });
+    }
+  }
+}
+
+function initNotificationsHandler() {
+  const toggleBtn = document.getElementById('btn-notifications-toggle');
+  const menu = document.getElementById('notifications-menu');
+  const clearBtn = document.getElementById('btn-clear-notifications');
+
+  if (toggleBtn && menu) {
+    toggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menu.style.display = (menu.style.display === 'none' || !menu.style.display) ? 'block' : 'none';
+    });
+
+    document.addEventListener('click', (e) => {
+      if (menu && !menu.contains(e.target) && e.target !== toggleBtn && !toggleBtn.contains(e.target)) {
+        menu.style.display = 'none';
+      }
+    });
+  }
+
+  if (clearBtn) {
+    clearBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const badge = document.getElementById('notifications-badge');
+      if (badge) badge.style.display = 'none';
+      if (menu) menu.style.display = 'none';
+    });
+  }
 }
 
 // 📅 Renderizar Calendario Visual Interactivo
@@ -2800,14 +2977,13 @@ function renderCalendarWidget() {
     }
     timelineContainer.appendChild(timelineHeader);
 
-    // 2. Grilla con escala de horas y tarjetas
+    // 2. Grilla con escala de horas y tarjetas (8 AM a 10 PM = 14 horas = 840 minutos)
     const timelineGrid = document.createElement('div');
     timelineGrid.className = 'timeline-grid';
     timelineGrid.style.gridTemplateColumns = '80px repeat(7, 1fr)';
 
-    // Inyectar líneas horizontales para las horas (8 AM a 8 PM = 12 horas)
     const startHour = 8;
-    const endHour = 20;
+    const endHour = 22;
 
     for (let h = startHour; h <= endHour; h++) {
       const hourIndex = h - startHour;
@@ -2845,8 +3021,8 @@ function renderCalendarWidget() {
         let endRow = startRow + (apt.isProcedure ? (apt.durationHours * 60) : 60);
 
         if (startRow < 0) startRow = 0;
-        if (endRow > 720) endRow = 720;
-        if (startRow >= 720) return;
+        if (endRow > 840) endRow = 840;
+        if (startRow >= 840) return;
 
         const doc = SPECIALISTS.find(d => d.id === apt.specialistId);
         const card = document.createElement('div');
@@ -2877,7 +3053,7 @@ function renderCalendarWidget() {
     if (isThisWeek) {
       const nowMin = now.getHours() * 60 + now.getMinutes();
       const currentOffset = nowMin - 480; // Offset desde las 08:00
-      if (currentOffset >= 0 && currentOffset <= 720) {
+      if (currentOffset >= 0 && currentOffset <= 840) {
         const todayDayIdx = now.getDay() === 0 ? 6 : now.getDay() - 1;
         const redLine = document.createElement('div');
         redLine.className = 'timeline-current-time-line';
@@ -2920,13 +3096,13 @@ function renderCalendarWidget() {
     timelineHeader.appendChild(headerCell);
     timelineContainer.appendChild(timelineHeader);
 
-    // 2. Grilla con escala de horas y tarjetas
+    // 2. Grilla con escala de horas y tarjetas (8 AM a 10 PM)
     const timelineGrid = document.createElement('div');
     timelineGrid.className = 'timeline-grid';
     timelineGrid.style.gridTemplateColumns = '80px 1fr';
 
     const startHour = 8;
-    const endHour = 20;
+    const endHour = 22;
 
     for (let h = startHour; h <= endHour; h++) {
       const hourIndex = h - startHour;
@@ -2962,8 +3138,8 @@ function renderCalendarWidget() {
       let endRow = startRow + (apt.isProcedure ? (apt.durationHours * 60) : 60);
 
       if (startRow < 0) startRow = 0;
-      if (endRow > 720) endRow = 720;
-      if (startRow >= 720) return;
+      if (endRow > 840) endRow = 840;
+      if (startRow >= 840) return;
 
       const doc = SPECIALISTS.find(d => d.id === apt.specialistId);
       const card = document.createElement('div');
@@ -3331,8 +3507,14 @@ function renderAppointmentsTable() {
     return matchesSearch && matchesDoctor;
   });
 
-  // Ordenar por fecha y hora (más recientes primero)
-  filteredApts.sort((a, b) => new Date(`${b.date}T${b.time}`) - new Date(`${a.date}T${a.time}`));
+  // Ordenar por fecha y hora según proximidad (las más cercanas a la cita primero)
+  filteredApts.sort((a, b) => {
+    const timeA = (a.time && a.time !== 'Por coordinar') ? a.time : '00:00';
+    const timeB = (b.time && b.time !== 'Por coordinar') ? b.time : '00:00';
+    const dateA = new Date(`${a.date}T${timeA}`);
+    const dateB = new Date(`${b.date}T${timeB}`);
+    return dateA - dateB;
+  });
 
   if (filteredApts.length === 0) {
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--color-text-muted);">No se encontraron citas registradas.</td></tr>';
@@ -4709,13 +4891,17 @@ function openPrescriptionBuilder(record, currentNoteDiagnoses) {
       el.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
           <span style="font-size:0.75rem; font-weight:700; color:var(--color-primary); text-transform:uppercase; display:inline-flex; align-items:center;">
-            <i data-lucide="microscope" class="icon-inline mr-1" style="width: 14px; height: 14px; top:0;"></i> Estudio
+            <i data-lucide="microscope" class="icon-inline mr-1" style="width: 14px; height: 14px; top:0;"></i> Estudio / Examen de Laboratorio
           </span>
           <button class="pr-remove" style="color:var(--color-danger); font-weight:700;">Quitar</button>
         </div>
-        <div class="pr-study-display" style="font-size:0.88rem; margin-bottom:0.4rem; color:var(--color-text-muted);">Ningún estudio seleccionado.</div>
-        <button class="btn btn-secondary pr-pick-study" style="font-size:0.75rem; margin-bottom:0.5rem;">Seleccionar estudio</button>
-        <input type="text" class="form-control pr-study-note" placeholder="Indicación clínica (opcional: en ayunas, con contraste...)" style="font-size:0.8rem;">`;
+        <div style="display:flex; gap:0.5rem; align-items:center; margin-bottom:0.5rem;">
+          <button class="btn btn-secondary pr-pick-study" style="font-size:0.75rem; white-space:nowrap; padding:0.3rem 0.5rem; height:auto;">Buscar en Catálogo</button>
+          <span style="font-size:0.8rem; color:var(--color-text-muted);">o escribe:</span>
+          <input type="text" class="form-control pr-custom-study-name" placeholder="Examen o estudio personalizado..." style="font-size:0.8rem; flex-grow:1; padding:0.25rem 0.5rem; height:auto;">
+        </div>
+        <div class="pr-study-display" style="font-size:0.85rem; margin-bottom:0.4rem; color:var(--color-text-muted); font-style:italic;">Ningún estudio seleccionado del catálogo.</div>
+        <input type="text" class="form-control pr-study-note" placeholder="Indicación clínica (opcional: en ayunas, orina 24h...)" style="font-size:0.8rem;">`;
     }
     itemsBox.appendChild(el);
     if (window.lucide) {
@@ -4750,9 +4936,22 @@ function openPrescriptionBuilder(record, currentNoteDiagnoses) {
         });
       });
     } else {
+      const customStudyInput = el.querySelector('.pr-custom-study-name');
+      customStudyInput.addEventListener('input', () => {
+        if (customStudyInput.value.trim() !== '') {
+          row.data = { nombre: customStudyInput.value.trim(), categoria: 'Laboratorio' };
+          el.querySelector('.pr-study-display').innerHTML = '<span style="color:var(--color-accent); font-weight:600;">Usando examen escrito a mano.</span>';
+        } else {
+          row.data = null;
+          el.querySelector('.pr-study-display').innerHTML = 'Ningún estudio seleccionado del catálogo.';
+          el.querySelector('.pr-study-display').style.color = 'var(--color-text-muted)';
+        }
+      });
+
       el.querySelector('.pr-pick-study').addEventListener('click', () => {
         openEstudioPicker((e) => {
           row.data = e;
+          customStudyInput.value = '';
           el.querySelector('.pr-study-display').innerHTML = `<strong>${e.nombre}</strong> <span style="color:var(--color-text-muted);">(${e.categoria})</span>`;
           el.querySelector('.pr-study-display').style.color = 'var(--color-text-dark)';
         });

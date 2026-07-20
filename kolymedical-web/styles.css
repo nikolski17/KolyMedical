@@ -2231,7 +2231,7 @@ ul {
 /* Contenedor principal con scrollbar */
 .timeline-container {
   overflow-y: auto;
-  max-height: 620px;
+  max-height: 680px;
   position: relative;
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius-md);
@@ -2292,11 +2292,11 @@ ul {
   margin-top: 2px;
 }
 
-/* Cuadrícula de Tiempo con 720 filas */
+/* Cuadrícula de Tiempo con 840 filas (8 AM a 10 PM) */
 .timeline-grid {
   display: grid;
   position: relative;
-  grid-template-rows: repeat(720, 1fr);
+  grid-template-rows: repeat(840, 1fr);
   background-color: transparent;
 }
 

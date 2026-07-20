@@ -8,6 +8,14 @@
   <link rel="icon" type="image/png" href="Logosinfondo.png">
   <link rel="stylesheet" href="styles.css">
   <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Analytics GA4 (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZYKLQW97R1"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-ZYKLQW97R1');
+  </script>
 </head>
 
 <body>
@@ -190,10 +198,28 @@
     <!-- B.2 Contenido Principal del Dashboard -->
     <section class="admin-main" id="admin-dashboard" style="position: relative;">
       <canvas id="canvas-particles-admin" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; display: none;"></canvas>
-      <header class="admin-header">
+      <header class="admin-header" style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
         <div class="admin-title">
           <h1>Panel de Control</h1>
           <p>Ecosistema Médico KolyMedical — Agenda y Pacientes</p>
+        </div>
+        <!-- 🔔 Bandeja de Notificaciones (para Administrador y Comercial) -->
+        <div id="notifications-dropdown-container" style="position: relative; display: inline-block;">
+          <button id="btn-notifications-toggle" class="btn btn-secondary align-icon-text" style="position: relative; padding: 0.5rem 0.9rem; font-size: 0.85rem; border-color: var(--color-border);">
+            <i data-lucide="bell" class="icon-inline" style="width: 16px; height: 16px;"></i>
+            <span>Notificaciones</span>
+            <span id="notifications-badge" style="background: var(--color-accent); color: white; border-radius: 10px; padding: 0.1rem 0.45rem; font-size: 0.75rem; font-weight: 700; display: none; margin-left: 0.3rem;">0</span>
+          </button>
+          <!-- Menu flotante con la lista de notificaciones -->
+          <div id="notifications-menu" style="display: none; position: absolute; right: 0; top: 120%; width: 340px; max-height: 380px; overflow-y: auto; background: var(--color-bg-light); border: 1px solid var(--color-border); border-radius: var(--border-radius-md); box-shadow: 0 10px 30px rgba(0,0,0,0.25); z-index: 2500; padding: 0.5rem 0;">
+            <div style="padding: 0.6rem 1rem; border-bottom: 1px solid var(--color-border); font-weight: 700; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center;">
+              <span>Solicitudes y Citas Web</span>
+              <button id="btn-clear-notifications" style="background: none; border: none; font-size: 0.75rem; color: var(--color-accent); cursor: pointer; font-weight: 600;">Marcar Leídas</button>
+            </div>
+            <div id="notifications-list" style="display: flex; flex-direction: column;">
+              <p style="padding: 1rem; text-align: center; color: var(--color-text-muted); font-size: 0.8rem; margin: 0;">No hay notificaciones nuevas.</p>
+            </div>
+          </div>
         </div>
       </header>
 

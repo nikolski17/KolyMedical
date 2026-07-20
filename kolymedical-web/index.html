@@ -9,6 +9,14 @@
     content="Centro médico multidisciplinar líder en Medicina Regenerativa, terapia celular con células madre, infiltración de rodilla y hombro, elastografía hepática FibroScan, heridas crónicas y atención médica a domicilio en Lima, Perú.">
   <meta name="keywords"
     content="medicina regenerativa lima, celulas madre peru, dr joan pedraza lima, KolyMedical Peru, curacion pie diabetico domicilio, fibroscan peru, infiltracion rodilla celulas madre, tratamiento cirrosis hepatica, escaras domicilio peru">
+  <!-- Google Analytics GA4 (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZYKLQW97R1"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-ZYKLQW97R1');
+  </script>
   <meta name="google-site-verification" content="wGWs5L8xQ5y6Dh73YsiJRgJQyRNEKZNuGaMCzQFM17Y" />
   <meta name="facebook-domain-verification" content="13al4t9iy73mrc00we9giowxldsman" />
   <meta property="og:title" content="KolyMedical Perú — Medicina Regenerativa y Células Madre en Lima">
@@ -1163,20 +1171,21 @@
           </div>
         </div>
 
-        <!-- PASO 2: Fecha y Hora -->
+        <!-- PASO 2: Fecha Preferida -->
         <div class="form-step">
-          <h3 style="font-size: 1.1rem; color: var(--color-primary); margin-bottom: 1.5rem;">Paso 2: Selecciona la fecha
-            y hora</h3>
+          <h3 style="font-size: 1.1rem; color: var(--color-primary); margin-bottom: 1.25rem;">Paso 2: Selecciona tu fecha preferida</h3>
           <div class="form-group">
-            <label for="booking-date">Fecha de la Cita:</label>
+            <label for="booking-date">Fecha Deseada para la Cita:</label>
             <input type="date" id="booking-date" class="form-control">
           </div>
-          <div class="form-group">
-            <label>Horarios Disponibles:</label>
-            <input type="hidden" id="booking-selected-time">
-            <div class="time-grid" id="time-slots-grid">
-              <p style="color: var(--color-text-muted); font-size: 0.85rem; padding: 0.5rem; grid-column: span 4;">
-                Selecciona una especialidad y fecha primero.</p>
+          <input type="hidden" id="booking-selected-time" value="Por coordinar (Sujeto a disponibilidad de agenda)">
+          
+          <div style="background: rgba(0, 168, 150, 0.06); border: 1px solid rgba(0, 168, 150, 0.2); padding: 1rem; border-radius: var(--border-radius-sm); margin-top: 1rem;">
+            <div style="display: flex; gap: 0.6rem; align-items: flex-start;">
+              <i data-lucide="info" style="color: var(--color-accent); width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px;"></i>
+              <p style="margin: 0; font-size: 0.88rem; color: var(--color-primary-dark); line-height: 1.4;">
+                <strong>Horario a Coordinar:</strong> Al enviar tu solicitud, un asesor comercial de KolyMedical se comunicará contigo de inmediato para fijar la hora exacta de tu cita y brindarte los detalles de tu atención.
+              </p>
             </div>
           </div>
         </div>
