@@ -60,12 +60,12 @@ const INITIAL_USERS = [
   { username: 'admin', fullname: 'Super Administrador', password: 'admin123', role: 'Administrador' },
   { username: 'brayan', fullname: 'Brayan García', password: 'com123', role: 'Comercial', trackedBy: 'Brayan' },
   { username: 'andrea', fullname: 'Andrea Mendoza', password: 'com123', role: 'Comercial', trackedBy: 'Andrea' },
-  { username: 'drpedraza', fullname: 'Dr. Pedraza', password: 'doc123', role: 'Médico', specialistId: 'pedraza' },
-  { username: 'licamelia', fullname: 'Lic. Amelia', password: 'doc123', role: 'Nutricionista', specialistId: 'amelia' },
-  { username: 'drmorales', fullname: 'Dr. Joel Morales', password: 'doc123', role: 'Médico', specialistId: 'morales' },
-  { username: 'drruslan', fullname: 'Dr. Ruslan Golovliov', password: 'doc123', role: 'Médico', specialistId: 'ruslan' },
-  { username: 'drguido', fullname: 'Dr. Guido Montes', password: 'doc123', role: 'Médico', specialistId: 'montes' },
-  { username: 'licmelendez', fullname: 'Lic. Ricardo Meléndez', password: 'doc123', role: 'Psicólogo', specialistId: 'melendez' }
+  { username: 'drpedraza', fullname: 'Dr. Pedraza', password: 'doc123', role: 'Médico', specialistId: 'pedraza', specialty: 'Medicina Regenerativa' },
+  { username: 'licamelia', fullname: 'Lic. Amelia Tenorio', password: 'doc123', role: 'Nutricionista', specialistId: 'amelia', specialty: 'Nutrición Clínica' },
+  { username: 'drmorales', fullname: 'Dr. Joel Morales', password: 'doc123', role: 'Médico', specialistId: 'morales', specialty: 'Gastroenterología' },
+  { username: 'drruslan', fullname: 'Dr. Ruslan Golovliov', password: 'doc123', role: 'Médico', specialistId: 'ruslan', specialty: 'Estudio FibroScan' },
+  { username: 'drguido', fullname: 'Dr. Guido Montes', password: 'doc123', role: 'Médico', specialistId: 'montes', specialty: 'Otorrinolaringología' },
+  { username: 'licmelendez', fullname: 'Lic. Ricardo Meléndez', password: 'doc123', role: 'Psicólogo', specialistId: 'melendez', specialty: 'Psicología Clínica' }
 ];
 
 // Helper para generar fechas relativas a hoy
@@ -250,6 +250,7 @@ function mapUserToDb(u) {
     role: u.role,
     tracked_by: u.trackedBy || null,
     specialist_id: u.specialistId || null,
+    specialty: u.specialty || null,
     work_days: u.workDays || null,
     work_start: u.workStart || null,
     work_end: u.workEnd || null,
@@ -266,6 +267,7 @@ function mapUserFromDb(dbU) {
     role: dbU.role,
     trackedBy: dbU.tracked_by || undefined,
     specialistId: dbU.specialist_id || undefined,
+    specialty: dbU.specialty || undefined,
     workDays: dbU.work_days || undefined,
     workStart: dbU.work_start || undefined,
     workEnd: dbU.work_end || undefined,
@@ -1705,15 +1707,18 @@ function syncSpecialistsFromUsers() {
       u.specialistId = specId;
 
       const specIndex = SPECIALISTS.findIndex(s => s.id === specId);
+      const existingSpec = specIndex !== -1 ? SPECIALISTS[specIndex] : null;
+      const realSpecialty = u.specialty || (existingSpec && existingSpec.specialty ? existingSpec.specialty : u.role);
+
       const specObj = {
         id: specId,
         name: u.fullname,
-        specialty: u.role,
-        workDays: u.workDays || [1, 2, 3, 4, 5, 6],
-        workStart: u.workStart || '09:00',
-        workEnd: u.workEnd || '17:00',
-        slotDuration: u.slotDuration || 30,
-        coordinarSolo: u.coordinarSolo !== undefined ? u.coordinarSolo : (specId === 'pedraza')
+        specialty: realSpecialty,
+        workDays: u.workDays || (existingSpec ? existingSpec.workDays : [1, 2, 3, 4, 5, 6]),
+        workStart: u.workStart || (existingSpec ? existingSpec.workStart : '09:00'),
+        workEnd: u.workEnd || (existingSpec ? existingSpec.workEnd : '17:00'),
+        slotDuration: u.slotDuration || (existingSpec ? existingSpec.slotDuration : 30),
+        coordinarSolo: u.coordinarSolo !== undefined ? u.coordinarSolo : (existingSpec ? existingSpec.coordinarSolo : (specId === 'pedraza'))
       };
 
       if (specIndex !== -1) {
@@ -1727,7 +1732,7 @@ function syncSpecialistsFromUsers() {
       const serviceIndex = SERVICES.findIndex(s => s.specialistId === specId || s.id === serviceId);
       const serviceObj = {
         id: serviceId,
-        name: `Consulta — ${u.role} (${u.fullname})`,
+        name: `Consulta — ${realSpecialty}`,
         price: 100,
         specialistId: specId,
         duration: u.slotDuration || 30
@@ -1842,7 +1847,7 @@ function renderDashboard() {
     if (menuPrescriptions) menuPrescriptions.style.display = 'block';
   } else if (currentUser && currentUser.specialistId) {
     if (menuUsers) menuUsers.style.display = 'none';
-    if (menuAvailability) menuAvailability.style.display = 'block';
+    if (menuAvailability) menuAvailability.style.display = 'none';
     if (menuSuggestions) menuSuggestions.style.display = 'none';
     if (menuPrescriptions) menuPrescriptions.style.display = 'none';
   } else if (currentUser && currentUser.role === 'Comercial') {
@@ -1986,7 +1991,7 @@ function initProfileForm() {
 // -----------------------------------------------------
 function renderAvailabilityView() {
   const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
-  if (!currentUser) return;
+  if (!currentUser || currentUser.role !== 'Administrador') return;
 
   const selectDoc = document.getElementById('availability-doctor-select');
   const containerSelect = document.getElementById('availability-doctor-select-container');
@@ -1994,21 +1999,13 @@ function renderAvailabilityView() {
 
   selectDoc.innerHTML = '';
 
-  if (currentUser.role === 'Administrador') {
-    if (containerSelect) containerSelect.style.display = 'block';
-    SPECIALISTS.forEach(d => {
-      const opt = document.createElement('option');
-      opt.value = d.id;
-      opt.textContent = `${d.name} (${d.specialty})`;
-      selectDoc.appendChild(opt);
-    });
-  } else if (currentUser.specialistId) {
-    if (containerSelect) containerSelect.style.display = 'none';
+  if (containerSelect) containerSelect.style.display = 'block';
+  SPECIALISTS.forEach(d => {
     const opt = document.createElement('option');
-    opt.value = currentUser.specialistId;
-    opt.textContent = currentUser.fullname;
+    opt.value = d.id;
+    opt.textContent = `${d.name} (${d.specialty})`;
     selectDoc.appendChild(opt);
-  }
+  });
 
   loadDoctorAvailabilityIntoForm();
 }
@@ -2427,6 +2424,7 @@ function initUserManagementForm() {
     if (isSpecialistRole(role)) {
       const specId = specialistId || generateSpecialistId(username, editId);
       newUser.specialistId = specId;
+      newUser.specialty = specialty || role;
 
       // Registrar o actualizar en SPECIALISTS
       const specIndex = SPECIALISTS.findIndex(s => s.id === specId);
@@ -3261,7 +3259,7 @@ function showAppointmentDetail(apt) {
           <p style="margin:0;"><strong>Comercial:</strong> <br>${agentInfo}</p>
           <p style="margin:0;"><strong>Modalidad:</strong> <br>${currentApt.modality}</p>
           <p style="margin:0;"><strong>Estado:</strong> <br><span class="status-badge status-${currentApt.status}" style="margin-top:2px;">${currentApt.status.toUpperCase()}</span></p>
-          <p style="margin:0;"><strong>Servicio:</strong> <br>${service ? service.name : 'N/A'}</p>
+          <p style="margin:0;"><strong>Servicio:</strong> <br>${getServiceName(currentApt)}</p>
           <p style="margin:0;"><strong>Especialista:</strong> <br>${doctor ? doctor.name : 'N/A'}</p>
           <p style="margin:0; grid-column: span 2;"><strong>Fecha y Hora:</strong> <br>${currentApt.date} a las ${currentApt.time}</p>
           ${currentApt.modality === 'Virtual' ? `
@@ -3462,6 +3460,25 @@ function showAppointmentDetail(apt) {
   renderReadOnlyView();
 }
 
+function getServiceName(apt) {
+  if (!apt) return 'Consulta Médica';
+  let service = SERVICES.find(s => s.id === apt.serviceId);
+  if (!service && apt.specialistId) {
+    service = SERVICES.find(s => s.specialistId === apt.specialistId);
+  }
+  if (service && service.name) {
+    return service.name;
+  }
+  if (apt.serviceName) {
+    return apt.serviceName;
+  }
+  const doc = SPECIALISTS.find(d => d.id === apt.specialistId);
+  if (doc) {
+    return `Consulta — ${doc.specialty || doc.name}`;
+  }
+  return 'Consulta Médica';
+}
+
 // 📋 Renderizar Listado de Citas en Tabla
 function renderAppointmentsTable() {
   const tbody = document.getElementById('appointments-table-body');
@@ -3507,13 +3524,24 @@ function renderAppointmentsTable() {
     return matchesSearch && matchesDoctor;
   });
 
-  // Ordenar por fecha y hora según proximidad (las más cercanas a la cita primero)
+  // Ordenar por proximidad: primero las citas próximas (Hoy, Mañana...) por orden ascendente, luego las pasadas.
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
   filteredApts.sort((a, b) => {
-    const timeA = (a.time && a.time !== 'Por coordinar') ? a.time : '00:00';
-    const timeB = (b.time && b.time !== 'Por coordinar') ? b.time : '00:00';
-    const dateA = new Date(`${a.date}T${timeA}`);
-    const dateB = new Date(`${b.date}T${timeB}`);
-    return dateA - dateB;
+    const dtA = appointmentDateTime(a);
+    const dtB = appointmentDateTime(b);
+    const isAUpcoming = dtA >= todayStart && a.status !== 'cancelada' && a.status !== 'realizada';
+    const isBUpcoming = dtB >= todayStart && b.status !== 'cancelada' && b.status !== 'realizada';
+
+    if (isAUpcoming && !isBUpcoming) return -1;
+    if (!isAUpcoming && isBUpcoming) return 1;
+
+    if (isAUpcoming && isBUpcoming) {
+      return dtA - dtB; // Próximas citas: la más cercana primero (ej. Hoy 14:00 antes que Hoy 16:00)
+    }
+
+    return dtB - dtA; // Pasadas/Realizadas: la más reciente primero
   });
 
   if (filteredApts.length === 0) {
@@ -3525,7 +3553,6 @@ function renderAppointmentsTable() {
   const canViewWA = canViewPatientWhatsApp();
 
   filteredApts.forEach(apt => {
-    const service = SERVICES.find(s => s.id === apt.serviceId);
     const doctor = (apt.serviceId === 'curacion_heridas' || !apt.specialistId) ? null : SPECIALISTS.find(d => d.id === apt.specialistId);
 
     // Celda de teléfono: enlace + recordatorio de WhatsApp solo si el rol lo permite.
@@ -3554,7 +3581,7 @@ function renderAppointmentsTable() {
       <td>
         ${phoneCellHtml}
       </td>
-      <td>${service ? service.name : 'N/A'}</td>
+      <td>${getServiceName(apt)}</td>
       <td>${doctor ? doctor.name : 'N/A'}</td>
       <td>${apt.date}<br><span style="font-weight:600; color:var(--color-primary-dark);">${apt.time}</span></td>
       <td>
@@ -3639,7 +3666,6 @@ function renderUpcomingConsultations() {
   }
 
   pageApts.forEach(apt => {
-    const service = SERVICES.find(s => s.id === apt.serviceId);
     const dt = appointmentDateTime(apt);
     const isToday = dt.toDateString() === now.toDateString();
     const tr = document.createElement('tr');
@@ -3650,7 +3676,7 @@ function renderUpcomingConsultations() {
           ${apt.patientAge || '—'} años | DNI: ${apt.patientDni || '—'}
         </span>
       </td>
-      <td>${service ? service.name : 'N/A'}</td>
+      <td>${getServiceName(apt)}</td>
       <td>
         <strong>${apt.modality}</strong>
         ${apt.modality === 'Virtual' && apt.meetingLink ? `<br><a href="${apt.meetingLink}" target="_blank" style="color:var(--color-accent); font-size:0.72rem; font-weight:600; display:inline-flex; align-items:center; gap:0.25rem;"><i data-lucide="video" style="width:12px; height:12px;"></i> Unirse</a>` : ''}
