@@ -1681,7 +1681,7 @@ const DB_Users = {
       try {
         const { data, error } = await supabaseClient
           .from('users')
-          .select('*');
+          .select('username, fullname, role, tracked_by, specialist_id, specialty, work_days, work_start, work_end, slot_duration, coordinar_solo');
         if (error) {
           console.error('Error al consultar usuarios en Supabase:', error);
           return;
@@ -1791,13 +1791,33 @@ function initAdminDashboard() {
 
 function initLoginForm() {
   const form = document.getElementById('login-form');
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const userVal = document.getElementById('login-user').value.trim().toLowerCase();
     const passVal = document.getElementById('login-pass').value;
 
-    const users = DB_Users.getUsers();
-    const matched = users.find(u => u.username.toLowerCase() === userVal && u.password === passVal);
+    let matched = null;
+
+    // 1) Verificación segura en el servidor (la contraseña se valida en Supabase, nunca viaja el hash)
+    if (supabaseClient) {
+      try {
+        const { data, error } = await supabaseClient.rpc('verify_login', {
+          p_username: userVal,
+          p_password: passVal
+        });
+        if (!error && data && data.length > 0) {
+          matched = mapUserFromDb(data[0]);
+        }
+      } catch (err) {
+        console.error('Error al verificar login en Supabase:', err);
+      }
+    }
+
+    // 2) Respaldo offline (solo si un usuario ya inició sesión antes en este equipo)
+    if (!matched) {
+      const users = DB_Users.getUsers();
+      matched = users.find(u => u.username.toLowerCase() === userVal && u.password && u.password === passVal) || null;
+    }
 
     if (matched) {
       safeSessionStorage.setItem('kolymedical_logged', 'true');
@@ -1806,7 +1826,7 @@ function initLoginForm() {
       document.getElementById('dashboard-section').style.display = 'grid';
       renderDashboard();
     } else {
-      alert('Credenciales incorrectas. Pruebe con admin / admin123');
+      alert('Credenciales incorrectas.');
     }
   });
 }
