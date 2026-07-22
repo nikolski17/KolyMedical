@@ -6,22 +6,22 @@
 let SPECIALISTS = [];
 const INITIAL_SPECIALISTS = [
   { id: 'pedraza', name: 'Dr. Pedraza', specialty: 'Medicina Regenerativa', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '12:00', slotDuration: 60, coordinarSolo: true },
-  { id: 'amelia', name: 'Lic. Amelia', specialty: 'Nutrición Clínica', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '16:30', slotDuration: 30 },
+  { id: 'licamelia', name: 'Lic. Amelia', specialty: 'Nutrición Clínica', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '16:30', slotDuration: 30 },
   { id: 'morales', name: 'Dr. Joel Morales', specialty: 'Gastroenterología', workDays: [1, 2, 3, 4, 5, 6], workStart: '10:00', workEnd: '17:00', slotDuration: 30 },
   { id: 'ruslan', name: 'Dr. Ruslan Golovliov', specialty: 'Estudio FibroScan', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '17:00', slotDuration: 30 },
   { id: 'montes', name: 'Dr. Guido Montes', specialty: 'Otorrinolaringología', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '16:30', slotDuration: 60 },
-  { id: 'melendez', name: 'Lic. Ricardo Meléndez', specialty: 'Psicología Clínica', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '16:00', slotDuration: 45 }
+  { id: 'licmelendez', name: 'Lic. Ricardo Meléndez', specialty: 'Psicología Clínica', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '16:00', slotDuration: 45 }
 ];
 
 let SERVICES = [];
 const INITIAL_SERVICES = [
   { id: 'med_reg', name: 'Consulta — Medicina Regenerativa', price: 100, specialistId: 'pedraza', duration: 60 },
-  { id: 'nutricion', name: 'Consulta — Nutrición Clínica', price: 150, specialistId: 'amelia', duration: 30 },
+  { id: 'nutricion', name: 'Consulta — Nutrición Clínica', price: 150, specialistId: 'licamelia', duration: 30 },
   { id: 'gastro', name: 'Consulta — Gastroenterología', price: 100, specialistId: 'morales', duration: 60 },
   { id: 'otorrino', name: 'Consulta — Otorrinolaringología', price: 100, specialistId: 'montes', duration: 60 },
   { id: 'fibroscan', name: 'Estudio — FibroScan', price: 650, specialistId: 'ruslan', duration: 30 },
   { id: 'curacion_heridas', name: 'Curación de Heridas Crónicas (A Domicilio)', price: 350, specialistId: null, duration: 60 },
-  { id: 'psicologia', name: 'Consulta — Psicología Clínica', price: 100, specialistId: 'melendez', duration: 60 }
+  { id: 'psicologia', name: 'Consulta — Psicología Clínica', price: 100, specialistId: 'licmelendez', duration: 60 }
 ];
 
 const AGENT_CONTACTS = {
@@ -61,11 +61,11 @@ const INITIAL_USERS = [
   { username: 'brayan', fullname: 'Brayan García', password: 'com123', role: 'Comercial', trackedBy: 'Brayan' },
   { username: 'andrea', fullname: 'Andrea Mendoza', password: 'com123', role: 'Comercial', trackedBy: 'Andrea' },
   { username: 'drpedraza', fullname: 'Dr. Pedraza', password: 'doc123', role: 'Médico', specialistId: 'pedraza', specialty: 'Medicina Regenerativa' },
-  { username: 'licamelia', fullname: 'Lic. Amelia Tenorio', password: 'doc123', role: 'Nutricionista', specialistId: 'amelia', specialty: 'Nutrición Clínica' },
+  { username: 'licamelia', fullname: 'Lic. Amelia Tenorio', password: 'doc123', role: 'Nutricionista', specialistId: 'licamelia', specialty: 'Nutrición Clínica' },
   { username: 'drmorales', fullname: 'Dr. Joel Morales', password: 'doc123', role: 'Médico', specialistId: 'morales', specialty: 'Gastroenterología' },
   { username: 'drruslan', fullname: 'Dr. Ruslan Golovliov', password: 'doc123', role: 'Médico', specialistId: 'ruslan', specialty: 'Estudio FibroScan' },
   { username: 'drguido', fullname: 'Dr. Guido Montes', password: 'doc123', role: 'Médico', specialistId: 'montes', specialty: 'Otorrinolaringología' },
-  { username: 'licmelendez', fullname: 'Lic. Ricardo Meléndez', password: 'doc123', role: 'Psicólogo', specialistId: 'melendez', specialty: 'Psicología Clínica' }
+  { username: 'licmelendez', fullname: 'Lic. Ricardo Meléndez', password: 'doc123', role: 'Psicólogo', specialistId: 'licmelendez', specialty: 'Psicología Clínica' }
 ];
 
 // Helper para generar fechas relativas a hoy
@@ -1277,6 +1277,13 @@ function initPublicWeb() {
     const dateVal = inputDate.value;
     const serviceVal = selectService.value;
     const timeGrid = document.getElementById('time-slots-grid');
+    if (!timeGrid) {
+      const selTimeInput = document.getElementById('booking-selected-time');
+      if (selTimeInput) {
+        selTimeInput.value = 'Por coordinar (Sujeto a disponibilidad de agenda)';
+      }
+      return;
+    }
     timeGrid.innerHTML = '';
 
     if (!dateVal || !serviceVal) return;
@@ -1483,6 +1490,10 @@ function initPublicWeb() {
 
     DB.saveAppointment(newApt);
 
+    // Declarar ANTES del evento GA4 para evitar el ReferenceError (Temporal Dead Zone)
+    const service = SERVICES.find(s => s.id === serviceId);
+    const doctor = SPECIALISTS.find(d => d.id === specialistId);
+
     // Enviar evento de conversión a Google Analytics GA4
     if (typeof window.gtag === 'function') {
       window.gtag('event', 'generate_lead', {
@@ -1493,8 +1504,6 @@ function initPublicWeb() {
     }
 
     // Generar link de confirmación de WhatsApp
-    const service = SERVICES.find(s => s.id === serviceId);
-    const doctor = SPECIALISTS.find(d => d.id === specialistId);
     let msgBody = `*Nueva Reserva KolyMedical*\n\n` +
       `Hola KolyMedical, deseo confirmar mi cita:\n` +
       `- *Paciente:* ${patientName} (${patientAge} años)\n`;
@@ -1585,8 +1594,13 @@ function initPublicWeb() {
     document.getElementById('booking-modality').disabled = false;
     document.getElementById('booking-modality-note').style.display = 'none';
     document.getElementById('booking-date').value = '';
-    document.getElementById('booking-selected-time').value = '';
-    document.getElementById('time-slots-grid').innerHTML = '<p style="color: var(--color-text-muted); font-size: 0.85rem; padding: 0.5rem; grid-column: span 4;">Selecciona una especialidad y fecha primero.</p>';
+    
+    const timeGridEl = document.getElementById('time-slots-grid');
+    document.getElementById('booking-selected-time').value = timeGridEl ? '' : 'Por coordinar (Sujeto a disponibilidad de agenda)';
+    if (timeGridEl) {
+      timeGridEl.innerHTML = '<p style="color: var(--color-text-muted); font-size: 0.85rem; padding: 0.5rem; grid-column: span 4;">Selecciona una especialidad y fecha primero.</p>';
+    }
+
     document.getElementById('booking-name').value = '';
     document.getElementById('booking-dni').value = '';
     document.getElementById('booking-age').value = '';
@@ -1728,7 +1742,7 @@ function syncSpecialistsFromUsers() {
       }
 
       // Servicio
-      const serviceId = (specId === 'melendez' || specId === 'melendes') ? 'psicologia' : `service_${specId}`;
+      const serviceId = (specId === 'amelia' || specId === 'licamelia') ? 'nutricion' : ((specId === 'melendez' || specId === 'melendes' || specId === 'licmelendez') ? 'psicologia' : `service_${specId}`);
       const serviceIndex = SERVICES.findIndex(s => s.specialistId === specId || s.id === serviceId);
       const serviceObj = {
         id: serviceId,
@@ -4144,6 +4158,42 @@ function initAdminBookingForm() {
   const selectService = document.getElementById('admin-booking-service');
   const selectDoctor = document.getElementById('admin-booking-doctor');
   const adminDateInput = document.getElementById('admin-booking-date');
+
+  // Auto-completar datos del paciente en base a registros previos (DNI o Nombre)
+  const inputDni = document.getElementById('admin-booking-dni');
+  const inputName = document.getElementById('admin-booking-name');
+  const inputAge = document.getElementById('admin-booking-age');
+  const inputPhone = document.getElementById('admin-booking-phone');
+
+  if (inputDni && inputName && inputAge && inputPhone) {
+    const autofillFromRecord = (record) => {
+      if (!record) return;
+      if (record.patientName && !inputName.value.trim()) inputName.value = record.patientName;
+      if (record.patientAge && !inputAge.value.trim()) inputAge.value = record.patientAge;
+      if (record.patientPhone && !inputPhone.value.trim()) inputPhone.value = record.patientPhone;
+      if (record.dni && !inputDni.value.trim()) inputDni.value = record.dni;
+    };
+
+    inputDni.addEventListener('blur', () => {
+      const dniVal = inputDni.value.trim();
+      if (!dniVal) return;
+      const records = ClinicalDB.getRecords();
+      const match = records.find(r => r.dni && r.dni.trim() === dniVal);
+      if (match) {
+        autofillFromRecord(match);
+      }
+    });
+
+    inputName.addEventListener('blur', () => {
+      const nameVal = inputName.value.trim().toLowerCase();
+      if (!nameVal || nameVal.length < 3) return;
+      const records = ClinicalDB.getRecords();
+      const match = records.find(r => r.patientName && r.patientName.trim().toLowerCase() === nameVal);
+      if (match) {
+        autofillFromRecord(match);
+      }
+    });
+  }
 
   // Llenar selectores del form
   const adminRenderedServiceNames = new Set();

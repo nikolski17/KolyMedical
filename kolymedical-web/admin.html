@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>KolyMedical — Panel Administrativo Médico</title>
+  <meta name="robots" content="noindex, nofollow">
   <link rel="icon" type="image/png" href="Logosinfondo.png">
   <link rel="stylesheet" href="styles.css">
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -932,7 +933,7 @@
                 <button class="btn btn-accent btn-view-record-detailed align-icon-text" data-id="${rec.id}" style="padding:0.3rem 0.6rem; display:inline-flex; align-items:center; justify-content:center;" title="Ver historia clínica">
                   <i data-lucide="clipboard-list" class="icon-inline mr-1" style="width: 16px; height: 16px; top: 0;"></i> Ver Historia
                 </button>
-                ${currentUser.role === 'Administrador' ? `
+                ${currentUser && currentUser.role === 'Administrador' ? `
                 <button class="btn btn-danger btn-delete-record-detailed align-icon-text" data-id="${rec.id}" style="padding:0.3rem 0.6rem; display:inline-flex; align-items:center; justify-content:center; background-color: var(--color-danger); border-color: var(--color-danger);" title="Borrar historia clínica">
                   <i data-lucide="trash-2" class="icon-inline mr-1" style="width: 16px; height: 16px; top: 0; color: #fff;"></i> Borrar
                 </button>
