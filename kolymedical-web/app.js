@@ -147,16 +147,13 @@ try {
   const cachedServices = safeLocalStorage.getItem('kolymedical_services');
   SERVICES = cachedServices ? JSON.parse(cachedServices) : INITIAL_SERVICES;
 
-  // Limpieza de servicios duplicados y corrección de nombres genéricos
+  // Limpieza de servicios duplicados y restablecimiento de IDs estándar
   if (SERVICES && SERVICES.length > 0) {
+    const standardIds = ['pedraza', 'licamelia', 'amelia', 'morales', 'ruslan', 'montes', 'licmelendez', 'melendez', 'melendes'];
     SERVICES = SERVICES.filter(s => {
-      // Eliminar el servicio antiguo predefinido si existe el nuevo autogenerado/actualizado por el sistema
-      if (s.id === 'nutricion' && SERVICES.some(x => x.id === 'service_amelia')) return false;
-      if (s.id === 'med_reg' && SERVICES.some(x => x.id === 'service_pedraza')) return false;
-      if (s.id === 'gastro' && SERVICES.some(x => x.id === 'service_morales')) return false;
-      if (s.id === 'otorrino' && SERVICES.some(x => x.id === 'service_montes')) return false;
-      if (s.id === 'fibroscan' && SERVICES.some(x => x.id === 'service_ruslan')) return false;
-      if (s.id === 'psicologia' && SERVICES.some(x => x.id === 'service_melendes')) return false;
+      if (s.id.startsWith('service_') && standardIds.includes(s.specialistId)) {
+        return false;
+      }
       return true;
     });
 
@@ -164,13 +161,18 @@ try {
       if (s.id.startsWith('service_')) {
         const doc = SPECIALISTS.find(d => d.id === s.specialistId);
         if (doc) {
-          // Usar acentos correctos al normalizar nombres autogenerados
           let specName = doc.specialty || 'Medicina General';
           if (specName.toLowerCase() === 'nutricionista clinica' || specName.toLowerCase() === 'nutricion clinica') {
             specName = 'Nutrición Clínica';
           }
           s.name = `Consulta — ${specName}`;
         }
+      }
+    });
+
+    INITIAL_SERVICES.forEach(initS => {
+      if (!SERVICES.some(s => s.id === initS.id)) {
+        SERVICES.push({ ...initS });
       }
     });
 
@@ -1163,18 +1165,30 @@ function initPublicWeb() {
   // Llenar selectores del paso 1
   const selectService = document.getElementById('booking-service');
   const selectDoctor = document.getElementById('booking-doctor');
-  const renderedServiceNames = new Set();
-  SERVICES.forEach(s => {
-    // Normalizar a minúsculas y sin acentos para evitar duplicados por variaciones de tildes
-    const normalizedName = s.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-    if (!renderedServiceNames.has(normalizedName)) {
-      renderedServiceNames.add(normalizedName);
-      const opt = document.createElement('option');
-      opt.value = s.id;
-      opt.textContent = `${s.name} — S/ ${s.price}`;
-      selectService.appendChild(opt);
+
+  function populateBookingServices() {
+    if (!selectService) return;
+    const currentVal = selectService.value;
+    selectService.innerHTML = '<option value="">-- Selecciona Servicio --</option>';
+    const renderedServiceNames = new Set();
+    SERVICES.forEach(s => {
+      const normalizedName = s.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      if (!renderedServiceNames.has(normalizedName)) {
+        renderedServiceNames.add(normalizedName);
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = `${s.name} — S/ ${s.price}`;
+        selectService.appendChild(opt);
+      }
+    });
+    if (currentVal && SERVICES.some(s => s.id === currentVal)) {
+      selectService.value = currentVal;
+      selectService.dispatchEvent(new Event('change'));
     }
-  });
+  }
+
+  window.populateBookingServices = populateBookingServices;
+  populateBookingServices();
 
   // Evento al cambiar de servicio para autoseleccionar doctor y validar modalidad
   selectService.addEventListener('change', () => {
@@ -1742,7 +1756,14 @@ function syncSpecialistsFromUsers() {
       }
 
       // Servicio
-      const serviceId = (specId === 'amelia' || specId === 'licamelia') ? 'nutricion' : ((specId === 'melendez' || specId === 'melendes' || specId === 'licmelendez') ? 'psicologia' : `service_${specId}`);
+      let serviceId = `service_${specId}`;
+      if (specId === 'pedraza') serviceId = 'med_reg';
+      else if (specId === 'amelia' || specId === 'licamelia') serviceId = 'nutricion';
+      else if (specId === 'morales') serviceId = 'gastro';
+      else if (specId === 'montes') serviceId = 'otorrino';
+      else if (specId === 'ruslan') serviceId = 'fibroscan';
+      else if (specId === 'melendez' || specId === 'melendes' || specId === 'licmelendez') serviceId = 'psicologia';
+
       const serviceIndex = SERVICES.findIndex(s => s.specialistId === specId || s.id === serviceId);
       const serviceObj = {
         id: serviceId,
@@ -2479,12 +2500,20 @@ function initUserManagementForm() {
       safeLocalStorage.setItem('kolymedical_specialists', JSON.stringify(SPECIALISTS));
 
       // Registrar o actualizar en SERVICES
-      const serviceId = `service_${specId}`;
-      const serviceIndex = SERVICES.findIndex(s => s.specialistId === specId);
+      let serviceId = `service_${specId}`;
+      if (specId === 'pedraza') serviceId = 'med_reg';
+      else if (specId === 'amelia' || specId === 'licamelia') serviceId = 'nutricion';
+      else if (specId === 'morales') serviceId = 'gastro';
+      else if (specId === 'montes') serviceId = 'otorrino';
+      else if (specId === 'ruslan') serviceId = 'fibroscan';
+      else if (specId === 'melendez' || specId === 'melendes' || specId === 'licmelendez') serviceId = 'psicologia';
+
+      const serviceIndex = SERVICES.findIndex(s => s.specialistId === specId || s.id === serviceId);
       const servicePrice = isNaN(priceVal) ? 100 : priceVal;
       if (serviceIndex !== -1) {
         SERVICES[serviceIndex].name = `Consulta — ${fullname} (${specialty || role})`;
         SERVICES[serviceIndex].price = servicePrice;
+        SERVICES[serviceIndex].specialistId = specId;
       } else {
         SERVICES.push({
           id: serviceId,
@@ -4544,6 +4573,8 @@ DB.syncWithCloud(handleSyncUpdate);
 DB_Users.syncWithCloud(() => {
   if (document.getElementById('admin-dashboard')) {
     renderUsersTable();
+  } else if (typeof window.populateBookingServices === 'function') {
+    window.populateBookingServices();
   }
 });
 // Sincronizar el módulo clínico (expedientes, notas, recetas) al iniciar.
