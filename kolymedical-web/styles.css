@@ -2582,3 +2582,31 @@ textarea.form-control {
   color: #94a3b8 !important;
   opacity: 1 !important;
 }
+
+/* ==========================================================================
+   CLASES DE RESPONSIVIDAD PARA PESTAÑAS DE PROTOCOLOS
+   ========================================================================== */
+.protocol-tab-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: center;
+}
+
+@media (min-width: 769px) {
+  .fibroscan-grid {
+    grid-template-columns: 1.2fr 0.8fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .protocol-tab-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    text-align: center;
+  }
+  .protocol-tab-grid img {
+    max-width: 100%;
+    margin-top: 1rem;
+  }
+}

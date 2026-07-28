@@ -5,7 +5,7 @@
 // 1. Base de Datos de Configuración Inicial (Mock Data)
 let SPECIALISTS = [];
 const INITIAL_SPECIALISTS = [
-  { id: 'pedraza', name: 'Dr. Pedraza', specialty: 'Medicina Regenerativa', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '12:00', slotDuration: 60, coordinarSolo: true },
+  { id: 'pedraza', name: 'Especialista en Medicina Regenerativa', specialty: 'Medicina Regenerativa', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '12:00', slotDuration: 60, coordinarSolo: true },
   { id: 'licamelia', name: 'Lic. Amelia', specialty: 'Nutrición Clínica', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '16:30', slotDuration: 30 },
   { id: 'morales', name: 'Dr. Joel Morales', specialty: 'Gastroenterología', workDays: [1, 2, 3, 4, 5, 6], workStart: '10:00', workEnd: '17:00', slotDuration: 30 },
   { id: 'ruslan', name: 'Dr. Ruslan Golovliov', specialty: 'Estudio FibroScan', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '17:00', slotDuration: 30 },
@@ -1738,9 +1738,10 @@ function syncSpecialistsFromUsers() {
       const existingSpec = specIndex !== -1 ? SPECIALISTS[specIndex] : null;
       const realSpecialty = u.specialty || (existingSpec && existingSpec.specialty ? existingSpec.specialty : u.role);
 
+      const specName = specId === 'pedraza' ? 'Especialista en Medicina Regenerativa' : u.fullname;
       const specObj = {
         id: specId,
-        name: u.fullname,
+        name: specName,
         specialty: realSpecialty,
         workDays: u.workDays || (existingSpec ? existingSpec.workDays : [1, 2, 3, 4, 5, 6]),
         workStart: u.workStart || (existingSpec ? existingSpec.workStart : '09:00'),
@@ -2483,13 +2484,14 @@ function initUserManagementForm() {
 
       // Registrar o actualizar en SPECIALISTS
       const specIndex = SPECIALISTS.findIndex(s => s.id === specId);
+      const specName = specId === 'pedraza' ? 'Especialista en Medicina Regenerativa' : fullname;
       if (specIndex !== -1) {
-        SPECIALISTS[specIndex].name = fullname;
+        SPECIALISTS[specIndex].name = specName;
         SPECIALISTS[specIndex].specialty = specialty || role;
       } else {
         SPECIALISTS.push({
           id: specId,
-          name: fullname,
+          name: specName,
           specialty: specialty || role,
           workDays: [1, 2, 3, 4, 5, 6],
           workStart: '09:00',
