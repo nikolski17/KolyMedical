@@ -10,7 +10,8 @@ const INITIAL_SPECIALISTS = [
   { id: 'morales', name: 'Dr. Joel Morales', specialty: 'Gastroenterología', workDays: [1, 2, 3, 4, 5, 6], workStart: '10:00', workEnd: '17:00', slotDuration: 30 },
   { id: 'ruslan', name: 'Dr. Ruslan Golovliov', specialty: 'Estudio FibroScan', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '17:00', slotDuration: 30 },
   { id: 'montes', name: 'Dr. Guido Montes', specialty: 'Otorrinolaringología', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '16:30', slotDuration: 60 },
-  { id: 'licmelendez', name: 'Lic. Ricardo Meléndez', specialty: 'Psicología Clínica', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '16:00', slotDuration: 45 }
+  { id: 'licmelendez', name: 'Lic. Ricardo Meléndez', specialty: 'Psicología Clínica', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '16:00', slotDuration: 45 },
+  { id: 'dracueva', name: 'Dra. María Fernanda Cueva', specialty: 'Hematología', workDays: [1, 2, 3, 4, 5, 6], workStart: '09:00', workEnd: '17:00', slotDuration: 30 }
 ];
 
 let SERVICES = [];
@@ -21,7 +22,8 @@ const INITIAL_SERVICES = [
   { id: 'otorrino', name: 'Consulta — Otorrinolaringología', price: 100, specialistId: 'montes', duration: 60 },
   { id: 'fibroscan', name: 'Estudio — FibroScan', price: 650, specialistId: 'ruslan', duration: 30 },
   { id: 'curacion_heridas', name: 'Curación de Heridas Crónicas (A Domicilio)', price: 350, specialistId: null, duration: 60 },
-  { id: 'psicologia', name: 'Consulta — Psicología Clínica', price: 100, specialistId: 'licmelendez', duration: 60 }
+  { id: 'psicologia', name: 'Consulta — Psicología Clínica', price: 100, specialistId: 'licmelendez', duration: 60 },
+  { id: 'hematologia', name: 'Consulta — Hematología', price: 200, specialistId: 'dracueva', duration: 30 }
 ];
 
 const AGENT_CONTACTS = {
@@ -57,7 +59,7 @@ function sendWhatsAppReminder(apt) {
 const INITIAL_APPOINTMENTS = [];
 
 const INITIAL_USERS = [
-  { username: 'admin', fullname: 'Super Administrador', password: 'admin123', role: 'Administrador' },
+  { username: 'admin', fullname: 'Nikolski Schneider Garcia Mendoza', password: 'admin123', role: 'Administrador' },
   { username: 'brayan', fullname: 'Brayan García', password: 'com123', role: 'Comercial', trackedBy: 'Brayan' },
   { username: 'andrea', fullname: 'Andrea Mendoza', password: 'com123', role: 'Comercial', trackedBy: 'Andrea' },
   { username: 'drpedraza', fullname: 'Dr. Pedraza', password: 'doc123', role: 'Médico', specialistId: 'pedraza', specialty: 'Medicina Regenerativa' },
@@ -65,7 +67,8 @@ const INITIAL_USERS = [
   { username: 'drmorales', fullname: 'Dr. Joel Morales', password: 'doc123', role: 'Médico', specialistId: 'morales', specialty: 'Gastroenterología' },
   { username: 'drruslan', fullname: 'Dr. Ruslan Golovliov', password: 'doc123', role: 'Médico', specialistId: 'ruslan', specialty: 'Estudio FibroScan' },
   { username: 'drguido', fullname: 'Dr. Guido Montes', password: 'doc123', role: 'Médico', specialistId: 'montes', specialty: 'Otorrinolaringología' },
-  { username: 'licmelendez', fullname: 'Lic. Ricardo Meléndez', password: 'doc123', role: 'Psicólogo', specialistId: 'licmelendez', specialty: 'Psicología Clínica' }
+  { username: 'licmelendez', fullname: 'Lic. Ricardo Meléndez', password: 'doc123', role: 'Psicólogo', specialistId: 'licmelendez', specialty: 'Psicología Clínica' },
+  { username: 'dracueva', fullname: 'Dra. María Fernanda Cueva Urbina', password: 'doc123', role: 'Médico', specialistId: 'dracueva', specialty: 'Hematología' }
 ];
 
 // Helper para generar fechas relativas a hoy
@@ -149,7 +152,7 @@ try {
 
   // Limpieza de servicios duplicados y restablecimiento de IDs estándar
   if (SERVICES && SERVICES.length > 0) {
-    const standardIds = ['pedraza', 'licamelia', 'amelia', 'morales', 'ruslan', 'montes', 'licmelendez', 'melendez', 'melendes'];
+    const standardIds = ['pedraza', 'licamelia', 'amelia', 'morales', 'ruslan', 'montes', 'licmelendez', 'melendez', 'melendes', 'dracueva', 'cueva'];
     SERVICES = SERVICES.filter(s => {
       if (s.id.startsWith('service_') && standardIds.includes(s.specialistId)) {
         return false;
@@ -1764,12 +1767,18 @@ function syncSpecialistsFromUsers() {
       else if (specId === 'montes') serviceId = 'otorrino';
       else if (specId === 'ruslan') serviceId = 'fibroscan';
       else if (specId === 'melendez' || specId === 'melendes' || specId === 'licmelendez') serviceId = 'psicologia';
+      else if (specId === 'dracueva' || specId === 'cueva') serviceId = 'hematologia';
+
+      let defaultPrice = 100;
+      if (specId === 'amelia' || specId === 'licamelia') defaultPrice = 150;
+      else if (specId === 'ruslan') defaultPrice = 650;
+      else if (specId === 'dracueva' || specId === 'cueva') defaultPrice = 200;
 
       const serviceIndex = SERVICES.findIndex(s => s.specialistId === specId || s.id === serviceId);
       const serviceObj = {
         id: serviceId,
         name: `Consulta — ${realSpecialty}`,
-        price: 100,
+        price: defaultPrice,
         specialistId: specId,
         duration: u.slotDuration || 30
       };
@@ -2509,6 +2518,7 @@ function initUserManagementForm() {
       else if (specId === 'montes') serviceId = 'otorrino';
       else if (specId === 'ruslan') serviceId = 'fibroscan';
       else if (specId === 'melendez' || specId === 'melendes' || specId === 'licmelendez') serviceId = 'psicologia';
+      else if (specId === 'dracueva' || specId === 'cueva') serviceId = 'hematologia';
 
       const serviceIndex = SERVICES.findIndex(s => s.specialistId === specId || s.id === serviceId);
       const servicePrice = isNaN(priceVal) ? 100 : priceVal;
