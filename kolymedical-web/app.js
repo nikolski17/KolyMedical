@@ -1382,7 +1382,7 @@ function initPublicWeb() {
     if (!timeGrid) {
       const selTimeInput = document.getElementById('booking-selected-time');
       if (selTimeInput) {
-        selTimeInput.value = 'Por coordinar (Sujeto a disponibilidad de agenda)';
+        selTimeInput.value = 'Por coordinar';
       }
       return;
     }
@@ -1405,6 +1405,7 @@ function initPublicWeb() {
 
     if (!doctor) {
       timeGrid.innerHTML = '<p style="color: var(--color-primary-light); font-size: 0.85rem; padding: 0.5rem; grid-column: span 4;">Este servicio se coordina por WhatsApp y no requiere selección de horario.</p>';
+      document.getElementById('booking-selected-time').value = 'Por coordinar';
       return;
     }
 
@@ -1448,7 +1449,7 @@ function initPublicWeb() {
     extraSlot.addEventListener('click', () => {
       document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected'));
       extraSlot.classList.add('selected');
-      document.getElementById('booking-selected-time').value = 'Por coordinar (Sujeto a disponibilidad de agenda)';
+      document.getElementById('booking-selected-time').value = 'Por coordinar';
     });
     timeGrid.appendChild(extraSlot);
   }
@@ -1549,9 +1550,15 @@ function initPublicWeb() {
   async function savePatientBooking() {
     const serviceId = document.getElementById('booking-service').value;
     const specialistId = document.getElementById('booking-doctor').value;
-    const modality = document.getElementById('booking-modality').value;
+    let modality = document.getElementById('booking-modality').value;
+    if (modality === 'A Domicilio') {
+      modality = 'Domicilio';
+    }
     const date = document.getElementById('booking-date').value;
-    const time = document.getElementById('booking-selected-time').value;
+    let time = (document.getElementById('booking-selected-time').value || '').trim();
+    if (time.startsWith('Por coordinar') || !time) {
+      time = 'Por coordinar';
+    }
     const patientName = document.getElementById('booking-name').value.trim();
     const patientDni = (document.getElementById('booking-dni').value || '').trim();
     const patientAge = parseInt(document.getElementById('booking-age').value);
@@ -1705,7 +1712,7 @@ function initPublicWeb() {
     document.getElementById('booking-date').value = '';
     
     const timeGridEl = document.getElementById('time-slots-grid');
-    document.getElementById('booking-selected-time').value = timeGridEl ? '' : 'Por coordinar (Sujeto a disponibilidad de agenda)';
+    document.getElementById('booking-selected-time').value = timeGridEl ? '' : 'Por coordinar';
     if (timeGridEl) {
       timeGridEl.innerHTML = '<p style="color: var(--color-text-muted); font-size: 0.85rem; padding: 0.5rem; grid-column: span 4;">Selecciona una especialidad y fecha primero.</p>';
     }

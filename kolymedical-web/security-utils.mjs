@@ -39,10 +39,10 @@ function isPlainText(value, min, max) {
 
 export function validatePublicAppointment(input) {
   const value = input && typeof input === 'object' ? input : {};
-  const allowedModalities = new Set(['Presencial', 'Virtual', 'Domicilio']);
+  const allowedModalities = new Set(['Presencial', 'Virtual', 'Domicilio', 'A Domicilio']);
   const age = Number(value.patientAge);
   const date = String(value.date ?? '');
-  const time = String(value.time ?? '');
+  const time = String(value.time ?? '').trim();
   const valid =
     isPlainText(value.patientName, 2, 120) &&
     /^9\d{8}$/.test(String(value.patientPhone ?? '').replace(/\D/g, '')) &&
@@ -51,7 +51,7 @@ export function validatePublicAppointment(input) {
     /^[a-z0-9_-]{2,64}$/i.test(String(value.serviceId ?? '')) &&
     (!value.specialistId || /^[a-z0-9_-]{2,64}$/i.test(String(value.specialistId))) &&
     /^\d{4}-\d{2}-\d{2}$/.test(date) &&
-    (/^([01]\d|2[0-3]):[0-5]\d$/.test(time) || time === 'Por coordinar') &&
+    (/^([01]\d|2[0-3]):[0-5]\d$/.test(time) || time.startsWith('Por coordinar')) &&
     allowedModalities.has(String(value.modality ?? '')) &&
     (!value.motivoConsulta || isPlainText(value.motivoConsulta, 1, 1000));
 
