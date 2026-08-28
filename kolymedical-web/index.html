@@ -31,8 +31,9 @@
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://kolymedical.lat/">
   <link rel="icon" type="image/png" href="Logosinfondo.png">
-  <link rel="stylesheet" href="styles.css">
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="styles.css?v=20260828">
+  <script src="https://unpkg.com/lucide@1.34.0/dist/umd/lucide.js"
+    integrity="sha384-frWQkjuw7X/yo4G2C2YnAAbkHHi7uBnMwf577mOjXDG0me9gl8Yrdyu1BhvS7WX5" crossorigin="anonymous"></script>
 
   <!-- Datos Estructurados JSON-LD para Google SEO (Schema.org) -->
   <script type="application/ld+json">
@@ -79,15 +80,18 @@
       }
     ],
     "medicalSpecialty": [
-      "MedicalSpecialty",
-      "RenalClinic",
-      "Gastroenterology"
+      "Regenerative Medicine",
+      "Gastroenterology",
+      "Hematology",
+      "Nutrition",
+      "Psychology",
+      "Otolaryngology"
     ],
     "availableService": [
       {
         "@type": "MedicalProcedure",
         "name": "Medicina Regenerativa y Terapia Celular",
-        "description": "Tratamiento avanzado con células madre y ortobiológicos para artrosis, cirrosis hepática, nefropatías y asma."
+        "description": "Tratamiento avanzado con células madre y ortobiológicos para artrosis, cirrosis hepática, nefropatías, enfermedades pulmonares y autoinmunes."
       },
       {
         "@type": "MedicalProcedure",
@@ -98,13 +102,29 @@
         "@type": "MedicalProcedure",
         "name": "Curación de Heridas Crónicas a Domicilio",
         "description": "Cuidados avanzados a domicilio para úlceras de pie diabético, escaras y úlceras varicosas."
+      },
+      {
+        "@type": "MedicalProcedure",
+        "name": "Consulta de Nutrición Clínica",
+        "description": "Planes alimenticios terapéuticos adaptados a pacientes metabólicos y crónicos."
+      },
+      {
+        "@type": "MedicalProcedure",
+        "name": "Hematología Clínica",
+        "description": "Evaluación y tratamiento integral de trastornos de la sangre, médula ósea y coagulación."
+      },
+      {
+        "@type": "MedicalProcedure",
+        "name": "Psicología Clínica",
+        "description": "Acompañamiento emocional y mental para pacientes con enfermedades crónicas y degenerativas."
       }
     ],
     "employee": [
       {
         "@type": "Physician",
-        "name": "Dr. Joan Pedraza",
-        "medicalSpecialty": "RenalClinic"
+        "name": "Dr. Joan Manuel Pedraza La Barrera",
+        "jobTitle": "Médico Patólogo Clínico — Especialista en Medicina Regenerativa",
+        "medicalSpecialty": "Regenerative Medicine"
       },
       {
         "@type": "Physician",
@@ -1344,8 +1364,10 @@
   </div>
 
   <!-- Supabase Client CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.4/dist/umd/supabase.js"
+    integrity="sha384-ysv13JVP3fufiEXfjML9OdCa/rRbMJvUBOWyor82wfuK8INNZAvmbxHgKIHi+oqz" crossorigin="anonymous"></script>
+  <script type="module" src="security-utils.mjs?v=20260828"></script>
+  <script src="app.js?v=20260828"></script>
   <script>
     // Control de Menú Móvil
     const menuToggle = document.getElementById('mobile-menu-toggle');

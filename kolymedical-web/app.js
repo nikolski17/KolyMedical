@@ -58,18 +58,9 @@ function sendWhatsAppReminder(apt) {
 // ⚠️ Citas iniciales vacías para registrar sólo datos reales
 const INITIAL_APPOINTMENTS = [];
 
-const INITIAL_USERS = [
-  { username: 'admin', fullname: 'Nikolski Schneider Garcia Mendoza', password: 'admin123', role: 'Administrador' },
-  { username: 'brayan', fullname: 'Brayan García', password: 'com123', role: 'Comercial', trackedBy: 'Brayan' },
-  { username: 'andrea', fullname: 'Andrea Mendoza', password: 'com123', role: 'Comercial', trackedBy: 'Andrea' },
-  { username: 'drpedraza', fullname: 'Dr. Pedraza', password: 'doc123', role: 'Médico', specialistId: 'pedraza', specialty: 'Medicina Regenerativa' },
-  { username: 'licamelia', fullname: 'Lic. Amelia Tenorio', password: 'doc123', role: 'Nutricionista', specialistId: 'licamelia', specialty: 'Nutrición Clínica' },
-  { username: 'drmorales', fullname: 'Dr. Joel Morales', password: 'doc123', role: 'Médico', specialistId: 'morales', specialty: 'Gastroenterología' },
-  { username: 'drruslan', fullname: 'Dr. Ruslan Golovliov', password: 'doc123', role: 'Médico', specialistId: 'ruslan', specialty: 'Estudio FibroScan' },
-  { username: 'drguido', fullname: 'Dr. Guido Montes', password: 'doc123', role: 'Médico', specialistId: 'montes', specialty: 'Otorrinolaringología' },
-  { username: 'licmelendez', fullname: 'Lic. Ricardo Meléndez', password: 'doc123', role: 'Psicólogo', specialistId: 'licmelendez', specialty: 'Psicología Clínica' },
-  { username: 'dracueva', fullname: 'Dra. María Fernanda Cueva Urbina', password: 'doc123', role: 'Médico', specialistId: 'dracueva', specialty: 'Hematología' }
-];
+// Los perfiles se descargan únicamente después de una sesión válida de Supabase Auth.
+// Nunca incluya contraseñas, hashes ni cuentas de respaldo en el código del navegador.
+const INITIAL_USERS = [];
 
 // Helper para generar fechas relativas a hoy
 function getRelativeDate(daysOffset) {
@@ -81,11 +72,18 @@ function getRelativeDate(daysOffset) {
 // 2. Conectividad y Adaptador de Base de Datos (Supabase con fallback Offline)
 const SUPABASE_URL = "https://tounxohlvyjcwcyeddlg.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvdW54b2hsdnlqY3djeWVkZGxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3OTMzNTAsImV4cCI6MjA5OTM2OTM1MH0.IZtNzjH7gF4fW27dGy1R6vy-uIEFV8iOwduXYRGY03M";
+const AUTH_REDIRECT_TYPE = new URLSearchParams(window.location.hash.slice(1)).get('type');
 
 let supabaseClient = null;
 if (window.supabase) {
   try {
-    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: true,
+        detectSessionInUrl: Boolean(document.getElementById('admin-dashboard'))
+      }
+    });
   } catch (err) {
     console.error("Error al inicializar el cliente de Supabase:", err);
   }
@@ -125,17 +123,50 @@ let localUsersCache = [];
 let localRecordsCache = [];      // clinical_records
 let localNotesCache = [];        // evolution_notes
 let localPrescriptionsCache = []; // prescriptions
+let currentUserProfile = null;
+
+function getCurrentUser() {
+  return currentUserProfile;
+}
+
+function escapeHtml(value) {
+  if (window.KolySecurity) return window.KolySecurity.escapeHtml(value);
+  return String(value ?? '').replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[character]);
+}
+
+function safeMeetingUrl(value) {
+  try {
+    const url = new URL(String(value || ''));
+    return url.protocol === 'https:' && url.hostname === 'meet.google.com' ? url.href : '';
+  } catch {
+    return '';
+  }
+}
+
+function safeSignatureDataUrl(value) {
+  const data = String(value || '');
+  return data.length <= 1400000 && /^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/.test(data)
+    ? data
+    : '';
+}
+
+// Eliminar cualquier dato sensible dejado por versiones anteriores.
+[
+  'kolymedical_appointments', 'kolymedical_users', 'kolymedical_clinical_records',
+  'kolymedical_evolution_notes', 'kolymedical_prescriptions', 'kolymedical_signatures'
+].forEach((key) => {
+  safeLocalStorage.removeItem(key);
+  safeSessionStorage.removeItem(key);
+});
 
 // Inicializar caché local desde LocalStorage para soporte offline
 try {
-  const cachedApts = safeLocalStorage.getItem('kolymedical_appointments');
-  localAppointmentsCache = cachedApts ? JSON.parse(cachedApts) : INITIAL_APPOINTMENTS;
+  localAppointmentsCache = INITIAL_APPOINTMENTS;
   // Filtrar citas de prueba antiguas si existieran
   localAppointmentsCache = localAppointmentsCache.filter(a => !['apt-1', 'apt-2', 'apt-3', 'apt-4'].includes(a.id));
-  safeLocalStorage.setItem('kolymedical_appointments', JSON.stringify(localAppointmentsCache));
-
-  const cachedUsers = safeLocalStorage.getItem('kolymedical_users');
-  localUsersCache = cachedUsers ? JSON.parse(cachedUsers) : INITIAL_USERS;
+  localUsersCache = INITIAL_USERS;
 
   const cachedSpecialists = safeLocalStorage.getItem('kolymedical_specialists');
   SPECIALISTS = cachedSpecialists ? JSON.parse(cachedSpecialists) : INITIAL_SPECIALISTS;
@@ -190,12 +221,9 @@ try {
 
 // Inicializar cachés del módulo clínico por separado (no deben tumbar los datos base si fallan)
 try {
-  const cachedRecords = safeLocalStorage.getItem('kolymedical_clinical_records');
-  localRecordsCache = cachedRecords ? JSON.parse(cachedRecords) : [];
-  const cachedNotes = safeLocalStorage.getItem('kolymedical_evolution_notes');
-  localNotesCache = cachedNotes ? JSON.parse(cachedNotes) : [];
-  const cachedPrescriptions = safeLocalStorage.getItem('kolymedical_prescriptions');
-  localPrescriptionsCache = cachedPrescriptions ? JSON.parse(cachedPrescriptions) : [];
+  localRecordsCache = [];
+  localNotesCache = [];
+  localPrescriptionsCache = [];
 } catch (e) {
   localRecordsCache = [];
   localNotesCache = [];
@@ -249,9 +277,10 @@ function mapAptFromDb(dbApt) {
 
 function mapUserToDb(u) {
   return {
+    id: u.id,
     username: u.username,
+    email: u.email,
     fullname: u.fullname,
-    password: u.password,
     role: u.role,
     tracked_by: u.trackedBy || null,
     specialist_id: u.specialistId || null,
@@ -266,9 +295,10 @@ function mapUserToDb(u) {
 
 function mapUserFromDb(dbU) {
   return {
+    id: dbU.id,
     username: dbU.username,
+    email: dbU.email,
     fullname: dbU.fullname,
-    password: dbU.password,
     role: dbU.role,
     trackedBy: dbU.tracked_by || undefined,
     specialistId: dbU.specialist_id || undefined,
@@ -281,28 +311,95 @@ function mapUserFromDb(dbU) {
   };
 }
 
+function mapLegacyUserFromDb(dbUser) {
+  return {
+    ...mapUserFromDb(dbUser),
+    id: `legacy:${dbUser.username}`,
+    accountPending: true
+  };
+}
+
+function applyServiceCatalog(rows) {
+  if (!Array.isArray(rows)) return;
+  rows.forEach((row) => {
+    const specialistId = String(row.specialist_id || '').trim();
+    const price = Number(row.price);
+    const duration = Number(row.duration);
+    if (!specialistId || !Number.isFinite(price) || price < 0) return;
+
+    const service = SERVICES.find((item) => item.specialistId === specialistId);
+    if (service) {
+      service.price = price;
+      if (Number.isFinite(duration) && duration >= 10) service.duration = duration;
+    } else {
+      SERVICES.push({
+        id: `service_${specialistId}`,
+        name: `Consulta — ${row.specialty || row.display_name || 'Especialidad médica'}`,
+        price,
+        specialistId,
+        duration: Number.isFinite(duration) && duration >= 10 ? duration : 30
+      });
+    }
+
+    const specialist = SPECIALISTS.find((item) => item.id === specialistId);
+    if (specialist) {
+      if (row.display_name) specialist.name = row.display_name;
+      if (row.specialty) specialist.specialty = row.specialty;
+    }
+    const user = localUsersCache.find((item) => item.specialistId === specialistId);
+    if (user) user.consultationPrice = price;
+  });
+  safeLocalStorage.setItem('kolymedical_specialists', JSON.stringify(SPECIALISTS));
+  safeLocalStorage.setItem('kolymedical_services', JSON.stringify(SERVICES));
+}
+
+async function syncServiceCatalogFromCloud() {
+  if (!supabaseClient) return;
+  const { data, error } = await supabaseClient
+    .from('service_catalog')
+    .select('specialist_id, display_name, specialty, price, duration');
+  if (error) {
+    console.error('No se pudo actualizar el tarifario público:', error);
+    return;
+  }
+  applyServiceCatalog(data);
+}
+
 const DB = {
   getAppointments: function () {
     return localAppointmentsCache;
   },
 
   saveAppointment: async function (apt) {
+    const validation = window.KolySecurity?.validatePublicAppointment(apt);
+    if (!getCurrentUser() && (!validation || !validation.valid)) {
+      throw new Error(validation?.message || 'Los datos de la cita no son válidos.');
+    }
     apt.id = 'apt-' + Date.now();
 
     // Guardar en caché local inmediatamente
     localAppointmentsCache.push(apt);
-    safeLocalStorage.setItem('kolymedical_appointments', JSON.stringify(localAppointmentsCache));
 
     // Subir a Supabase
     if (supabaseClient) {
       try {
+        const databaseAppointment = mapAptToDb(apt);
+        if (!getCurrentUser()) {
+          delete databaseAppointment.meeting_link;
+          delete databaseAppointment.clinical_notes;
+        }
         const { error } = await supabaseClient
           .from('appointments')
-          .insert([mapAptToDb(apt)]);
-        if (error) console.error('Error al insertar cita en Supabase:', error);
+          .insert([databaseAppointment]);
+        if (error) throw error;
       } catch (err) {
-        console.error('Error de red al conectar con Supabase:', err);
+        localAppointmentsCache = localAppointmentsCache.filter((item) => item.id !== apt.id);
+        console.error('No se pudo registrar la cita:', err);
+        throw new Error('No se pudo registrar la cita de forma segura. Inténtalo nuevamente.');
       }
+    } else {
+      localAppointmentsCache = localAppointmentsCache.filter((item) => item.id !== apt.id);
+      throw new Error('No hay conexión segura con el sistema de citas.');
     }
     return apt;
   },
@@ -316,7 +413,6 @@ const DB = {
     const index = localAppointmentsCache.findIndex(a => a.id === id);
     if (index !== -1) {
       localAppointmentsCache[index].status = status;
-      safeLocalStorage.setItem('kolymedical_appointments', JSON.stringify(localAppointmentsCache));
 
       // Actualizar en Supabase
       if (supabaseClient) {
@@ -338,7 +434,6 @@ const DB = {
   deleteAppointment: async function (id) {
     // Eliminar de caché local
     localAppointmentsCache = localAppointmentsCache.filter(a => a.id !== id);
-    safeLocalStorage.setItem('kolymedical_appointments', JSON.stringify(localAppointmentsCache));
 
     // Eliminar en Supabase
     if (supabaseClient) {
@@ -359,7 +454,6 @@ const DB = {
     const index = localAppointmentsCache.findIndex(a => a.id === id);
     if (index !== -1) {
       localAppointmentsCache[index].clinicalNotes = notes;
-      safeLocalStorage.setItem('kolymedical_appointments', JSON.stringify(localAppointmentsCache));
       
       if (supabaseClient) {
         try {
@@ -381,7 +475,6 @@ const DB = {
     const index = localAppointmentsCache.findIndex(a => a.id === id);
     if (index !== -1) {
       localAppointmentsCache[index] = { ...localAppointmentsCache[index], ...updatedFields };
-      safeLocalStorage.setItem('kolymedical_appointments', JSON.stringify(localAppointmentsCache));
       
       if (supabaseClient) {
         try {
@@ -451,9 +544,16 @@ const DB = {
 
     const fetchAndMerge = async () => {
       try {
-        const { data, error } = await supabaseClient
+        const fields = getCurrentUser()
+          ? '*'
+          : 'id, service_id, specialist_id, date, time, status, is_procedure, duration_hours';
+        const appointmentsRequest = supabaseClient
           .from('appointments')
-          .select('*');
+          .select(fields);
+        const [{ data, error }] = await Promise.all([
+          appointmentsRequest,
+          getCurrentUser() ? Promise.resolve() : syncServiceCatalogFromCloud()
+        ]);
         if (error) {
           console.error('Error al consultar citas de Supabase:', error);
           return;
@@ -461,7 +561,6 @@ const DB = {
 
         if (data) {
           localAppointmentsCache = data.map(mapAptFromDb);
-          safeLocalStorage.setItem('kolymedical_appointments', JSON.stringify(localAppointmentsCache));
           if (callback) callback();
         }
       } catch (err) {
@@ -620,7 +719,6 @@ const ClinicalDB = {
     } else {
       localRecordsCache.push(record);
     }
-    safeLocalStorage.setItem('kolymedical_clinical_records', JSON.stringify(localRecordsCache));
 
     if (supabaseClient) {
       try {
@@ -637,13 +735,10 @@ const ClinicalDB = {
 
   deleteRecord: async function (id) {
     localRecordsCache = localRecordsCache.filter(r => r.id !== id);
-    safeLocalStorage.setItem('kolymedical_clinical_records', JSON.stringify(localRecordsCache));
     
     localNotesCache = localNotesCache.filter(n => n.recordId !== id);
-    safeLocalStorage.setItem('kolymedical_evolution_notes', JSON.stringify(localNotesCache));
     
     localPrescriptionsCache = localPrescriptionsCache.filter(p => p.recordId !== id);
-    safeLocalStorage.setItem('kolymedical_prescriptions', JSON.stringify(localPrescriptionsCache));
 
     if (supabaseClient) {
       try {
@@ -714,7 +809,6 @@ const ClinicalDB = {
     if (!note.createdAt) note.createdAt = new Date().toISOString();
 
     localNotesCache.push(note);
-    safeLocalStorage.setItem('kolymedical_evolution_notes', JSON.stringify(localNotesCache));
 
     if (supabaseClient) {
       try {
@@ -749,7 +843,6 @@ const ClinicalDB = {
     if (!prescription.createdAt) prescription.createdAt = new Date().toISOString();
 
     localPrescriptionsCache.push(prescription);
-    safeLocalStorage.setItem('kolymedical_prescriptions', JSON.stringify(localPrescriptionsCache));
 
     if (supabaseClient) {
       try {
@@ -778,15 +871,12 @@ const ClinicalDB = {
       ]);
       if (recRes.data) {
         localRecordsCache = recRes.data.map(mapRecordFromDb);
-        safeLocalStorage.setItem('kolymedical_clinical_records', JSON.stringify(localRecordsCache));
       }
       if (noteRes.data) {
         localNotesCache = noteRes.data.map(mapNoteFromDb);
-        safeLocalStorage.setItem('kolymedical_evolution_notes', JSON.stringify(localNotesCache));
       }
       if (prescRes.data) {
         localPrescriptionsCache = prescRes.data.map(mapPrescriptionFromDb);
-        safeLocalStorage.setItem('kolymedical_prescriptions', JSON.stringify(localPrescriptionsCache));
       }
       if (callback) callback();
     } catch (err) {
@@ -803,32 +893,26 @@ window.ClinicalDB = ClinicalDB;
    El PDF de receta las embebe automáticamente sobre la línea de firma.
    ========================================================================== */
 let localSignaturesCache = {};
-try {
-  const cachedSig = safeLocalStorage.getItem('kolymedical_signatures');
-  localSignaturesCache = cachedSig ? JSON.parse(cachedSig) : {};
-} catch (e) {
-  localSignaturesCache = {};
-}
 
 const SignatureDB = {
   get: function (specialistId) {
     if (!specialistId) return null;
-    return localSignaturesCache[specialistId] || null;
+    return safeSignatureDataUrl(localSignaturesCache[specialistId]) || null;
   },
 
   has: function (specialistId) {
-    return !!(specialistId && localSignaturesCache[specialistId]);
+    return !!this.get(specialistId);
   },
 
   save: async function (specialistId, dataUrl) {
-    if (!specialistId) return false;
-    localSignaturesCache[specialistId] = dataUrl;
-    safeLocalStorage.setItem('kolymedical_signatures', JSON.stringify(localSignaturesCache));
+    const safeDataUrl = safeSignatureDataUrl(dataUrl);
+    if (!specialistId || !safeDataUrl) return false;
+    localSignaturesCache[specialistId] = safeDataUrl;
     if (supabaseClient) {
       try {
         const { error } = await supabaseClient
           .from('signatures')
-          .upsert([{ specialist_id: specialistId, image_data: dataUrl, updated_at: new Date().toISOString() }]);
+          .upsert([{ specialist_id: specialistId, image_data: safeDataUrl, updated_at: new Date().toISOString() }]);
         if (error) {
           console.error('Error al guardar firma en Supabase:', error);
           alert('Error al guardar firma en Supabase (Base de Datos): ' + (error.message || JSON.stringify(error)));
@@ -844,7 +928,6 @@ const SignatureDB = {
   remove: async function (specialistId) {
     if (!specialistId) return false;
     delete localSignaturesCache[specialistId];
-    safeLocalStorage.setItem('kolymedical_signatures', JSON.stringify(localSignaturesCache));
     if (supabaseClient) {
       try {
         const { error } = await supabaseClient.from('signatures').delete().eq('specialist_id', specialistId);
@@ -872,8 +955,10 @@ const SignatureDB = {
           return;
         }
         if (data) {
-          data.forEach(row => { localSignaturesCache[row.specialist_id] = row.image_data; });
-          safeLocalStorage.setItem('kolymedical_signatures', JSON.stringify(localSignaturesCache));
+          data.forEach((row) => {
+            const safeDataUrl = safeSignatureDataUrl(row.image_data);
+            if (safeDataUrl) localSignaturesCache[row.specialist_id] = safeDataUrl;
+          });
           if (callback) callback();
         }
       } catch (err) {
@@ -1461,7 +1546,7 @@ function initPublicWeb() {
     return true;
   }
 
-  function savePatientBooking() {
+  async function savePatientBooking() {
     const serviceId = document.getElementById('booking-service').value;
     const specialistId = document.getElementById('booking-doctor').value;
     const modality = document.getElementById('booking-modality').value;
@@ -1470,7 +1555,7 @@ function initPublicWeb() {
     const patientName = document.getElementById('booking-name').value.trim();
     const patientDni = (document.getElementById('booking-dni').value || '').trim();
     const patientAge = parseInt(document.getElementById('booking-age').value);
-    const patientPhone = document.getElementById('booking-phone').value.trim();
+    const patientPhone = document.getElementById('booking-phone').value.replace(/\D/g, '');
     const motivoConsulta = (document.getElementById('booking-motivo').value || '').trim();
 
     let assignedTracker = 'Brayan'; // Default fallback
@@ -1505,7 +1590,12 @@ function initPublicWeb() {
       trackedBy: assignedTracker
     };
 
-    DB.saveAppointment(newApt);
+    try {
+      await DB.saveAppointment(newApt);
+    } catch (error) {
+      alert(error.message || 'No se pudo registrar la cita. Revisa los datos e inténtalo nuevamente.');
+      return;
+    }
 
     // Declarar ANTES del evento GA4 para evitar el ReferenceError (Temporal Dead Zone)
     const service = SERVICES.find(s => s.id === serviceId);
@@ -1552,12 +1642,13 @@ function initPublicWeb() {
           <a href="${wsUrl}" target="_blank" class="btn btn-accent" style="width: 100%; max-width: 320px;">
              Confirmar por WhatsApp
           </a>
-          <button onclick="location.reload()" class="btn btn-secondary" style="width: 100%; max-width: 320px;">
+          <button class="btn btn-secondary btn-reload-public" style="width: 100%; max-width: 320px;">
             Regresar a la Página
           </button>
         </div>
       </div>
     `;
+    modalBody.querySelector('.btn-reload-public')?.addEventListener('click', () => location.reload());
     if (window.lucide) window.lucide.createIcons();
   }
 
@@ -1596,12 +1687,13 @@ function initPublicWeb() {
           <a href="${wsUrl}" target="_blank" class="btn btn-accent" style="width: 100%; max-width: 320px;">
              Enviar solicitud por WhatsApp
           </a>
-          <button onclick="location.reload()" class="btn btn-secondary" style="width: 100%; max-width: 320px;">
+          <button class="btn btn-secondary btn-reload-public" style="width: 100%; max-width: 320px;">
             Regresar a la Página
           </button>
         </div>
       </div>
     `;
+    modalBody.querySelector('.btn-reload-public')?.addEventListener('click', () => location.reload());
   }
 
   function resetBookingForm() {
@@ -1649,42 +1741,39 @@ const DB_Users = {
   },
 
   saveUser: async function (userObj) {
-    const index = localUsersCache.findIndex(u => u.username.toLowerCase() === userObj.username.toLowerCase());
-    if (index !== -1) {
-      localUsersCache[index] = userObj;
-    } else {
-      localUsersCache.push(userObj);
+    if (!supabaseClient || getCurrentUser()?.role !== 'Administrador') return false;
+    let action = 'update';
+    if (userObj.accountPending && !userObj.email) action = 'update_pending';
+    else if (!userObj.id || userObj.accountPending) action = 'invite';
+    const { data, error } = await supabaseClient.functions.invoke('admin-users', {
+      body: { action, user: userObj }
+    });
+    if (error || !data?.user) {
+      console.error('No se pudo guardar la cuenta de personal:', error);
+      return false;
     }
-    safeLocalStorage.setItem('kolymedical_users', JSON.stringify(localUsersCache));
-
-    if (supabaseClient) {
-      try {
-        const { error } = await supabaseClient
-          .from('users')
-          .upsert([mapUserToDb(userObj)]);
-        if (error) console.error('Error al guardar usuario en Supabase:', error);
-      } catch (err) {
-        console.error('Error de red al conectar con Supabase:', err);
-      }
+    const saved = mapUserFromDb(data.user);
+    if (action === 'update_pending') {
+      saved.id = `legacy:${saved.username}`;
+      saved.accountPending = true;
     }
-    return true;
+    if (Number.isFinite(Number(userObj.consultationPrice))) {
+      saved.consultationPrice = Number(userObj.consultationPrice);
+    }
+    const index = localUsersCache.findIndex((u) => u.id === saved.id || u.username === saved.username);
+    if (index === -1) localUsersCache.push(saved);
+    else localUsersCache[index] = saved;
+    return { user: saved, invitationSent: data.invitationSent === true, pending: saved.accountPending === true };
   },
 
-  deleteUser: async function (username) {
-    localUsersCache = localUsersCache.filter(u => u.username.toLowerCase() !== username.toLowerCase());
-    safeLocalStorage.setItem('kolymedical_users', JSON.stringify(localUsersCache));
-
-    if (supabaseClient) {
-      try {
-        const { error } = await supabaseClient
-          .from('users')
-          .delete()
-          .eq('username', username);
-        if (error) console.error('Error al eliminar usuario en Supabase:', error);
-      } catch (err) {
-        console.error('Error de red al conectar con Supabase:', err);
-      }
-    }
+  deleteUser: async function (userId) {
+    if (!supabaseClient || getCurrentUser()?.role !== 'Administrador') return false;
+    if (userId === getCurrentUser()?.id) return false;
+    const { error } = await supabaseClient.functions.invoke('admin-users', {
+      body: { action: 'delete', userId }
+    });
+    if (error) return false;
+    localUsersCache = localUsersCache.filter((u) => u.id !== userId);
     return true;
   },
 
@@ -1696,17 +1785,45 @@ const DB_Users = {
 
     const fetchUsers = async () => {
       try {
-        const { data, error } = await supabaseClient
-          .from('users')
-          .select('username, fullname, role, tracked_by, specialist_id, specialty, work_days, work_start, work_end, slot_duration, coordinar_solo');
+        const profilesRequest = supabaseClient
+          .from('profiles')
+          .select('id, username, email, fullname, role, tracked_by, specialist_id, specialty, work_days, work_start, work_end, slot_duration, coordinar_solo, active')
+          .eq('active', true);
+        const legacyRequest = getCurrentUser()?.role === 'Administrador'
+          ? supabaseClient
+            .from('users')
+            .select('username, fullname, role, tracked_by, specialist_id, specialty, work_days, work_start, work_end, slot_duration, coordinar_solo')
+          : Promise.resolve({ data: [], error: null });
+        const [{ data, error }, { data: legacyData, error: legacyError }] = await Promise.all([
+          profilesRequest,
+          legacyRequest,
+          syncServiceCatalogFromCloud()
+        ]);
         if (error) {
           console.error('Error al consultar usuarios en Supabase:', error);
           return;
         }
 
         if (data) {
-          localUsersCache = data.map(mapUserFromDb);
-          safeLocalStorage.setItem('kolymedical_users', JSON.stringify(localUsersCache));
+          let mergedUsers = data.map(mapUserFromDb);
+
+          // Durante la transición a Supabase Auth, el administrador conserva una
+          // vista de solo lectura de cada trabajador histórico que aún no tiene
+          // un perfil autenticado. Nunca se recuperan ni se muestran contraseñas.
+          if (getCurrentUser()?.role === 'Administrador') {
+            if (legacyError) {
+              console.error('No se pudo consultar el directorio histórico del personal:', legacyError);
+            } else if (legacyData) {
+              const migratedUsernames = new Set(mergedUsers.map((user) => user.username));
+              const pendingUsers = legacyData
+                .filter((dbUser) => !migratedUsernames.has(dbUser.username))
+                .map(mapLegacyUserFromDb);
+              mergedUsers = [...mergedUsers, ...pendingUsers]
+                .sort((a, b) => a.username.localeCompare(b.username));
+            }
+          }
+
+          localUsersCache = mergedUsers;
           syncSpecialistsFromUsers();
           if (callback) callback();
         }
@@ -1721,7 +1838,7 @@ const DB_Users = {
       .channel('users-changes')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'users' },
+        { event: '*', schema: 'public', table: 'profiles' },
         () => {
           fetchUsers();
         }
@@ -1778,10 +1895,15 @@ function syncSpecialistsFromUsers() {
       const serviceObj = {
         id: serviceId,
         name: `Consulta — ${realSpecialty}`,
-        price: defaultPrice,
+        price: Number.isFinite(Number(u.consultationPrice))
+          ? Number(u.consultationPrice)
+          : (serviceIndex !== -1 && Number.isFinite(Number(SERVICES[serviceIndex].price))
+            ? Number(SERVICES[serviceIndex].price)
+            : defaultPrice),
         specialistId: specId,
         duration: u.slotDuration || 30
       };
+      u.consultationPrice = serviceObj.price;
       if (serviceIndex !== -1) {
         SERVICES[serviceIndex] = { ...SERVICES[serviceIndex], ...serviceObj };
       } else {
@@ -1804,14 +1926,92 @@ const CLINIC_QUOTES = [
   "«En KolyMedical organizamos y optimizamos tu evolución médica.»"
 ];
 
-function initAdminDashboard() {
-  const isLogged = safeSessionStorage.getItem('kolymedical_logged');
+async function loadCurrentProfile(userId) {
+  const { data, error } = await supabaseClient
+    .from('profiles')
+    .select('id, username, email, fullname, role, tracked_by, specialist_id, specialty, work_days, work_start, work_end, slot_duration, coordinar_solo, active')
+    .eq('id', userId)
+    .single();
+  if (error || !data || data.active !== true) return null;
+  return mapUserFromDb(data);
+}
+
+function showPasswordRecoveryForm(user) {
+  const loginSection = document.getElementById('login-section');
+  const dashboardSection = document.getElementById('dashboard-section');
+  const card = loginSection ? loginSection.querySelector('.login-card') : null;
+  if (!loginSection || !dashboardSection || !card) return;
+
+  loginSection.style.display = 'flex';
+  dashboardSection.style.display = 'none';
+  card.innerHTML = `
+    <h1 style="margin-bottom:0.5rem;">Crear nueva contraseña</h1>
+    <p style="margin-bottom:1.25rem; color:var(--color-text-muted);">Acceso de recuperación verificado para ${escapeHtml(user.email || '')}.</p>
+    <form id="recovery-password-form">
+      <div class="form-group">
+        <label for="recovery-password">Nueva contraseña</label>
+        <input type="password" id="recovery-password" class="form-control" minlength="8" maxlength="128" autocomplete="new-password" required>
+      </div>
+      <div class="form-group">
+        <label for="recovery-password-confirm">Confirmar contraseña</label>
+        <input type="password" id="recovery-password-confirm" class="form-control" minlength="8" maxlength="128" autocomplete="new-password" required>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;">Guardar contraseña segura</button>
+    </form>`;
+
+  card.querySelector('#recovery-password-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const password = card.querySelector('#recovery-password').value;
+    const confirmation = card.querySelector('#recovery-password-confirm').value;
+    if (password !== confirmation) {
+      alert('Las contraseñas no coinciden.');
+      return;
+    }
+    const validation = window.KolySecurity.validatePasswordStrength(password);
+    if (!validation.valid) {
+      alert(validation.message);
+      return;
+    }
+    const { error } = await supabaseClient.auth.updateUser({
+      password,
+      data: { ...(user.user_metadata || {}), must_change_password: false }
+    });
+    if (error) {
+      alert('El enlace ya venció o no se pudo actualizar la contraseña. Solicita uno nuevo.');
+      return;
+    }
+    await supabaseClient.auth.signOut();
+    alert('Contraseña actualizada. Ya puedes iniciar sesión en el panel seguro.');
+    window.location.replace('https://kolymedical.lat/admin.html');
+  });
+}
+
+async function initAdminDashboard() {
   const loginSection = document.getElementById('login-section');
   const dashboardSection = document.getElementById('dashboard-section');
 
-  if (isLogged === 'true') {
+  let authenticated = false;
+  if (supabaseClient) {
+    const { data } = await supabaseClient.auth.getUser();
+    if (data && data.user) {
+      currentUserProfile = await loadCurrentProfile(data.user.id);
+      authenticated = Boolean(currentUserProfile);
+      if (authenticated && (AUTH_REDIRECT_TYPE === 'recovery' || AUTH_REDIRECT_TYPE === 'invite')) {
+        showPasswordRecoveryForm(data.user);
+        return;
+      }
+    }
+  }
+
+  if (authenticated) {
     loginSection.style.display = 'none';
     dashboardSection.style.display = 'grid';
+    await Promise.all([
+      DB_Users.syncWithCloud(),
+      DB.syncWithCloud(),
+      ClinicalDB.syncWithCloud(),
+      SignatureDB.syncWithCloud()
+    ]);
     renderDashboard();
   } else {
     loginSection.style.display = 'flex';
@@ -1824,46 +2024,41 @@ function initLoginForm() {
   const form = document.getElementById('login-form');
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const userVal = document.getElementById('login-user').value.trim().toLowerCase();
+    const emailVal = document.getElementById('login-user').value.trim().toLowerCase();
     const passVal = document.getElementById('login-pass').value;
 
-    let matched = null;
-
-    // 1) Verificación segura en el servidor (la contraseña se valida en Supabase, nunca viaja el hash)
-    if (supabaseClient) {
-      try {
-        const { data, error } = await supabaseClient.rpc('verify_login', {
-          p_username: userVal,
-          p_password: passVal
-        });
-        if (!error && data && data.length > 0) {
-          matched = mapUserFromDb(data[0]);
-        }
-      } catch (err) {
-        console.error('Error al verificar login en Supabase:', err);
-      }
+    if (!supabaseClient) {
+      alert('No se pudo establecer una conexión segura. Inténtalo nuevamente.');
+      return;
     }
 
-    // 2) Respaldo offline (solo si un usuario ya inició sesión antes en este equipo)
-    if (!matched) {
-      const users = DB_Users.getUsers();
-      matched = users.find(u => u.username.toLowerCase() === userVal && u.password && u.password === passVal) || null;
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email: emailVal,
+      password: passVal
+    });
+    if (!error && data && data.user) {
+      currentUserProfile = await loadCurrentProfile(data.user.id);
     }
 
-    if (matched) {
-      safeSessionStorage.setItem('kolymedical_logged', 'true');
-      safeSessionStorage.setItem('kolymedical_user', JSON.stringify(matched));
+    if (currentUserProfile) {
       document.getElementById('login-section').style.display = 'none';
       document.getElementById('dashboard-section').style.display = 'grid';
+      await Promise.all([
+        DB_Users.syncWithCloud(),
+        DB.syncWithCloud(),
+        ClinicalDB.syncWithCloud(),
+        SignatureDB.syncWithCloud()
+      ]);
       renderDashboard();
     } else {
-      alert('Credenciales incorrectas.');
+      await supabaseClient.auth.signOut();
+      alert('Correo, contraseña o cuenta no válidos.');
     }
   });
 }
 
 function renderDashboard() {
-  const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
+  const currentUser = getCurrentUser();
   const menuUsers = document.getElementById('menu-users');
   const menuAvailability = document.getElementById('menu-availability');
   const roleText = document.getElementById('sidebar-user-role');
@@ -1885,7 +2080,7 @@ function renderDashboard() {
     const trackers = DB_Users.getUsers().filter(u => u.role === 'Comercial' && u.trackedBy).map(u => u.trackedBy);
     const uniqueTrackers = [...new Set(trackers)];
     if (uniqueTrackers.length > 0) {
-      trackerSelect.innerHTML = uniqueTrackers.map(t => `<option value="${t}">${t}</option>`).join('');
+      trackerSelect.innerHTML = uniqueTrackers.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
     } else {
       trackerSelect.innerHTML = '<option value="Brayan">Brayan</option><option value="Andrea">Andrea</option>';
     }
@@ -1899,7 +2094,7 @@ function renderDashboard() {
   // Mensaje de bienvenida con nombre real del usuario conectado
   const adminHeaderP = document.querySelector('.admin-header p');
   if (adminHeaderP && currentUser) {
-    adminHeaderP.innerHTML = `Bienvenido, <strong>${currentUser.fullname}</strong> | Rol: <strong>${currentUser.role}</strong>`;
+    adminHeaderP.innerHTML = `Bienvenido, <strong>${escapeHtml(currentUser.fullname)}</strong> | Rol: <strong>${escapeHtml(currentUser.role)}</strong>`;
   }
 
   // Tareas de roles:
@@ -1947,6 +2142,10 @@ function renderDashboard() {
   if (perfCard) {
     perfCard.style.display = canManageBusiness ? 'block' : 'none';
   }
+
+  document.getElementById('btn-open-all-records')?.addEventListener('click', () => {
+    document.querySelector('[data-view="list"]')?.click();
+  });
 
   // Vincular engranaje de perfil al lado del nombre de la marca
   const btnProfile = document.getElementById('btn-sidebar-profile');
@@ -2003,9 +2202,9 @@ function renderDashboard() {
   });
 
   // Cerrar Sesión
-  document.getElementById('btn-logout').addEventListener('click', () => {
-    safeSessionStorage.removeItem('kolymedical_logged');
-    safeSessionStorage.removeItem('kolymedical_user');
+  document.getElementById('btn-logout').addEventListener('click', async () => {
+    currentUserProfile = null;
+    await supabaseClient.auth.signOut();
     location.reload();
   });
 
@@ -2026,7 +2225,7 @@ function renderDashboard() {
 // 👤 VISTA: MI PERFIL (Cambiar Contraseña)
 // -----------------------------------------------------
 function renderProfileView() {
-  const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
+  const currentUser = getCurrentUser();
   if (currentUser) {
     document.getElementById('profile-username').value = currentUser.username;
     document.getElementById('profile-new-password').value = '';
@@ -2036,18 +2235,29 @@ function renderProfileView() {
 function initProfileForm() {
   const form = document.getElementById('profile-password-form');
   if (!form) return;
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const currentPass = document.getElementById('profile-current-password').value;
     const newPass = document.getElementById('profile-new-password').value;
-    const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
+    const currentUser = getCurrentUser();
 
-    if (currentUser && newPass) {
-      currentUser.password = newPass;
-      DB_Users.saveUser(currentUser);
-      safeSessionStorage.setItem('kolymedical_user', JSON.stringify(currentUser));
-      alert('Contraseña actualizada con éxito.');
-      document.getElementById('profile-new-password').value = '';
+    if (!currentUser || !currentPass || !newPass) return;
+    const validation = window.KolySecurity.validatePasswordStrength(newPass);
+    if (!validation.valid) {
+      alert(validation.message);
+      return;
     }
+    const { error } = await supabaseClient.auth.updateUser({
+      password: newPass,
+      current_password: currentPass
+    });
+    if (error) {
+      alert('No se pudo actualizar la contraseña. Verifica la contraseña actual.');
+      return;
+    }
+    alert('Contraseña actualizada con éxito.');
+    document.getElementById('profile-current-password').value = '';
+    document.getElementById('profile-new-password').value = '';
   });
 }
 
@@ -2055,7 +2265,7 @@ function initProfileForm() {
 // ⏰ VISTA: DISPONIBILIDAD MÉDICA
 // -----------------------------------------------------
 function renderAvailabilityView() {
-  const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
+  const currentUser = getCurrentUser();
   if (!currentUser || currentUser.role !== 'Administrador') return;
 
   const selectDoc = document.getElementById('availability-doctor-select');
@@ -2220,6 +2430,9 @@ function renderUsersTable() {
   users.forEach(u => {
     const spec = u.specialistId ? SPECIALISTS.find(s => s.id === u.specialistId) : null;
     const roleLabel = spec && spec.specialty ? `${u.role} · ${spec.specialty}` : u.role;
+    const pendingAccountLabel = u.accountPending
+      ? '<br><span style="font-size:0.7rem; color:var(--color-warning);">Pendiente de reactivación</span>'
+      : '';
 
     // Celda de firma: solo aplica a especialistas; muestra estado y botón de carga.
     let firmaCell = '<span style="color:var(--color-text-muted); font-size:0.8rem;">—</span>';
@@ -2238,16 +2451,16 @@ function renderUsersTable() {
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><strong>${u.username}</strong>${u.specialistId ? `<br><code style="font-size:0.7rem; color:var(--color-text-muted);">${u.specialistId}</code>` : ''}</td>
-      <td>${u.fullname}</td>
-      <td><span class="status-badge ${u.role === 'Administrador' ? 'status-realizada' : 'status-confirmada'}">${roleLabel}</span></td>
+      <td><strong>${escapeHtml(u.username)}</strong>${u.specialistId ? `<br><code style="font-size:0.7rem; color:var(--color-text-muted);">${escapeHtml(u.specialistId)}</code>` : ''}</td>
+      <td>${escapeHtml(u.fullname)}</td>
+      <td><span class="status-badge ${u.role === 'Administrador' ? 'status-realizada' : 'status-confirmada'}">${escapeHtml(roleLabel)}</span>${pendingAccountLabel}</td>
       <td>${firmaCell}</td>
       <td>
         <div style="display:flex; gap:0.5rem;">
-          <button class="btn btn-secondary btn-edit-user align-icon-text" data-username="${u.username}" style="padding:0.2rem 0.5rem; font-size:0.8rem; justify-content:center;">
+          <button class="btn btn-secondary btn-edit-user align-icon-text" data-username="${u.username}" title="${u.accountPending ? 'Reactivar y enviar invitación' : 'Editar cuenta'}" style="padding:0.2rem 0.5rem; font-size:0.8rem; justify-content:center;">
             <i data-lucide="edit" class="icon-inline" style="width:14px; height:14px; top:0;"></i>
           </button>
-          <button class="btn btn-secondary btn-delete-user align-icon-text" data-username="${u.username}" style="padding:0.2rem 0.5rem; font-size:0.8rem; color:var(--color-danger); border-color:var(--color-danger); justify-content:center;" ${u.username === 'admin' ? 'disabled' : ''}>
+          <button class="btn btn-secondary btn-delete-user align-icon-text" data-username="${u.username}" title="${u.accountPending ? 'Registro histórico protegido' : 'Eliminar cuenta'}" style="padding:0.2rem 0.5rem; font-size:0.8rem; color:var(--color-danger); border-color:var(--color-danger); justify-content:center;" ${(u.username === 'admin' || u.accountPending) ? 'disabled' : ''}>
             <i data-lucide="trash-2" class="icon-inline" style="width:14px; height:14px; top:0;"></i>
           </button>
         </div>
@@ -2255,7 +2468,7 @@ function renderUsersTable() {
     `;
 
     tr.querySelector('.btn-edit-user').addEventListener('click', () => editUserAccount(u));
-    tr.querySelector('.btn-delete-user').addEventListener('click', () => {
+    tr.querySelector('.btn-delete-user').addEventListener('click', async () => {
       if (confirm(`¿Está seguro de eliminar la cuenta del trabajador ${u.fullname}?`)) {
         if (u.specialistId) {
           SPECIALISTS = SPECIALISTS.filter(s => s.id !== u.specialistId);
@@ -2294,7 +2507,7 @@ function renderUsersTable() {
             renderAvailabilityView();
           }
         }
-        DB_Users.deleteUser(u.username);
+        await DB_Users.deleteUser(u.id);
         renderUsersTable();
       }
     });
@@ -2396,9 +2609,9 @@ function renderSuggestionsTable() {
   suggestions.forEach(s => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${s.date}</td>
-      <td><strong>${s.name}</strong></td>
-      <td>${s.text}</td>
+      <td>${escapeHtml(s.date)}</td>
+      <td><strong>${escapeHtml(s.name)}</strong></td>
+      <td>${escapeHtml(s.text)}</td>
       <td style="text-align: center;">
         <button class="btn btn-secondary btn-delete-suggestion" data-id="${s.id}" style="padding:0.2rem 0.5rem; font-size:0.8rem; color:var(--color-danger); border-color:var(--color-danger);">🗑️</button>
       </td>
@@ -2421,6 +2634,8 @@ function initUserManagementForm() {
 
   const roleSelect = document.getElementById('user-role');
   const usernameInput = document.getElementById('user-username');
+  const emailInput = document.getElementById('user-email');
+  const pendingInput = document.getElementById('user-account-pending');
   const specGroup = document.getElementById('user-specialty-group');
   const priceGroup = document.getElementById('user-price-group');
   const etiquetaGroup = document.getElementById('user-etiqueta-group');
@@ -2457,34 +2672,44 @@ function initUserManagementForm() {
     }
   });
 
-  form.addEventListener('submit', (e) => {
+  emailInput.addEventListener('input', () => {
+    if (pendingInput?.value === 'true') {
+      document.getElementById('btn-save-user').textContent = emailInput.value.trim()
+        ? 'Guardar y Enviar Invitación'
+        : 'Guardar Información';
+    }
+  });
+
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const username = usernameInput.value.trim();
     const fullname = document.getElementById('user-fullname').value.trim();
-    const password = document.getElementById('user-password').value;
+    const email = document.getElementById('user-email').value.trim().toLowerCase();
     const role = roleSelect.value;
     const editId = document.getElementById('user-edit-id').value;
     const specialty = document.getElementById('user-specialty').value.trim();
     const specialistId = etiquetaInput.value.trim();
-    const priceVal = priceGroup ? parseInt(document.getElementById('user-price').value, 10) : 100;
+    const priceVal = priceGroup ? Number.parseFloat(document.getElementById('user-price').value) : 100;
+
+    const existingUser = editId ? DB_Users.getUsers().find((u) => u.id === editId) : null;
+    const accountPending = pendingInput
+      ? pendingInput.value === 'true'
+      : existingUser?.accountPending === true;
+    if (!existingUser && !email) {
+      alert('Indica un correo válido para registrar un trabajador nuevo.');
+      return;
+    }
+    const specialistsBefore = SPECIALISTS.map((item) => ({ ...item }));
+    const servicesBefore = SERVICES.map((item) => ({ ...item }));
 
     const newUser = {
+      id: existingUser?.id,
       username,
+      email,
       fullname,
-      password,
-      role
+      role,
+      accountPending: accountPending || !existingUser
     };
-
-    // Si estamos editando y cambiamos de usuario
-    if (editId && editId !== username) {
-      const oldUser = DB_Users.getUsers().find(u => u.username === editId);
-      // Eliminar el viejo de los especialistas y servicios si era especialista
-      if (oldUser && oldUser.specialistId) {
-        SPECIALISTS = SPECIALISTS.filter(s => s.id !== oldUser.specialistId);
-        SERVICES = SERVICES.filter(s => s.specialistId !== oldUser.specialistId);
-      }
-      DB_Users.deleteUser(editId); // Eliminar el viejo para evitar duplicados si cambia de login
-    }
 
     if (isSpecialistRole(role)) {
       const specId = specialistId || generateSpecialistId(username, editId);
@@ -2522,6 +2747,7 @@ function initUserManagementForm() {
 
       const serviceIndex = SERVICES.findIndex(s => s.specialistId === specId || s.id === serviceId);
       const servicePrice = isNaN(priceVal) ? 100 : priceVal;
+      newUser.consultationPrice = servicePrice;
       if (serviceIndex !== -1) {
         SERVICES[serviceIndex].name = `Consulta — ${fullname} (${specialty || role})`;
         SERVICES[serviceIndex].price = servicePrice;
@@ -2539,7 +2765,7 @@ function initUserManagementForm() {
     } else {
       // Si se editó y se cambió de rol especialista a no especialista, remover de los recursos
       if (editId) {
-        const oldUser = DB_Users.getUsers().find(u => u.username === editId);
+        const oldUser = existingUser;
         if (oldUser && oldUser.specialistId) {
           SPECIALISTS = SPECIALISTS.filter(s => s.id !== oldUser.specialistId);
           SERVICES = SERVICES.filter(s => s.specialistId !== oldUser.specialistId);
@@ -2549,8 +2775,20 @@ function initUserManagementForm() {
       }
     }
 
-    DB_Users.saveUser(newUser);
-    alert('Usuario guardado con éxito.');
+    const saveResult = await DB_Users.saveUser(newUser);
+    if (!saveResult) {
+      SPECIALISTS = specialistsBefore;
+      SERVICES = servicesBefore;
+      safeLocalStorage.setItem('kolymedical_specialists', JSON.stringify(SPECIALISTS));
+      safeLocalStorage.setItem('kolymedical_services', JSON.stringify(SERVICES));
+      alert('No se pudo guardar la cuenta. Verifica los datos o la sesión administrativa.');
+      return;
+    }
+    alert(saveResult.invitationSent
+      ? 'Información guardada. Se envió una invitación al correo indicado para que el trabajador cree su contraseña.'
+      : saveResult.pending
+        ? 'Información y costo actualizados. La cuenta seguirá pendiente hasta que registres su correo y envíes la invitación.'
+        : 'Información del trabajador actualizada con éxito.');
     resetUserForm();
     renderUsersTable();
     
@@ -2591,11 +2829,17 @@ function initUserManagementForm() {
 }
 
 function editUserAccount(user) {
-  document.getElementById('user-form-title').textContent = 'Editar Trabajador';
-  document.getElementById('user-edit-id').value = user.username;
+  document.getElementById('user-form-title').textContent = user.accountPending
+    ? 'Editar Trabajador Pendiente'
+    : 'Editar Trabajador';
+  document.getElementById('user-edit-id').value = user.id;
+  const pendingInput = document.getElementById('user-account-pending');
+  if (pendingInput) pendingInput.value = user.accountPending ? 'true' : 'false';
   document.getElementById('user-username').value = user.username;
+  const emailInput = document.getElementById('user-email');
+  emailInput.value = user.email || '';
+  emailInput.required = !user.accountPending;
   document.getElementById('user-fullname').value = user.fullname;
-  document.getElementById('user-password').value = user.password;
   document.getElementById('user-role').value = user.role;
 
   const specGroup = document.getElementById('user-specialty-group');
@@ -2612,8 +2856,11 @@ function editUserAccount(user) {
     
     // Rellenar precio
     const service = SERVICES.find(s => s.specialistId === user.specialistId);
-    if (priceGroup && service) {
-      document.getElementById('user-price').value = service.price;
+    if (priceGroup) {
+      const consultationPrice = Number(user.consultationPrice);
+      document.getElementById('user-price').value = Number.isFinite(consultationPrice)
+        ? String(consultationPrice)
+        : (service ? String(service.price) : '');
     }
   } else {
     specGroup.style.display = 'none';
@@ -2625,12 +2872,19 @@ function editUserAccount(user) {
   }
 
   document.getElementById('btn-cancel-user-edit').style.display = 'block';
+  document.getElementById('btn-save-user').textContent = user.accountPending
+    ? (emailInput.value.trim() ? 'Guardar y Enviar Invitación' : 'Guardar Información')
+    : 'Guardar Cambios';
 }
 
 function resetUserForm() {
   document.getElementById('user-form-title').textContent = 'Registrar Nuevo Trabajador';
   document.getElementById('user-edit-id').value = '';
+  const pendingInput = document.getElementById('user-account-pending');
+  if (pendingInput) pendingInput.value = 'false';
   document.getElementById('admin-user-form').reset();
+  document.getElementById('user-email').required = true;
+  document.getElementById('btn-save-user').textContent = 'Registrar y Enviar Invitación';
   document.getElementById('user-specialty-group').style.display = 'none';
   if (document.getElementById('user-price-group')) {
     document.getElementById('user-price-group').style.display = 'none';
@@ -2644,7 +2898,7 @@ function updateStats() {
   let appointments = DB.getAppointments();
 
   // Filtrar citas si el usuario es Médico / Especialista o Comercial
-  const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
+  const currentUser = getCurrentUser();
   if (currentUser) {
     if (currentUser.specialistId) {
       appointments = appointments.filter(a => a.specialistId === currentUser.specialistId && a.serviceId !== 'curacion_heridas');
@@ -2679,7 +2933,7 @@ function updateStats() {
       const count = allAppointments.filter(a => a.trackedBy === u.trackedBy).length;
       return `
         <div style="background: rgba(61, 90, 115, 0.05); padding: 1.25rem; border-radius: var(--border-radius-sm); text-align: center; border: 1px solid rgba(61,90,115,0.08);">
-          <h4 style="color: var(--color-primary-dark); font-size: 0.9rem; margin-bottom: 0.5rem; font-weight: 600;">${u.fullname}</h4>
+          <h4 style="color: var(--color-primary-dark); font-size: 0.9rem; margin-bottom: 0.5rem; font-weight: 600;">${escapeHtml(u.fullname)}</h4>
           <div style="font-size: 1.8rem; font-weight: 700; color: var(--color-primary);">${count} cita${count === 1 ? '' : 's'}</div>
         </div>
       `;
@@ -2694,7 +2948,7 @@ function renderNotifications() {
   const dropdownContainer = document.getElementById('notifications-dropdown-container');
   if (!dropdownContainer) return;
 
-  const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
+  const currentUser = getCurrentUser();
   if (!currentUser || (currentUser.role !== 'Administrador' && currentUser.role !== 'Comercial')) {
     dropdownContainer.style.display = 'none';
     return;
@@ -2733,13 +2987,13 @@ function renderNotifications() {
         item.className = 'notification-item';
         item.innerHTML = `
           <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.25rem;">
-            <strong style="font-size:0.85rem; color:var(--color-primary-dark);">${apt.patientName}</strong>
+            <strong style="font-size:0.85rem; color:var(--color-primary-dark);">${escapeHtml(apt.patientName)}</strong>
             <span class="status-badge status-pendiente" style="font-size:0.65rem; padding:0.1rem 0.35rem;">NUEVA</span>
           </div>
           <p style="margin:0 0 0.4rem 0; font-size:0.78rem; color:var(--color-text-muted); line-height: 1.3;">
-            ${service ? service.name : 'Consulta'}<br>
-            Teléfono: <strong style="color:var(--color-accent);">${apt.patientPhone}</strong><br>
-            Fecha: ${apt.date} | ${apt.time}
+            ${escapeHtml(service ? service.name : 'Consulta')}<br>
+            Teléfono: <strong style="color:var(--color-accent);">${escapeHtml(apt.patientPhone)}</strong><br>
+            Fecha: ${escapeHtml(apt.date)} | ${escapeHtml(apt.time)}
           </p>
           <button class="btn btn-accent btn-notify-action" style="padding:0.25rem 0.5rem; font-size:0.72rem; width:100%; text-align:center; height:auto;">
             Coordinar / Editar Cita
@@ -2919,7 +3173,7 @@ function renderCalendarWidget() {
 
   // B. OBTENER Y FILTRAR CITAS
   let appointments = DB.getAppointments();
-  const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
+  const currentUser = getCurrentUser();
   if (currentUser) {
     if (currentUser.specialistId) {
       appointments = appointments.filter(a => a.specialistId === currentUser.specialistId && a.serviceId !== 'curacion_heridas');
@@ -3105,8 +3359,8 @@ function renderCalendarWidget() {
         card.style.gridRow = `${startRow + 1} / ${endRow + 1}`;
         card.innerHTML = `
           <div style="font-weight: 700;">${isPorCoordinar ? '🕐 Por coordinar' : apt.time}</div>
-          <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${apt.patientName}</div>
-          <div style="font-size: 0.65rem; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${doc ? doc.name : ''}</div>
+          <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(apt.patientName)}</div>
+          <div style="font-size: 0.65rem; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(doc ? doc.name : '')}</div>
         `;
 
         card.addEventListener('click', () => {
@@ -3222,8 +3476,8 @@ function renderCalendarWidget() {
       card.style.gridRow = `${startRow + 1} / ${endRow + 1}`;
       card.innerHTML = `
         <div style="font-weight: 700; font-size: 0.78rem;">${isPorCoordinar ? '🕐 Por coordinar' : apt.time}</div>
-        <div style="font-size: 0.78rem; font-weight: 700; margin-bottom: 2px;">${apt.patientName}</div>
-        <div style="font-size: 0.68rem; opacity: 0.9;">Especialista: ${doc ? doc.name : 'No asignado'}</div>
+        <div style="font-size: 0.78rem; font-weight: 700; margin-bottom: 2px;">${escapeHtml(apt.patientName)}</div>
+        <div style="font-size: 0.68rem; opacity: 0.9;">Especialista: ${escapeHtml(doc ? doc.name : 'No asignado')}</div>
       `;
 
       card.addEventListener('click', () => {
@@ -3256,7 +3510,7 @@ function renderCalendarWidget() {
 // Los especialistas (Médico, Nutricionista, Psicólogo, etc.) quedan excluidos.
 function isAdminOrCommercial() {
   try {
-    const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
+    const currentUser = getCurrentUser();
     return !!currentUser && (currentUser.role === 'Administrador' || currentUser.role === 'Comercial');
   } catch (e) {
     return false;
@@ -3272,7 +3526,7 @@ function canViewPatientWhatsApp() {
 // Mostrar Detalle de Cita en un Modal flotante simple
 // Mostrar Detalle de Cita en un Modal flotante simple con Historia Clínica
 function showAppointmentDetail(apt) {
-  const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
+  const currentUser = getCurrentUser();
   const isEditAllowed = currentUser && (currentUser.role === 'Administrador' || currentUser.role === 'Comercial');
   const hasHistoryAccess = currentUser && currentUser.role !== 'Comercial';
 
@@ -3290,8 +3544,8 @@ function showAppointmentDetail(apt) {
     const agentInfo = AGENT_CONTACTS[currentApt.trackedBy] ? `${AGENT_CONTACTS[currentApt.trackedBy].name} (Cel: ${AGENT_CONTACTS[currentApt.trackedBy].phone})` : (currentApt.trackedBy || 'Sin asignar');
     
     const phoneDetailHtml = canViewPatientWhatsApp()
-      ? `<a href="https://wa.me/${formatWhatsAppPhone(currentApt.patientPhone)}" target="_blank" style="color:var(--color-accent); font-weight:600;">${currentApt.patientPhone} 💬</a>`
-      : `<span style="font-weight:600; color:var(--color-primary-dark);">${currentApt.patientPhone}</span>`;
+      ? `<a href="https://wa.me/${formatWhatsAppPhone(currentApt.patientPhone)}" target="_blank" rel="noopener noreferrer" style="color:var(--color-accent); font-weight:600;">${escapeHtml(currentApt.patientPhone)} 💬</a>`
+      : `<span style="font-weight:600; color:var(--color-primary-dark);">${escapeHtml(currentApt.patientPhone)}</span>`;
 
     // Historial clínico de consultas previas
     const allApts = DB.getAppointments();
@@ -3313,10 +3567,10 @@ function showAppointmentDetail(apt) {
         historyHtml += `
           <div style="background: rgba(61,90,115,0.03); border:1px solid rgba(61,90,115,0.08); padding:0.5rem; border-radius:var(--border-radius-sm);">
             <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:var(--color-accent); font-weight:600; margin-bottom:0.2rem;">
-              <span>${spec ? spec.name : 'Especialista'}</span>
-              <span>${h.date}</span>
+              <span>${escapeHtml(spec ? spec.name : 'Especialista')}</span>
+              <span>${escapeHtml(h.date)}</span>
             </div>
-            <p style="font-size:0.78rem; margin:0; color:var(--color-text-dark); white-space:pre-line; line-height: 1.3;">${h.clinicalNotes}</p>
+            <p style="font-size:0.78rem; margin:0; color:var(--color-text-dark); white-space:pre-line; line-height: 1.3;">${escapeHtml(h.clinicalNotes)}</p>
           </div>
         `;
       });
@@ -3328,20 +3582,20 @@ function showAppointmentDetail(apt) {
         <h3 style="color:var(--color-primary); font-weight:700; margin-bottom:1.5rem; border-bottom:1px solid var(--color-border); padding-bottom:0.5rem;">Detalle de la Cita</h3>
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 1rem; font-size: 0.88rem;">
-          <p style="margin:0;"><strong>Paciente:</strong> <br>${currentApt.patientName} (${currentApt.patientAge} años)</p>
-          <p style="margin:0;"><strong>DNI / Cédula:</strong> <br>${currentApt.patientDni || '<em>No registrado</em>'}</p>
+          <p style="margin:0;"><strong>Paciente:</strong> <br>${escapeHtml(currentApt.patientName)} (${escapeHtml(currentApt.patientAge)} años)</p>
+          <p style="margin:0;"><strong>DNI / Cédula:</strong> <br>${currentApt.patientDni ? escapeHtml(currentApt.patientDni) : '<em>No registrado</em>'}</p>
           <p style="margin:0;"><strong>Teléfono:</strong> <br>${phoneDetailHtml}</p>
-          <p style="margin:0;"><strong>Comercial:</strong> <br>${agentInfo}</p>
-          <p style="margin:0;"><strong>Modalidad:</strong> <br>${currentApt.modality}</p>
+          <p style="margin:0;"><strong>Comercial:</strong> <br>${escapeHtml(agentInfo)}</p>
+          <p style="margin:0;"><strong>Modalidad:</strong> <br>${escapeHtml(currentApt.modality)}</p>
           <p style="margin:0;"><strong>Estado:</strong> <br><span class="status-badge status-${currentApt.status}" style="margin-top:2px;">${currentApt.status.toUpperCase()}</span></p>
-          <p style="margin:0;"><strong>Servicio:</strong> <br>${getServiceName(currentApt)}</p>
-          <p style="margin:0;"><strong>Especialista:</strong> <br>${doctor ? doctor.name : 'N/A'}</p>
-          <p style="margin:0; grid-column: span 2;"><strong>Fecha y Hora:</strong> <br>${currentApt.date} a las ${currentApt.time}</p>
+          <p style="margin:0;"><strong>Servicio:</strong> <br>${escapeHtml(getServiceName(currentApt))}</p>
+          <p style="margin:0;"><strong>Especialista:</strong> <br>${escapeHtml(doctor ? doctor.name : 'N/A')}</p>
+          <p style="margin:0; grid-column: span 2;"><strong>Fecha y Hora:</strong> <br>${escapeHtml(currentApt.date)} a las ${escapeHtml(currentApt.time)}</p>
           ${currentApt.modality === 'Virtual' ? `
           <p style="margin:0; grid-column: span 2;">
             <strong>Enlace de Reunión (Virtual):</strong> <br>
-            ${currentApt.meetingLink 
-              ? `<a href="${currentApt.meetingLink}" target="_blank" class="btn btn-accent" style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; padding: 0.4rem 0.8rem; margin-top: 0.25rem;"><i data-lucide="video" class="icon-inline"></i> Unirse a Reunión</a>`
+            ${safeMeetingUrl(currentApt.meetingLink)
+              ? `<a href="${escapeHtml(safeMeetingUrl(currentApt.meetingLink))}" target="_blank" rel="noopener noreferrer" class="btn btn-accent" style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; padding: 0.4rem 0.8rem; margin-top: 0.25rem;"><i data-lucide="video" class="icon-inline"></i> Unirse a Reunión</a>`
               : '<em>No asignado / Generando...</em>'
             }
           </p>
@@ -3351,14 +3605,14 @@ function showAppointmentDetail(apt) {
         ${currentApt.motivoConsulta ? `
         <div style="background: rgba(0, 168, 150, 0.04); border: 1px solid rgba(0, 168, 150, 0.15); padding: 0.75rem; border-radius: var(--border-radius-sm); margin-bottom: 1rem; font-size: 0.88rem;">
           <strong>Motivo de Consulta:</strong>
-          <p style="margin: 0.25rem 0 0; color: var(--color-text-dark);">${currentApt.motivoConsulta}</p>
+          <p style="margin: 0.25rem 0 0; color: var(--color-text-dark);">${escapeHtml(currentApt.motivoConsulta)}</p>
         </div>
         ` : ''}
 
         <div class="form-group" style="margin-top: 1rem;">
           <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.85rem;">Notas Clínicas (Evolución Médica):</label>
           <div style="background:#f8fafb; padding:0.75rem; border-radius:var(--border-radius-sm); border:1px solid var(--color-border); font-size:0.88rem; color:var(--color-text-dark); max-height:100px; overflow-y:auto; white-space:pre-line;">
-            ${currentApt.clinicalNotes || '<em>Sin notas registradas por el especialista.</em>'}
+            ${currentApt.clinicalNotes ? escapeHtml(currentApt.clinicalNotes) : '<em>Sin notas registradas por el especialista.</em>'}
           </div>
         </div>
 
@@ -3407,8 +3661,8 @@ function showAppointmentDetail(apt) {
   }
 
   function renderEditView(currentApt) {
-    const servicesOpts = SERVICES.map(s => `<option value="${s.id}" ${s.id === currentApt.serviceId ? 'selected' : ''}>${s.name}</option>`).join('');
-    const specialistOpts = SPECIALISTS.map(d => `<option value="${d.id}" ${d.id === currentApt.specialistId ? 'selected' : ''}>${d.name}</option>`).join('');
+    const servicesOpts = SERVICES.map(s => `<option value="${escapeHtml(s.id)}" ${s.id === currentApt.serviceId ? 'selected' : ''}>${escapeHtml(s.name)}</option>`).join('');
+    const specialistOpts = SPECIALISTS.map(d => `<option value="${escapeHtml(d.id)}" ${d.id === currentApt.specialistId ? 'selected' : ''}>${escapeHtml(d.name)}</option>`).join('');
     const agentsOpts = `
       <option value="Brayan" ${currentApt.trackedBy === 'Brayan' ? 'selected' : ''}>Brayan</option>
       <option value="Andrea" ${currentApt.trackedBy === 'Andrea' ? 'selected' : ''}>Andrea</option>
@@ -3421,11 +3675,11 @@ function showAppointmentDetail(apt) {
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 1.25rem; font-size: 0.85rem;">
           <div>
             <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Paciente:</label>
-            <input type="text" id="detail-apt-name" class="form-control" value="${currentApt.patientName}" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
+            <input type="text" id="detail-apt-name" class="form-control" value="${escapeHtml(currentApt.patientName)}" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
           </div>
           <div>
             <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">DNI / Cédula:</label>
-            <input type="text" id="detail-apt-dni" class="form-control" value="${currentApt.patientDni || ''}" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
+            <input type="text" id="detail-apt-dni" class="form-control" value="${escapeHtml(currentApt.patientDni || '')}" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
           </div>
           <div>
             <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Edad:</label>
@@ -3433,7 +3687,7 @@ function showAppointmentDetail(apt) {
           </div>
           <div>
             <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Teléfono (WhatsApp):</label>
-            <input type="text" id="detail-apt-phone" class="form-control" value="${currentApt.patientPhone}" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
+            <input type="text" id="detail-apt-phone" class="form-control" value="${escapeHtml(currentApt.patientPhone)}" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
           </div>
           <div>
             <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Asesor Comercial:</label>
@@ -3462,19 +3716,19 @@ function showAppointmentDetail(apt) {
           </div>
           <div>
             <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Fecha:</label>
-            <input type="date" id="detail-apt-date" class="form-control" value="${currentApt.date}" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
+            <input type="date" id="detail-apt-date" class="form-control" value="${escapeHtml(currentApt.date)}" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
           </div>
           <div>
             <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Hora:</label>
-            <input type="text" id="detail-apt-time" class="form-control" value="${currentApt.time}" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
+            <input type="text" id="detail-apt-time" class="form-control" value="${escapeHtml(currentApt.time)}" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
           </div>
           <div style="grid-column: span 2;">
             <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Enlace de Reunión (Virtual):</label>
-            <input type="url" id="detail-apt-meetlink" class="form-control" value="${currentApt.meetingLink || ''}" placeholder="https://meet.google.com/..." style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
+            <input type="url" id="detail-apt-meetlink" class="form-control" value="${escapeHtml(safeMeetingUrl(currentApt.meetingLink))}" placeholder="https://meet.google.com/..." style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
           </div>
           <div style="grid-column: span 2;">
             <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Motivo de Consulta:</label>
-            <textarea id="detail-apt-motivo" class="form-control" rows="2" style="font-size:0.85rem; padding:0.25rem 0.5rem;">${currentApt.motivoConsulta || ''}</textarea>
+            <textarea id="detail-apt-motivo" class="form-control" rows="2" style="font-size:0.85rem; padding:0.25rem 0.5rem;">${escapeHtml(currentApt.motivoConsulta || '')}</textarea>
           </div>
         </div>
 
@@ -3559,7 +3813,7 @@ function renderAppointmentsTable() {
   const tbody = document.getElementById('appointments-table-body');
   if (!tbody) return;
 
-  const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
+  const currentUser = getCurrentUser();
 
   // 🩺 Rol Médico / Especialista: la tabla del panel muestra "Próximas Consultas"
   // (sólo citas futuras y no canceladas, orden ascendente) con acceso al expediente.
@@ -3633,35 +3887,35 @@ function renderAppointmentsTable() {
     // Celda de teléfono: enlace + recordatorio de WhatsApp solo si el rol lo permite.
     const phoneCellHtml = canViewWA
       ? `<div style="display:flex; flex-direction:column; gap:0.25rem;">
-          <a href="https://wa.me/${formatWhatsAppPhone(apt.patientPhone)}" target="_blank" style="color:var(--color-accent); font-weight:600; display:inline-flex; align-items:center;">
-            ${apt.patientPhone}
+          <a href="https://wa.me/${formatWhatsAppPhone(apt.patientPhone)}" target="_blank" rel="noopener noreferrer" style="color:var(--color-accent); font-weight:600; display:inline-flex; align-items:center;">
+            ${escapeHtml(apt.patientPhone)}
             <i data-lucide="message-square" class="icon-inline ml-2" style="width:14px; height:14px; color:#25D366; top:0;"></i>
           </a>
           <button class="btn btn-secondary btn-reminder-wa align-icon-text" data-id="${apt.id}" style="padding:0.15rem 0.3rem; font-size:0.7rem; border-color:var(--color-accent); color:var(--color-accent); width:fit-content; height:fit-content; margin-top:0.1rem;">
             <i data-lucide="bell" class="icon-inline" style="width:12px; height:12px; top:0;"></i> Recordar
           </button>
         </div>`
-      : `<span style="font-weight:600; color:var(--color-primary-dark);">${apt.patientPhone}</span>`;
+      : `<span style="font-weight:600; color:var(--color-primary-dark);">${escapeHtml(apt.patientPhone)}</span>`;
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>
-        <strong>${apt.patientName}</strong><br>
+        <strong>${escapeHtml(apt.patientName)}</strong><br>
         <span style="font-size:0.75rem; color:var(--color-text-muted);">
-          ${apt.patientAge} años | DNI: ${apt.patientDni || '—'}<br>
-          Seg: ${apt.trackedBy || 'Sin asignar'}
-          ${apt.motivoConsulta ? `<br><em style="color:var(--color-primary-light);">Motivo: ${apt.motivoConsulta}</em>` : ''}
+          ${escapeHtml(apt.patientAge)} años | DNI: ${escapeHtml(apt.patientDni || '—')}<br>
+          Seg: ${escapeHtml(apt.trackedBy || 'Sin asignar')}
+          ${apt.motivoConsulta ? `<br><em style="color:var(--color-primary-light);">Motivo: ${escapeHtml(apt.motivoConsulta)}</em>` : ''}
         </span>
       </td>
       <td>
         ${phoneCellHtml}
       </td>
-      <td>${getServiceName(apt)}</td>
-      <td>${doctor ? doctor.name : 'N/A'}</td>
-      <td>${apt.date}<br><span style="font-weight:600; color:var(--color-primary-dark);">${apt.time}</span></td>
+      <td>${escapeHtml(getServiceName(apt))}</td>
+      <td>${escapeHtml(doctor ? doctor.name : 'N/A')}</td>
+      <td>${escapeHtml(apt.date)}<br><span style="font-weight:600; color:var(--color-primary-dark);">${escapeHtml(apt.time)}</span></td>
       <td>
         <span class="status-badge status-${apt.modality === 'Virtual' ? 'confirmada' : 'realizada'}">${apt.modality}</span>
-        ${apt.modality === 'Virtual' && apt.meetingLink ? `<br><a href="${apt.meetingLink}" target="_blank" style="color:var(--color-accent); font-size:0.7rem; font-weight:600; display:inline-flex; align-items:center; gap:0.2rem; margin-top:2px;"><i data-lucide="video" style="width:11px; height:11px;"></i> Reunión</a>` : ''}
+        ${apt.modality === 'Virtual' && safeMeetingUrl(apt.meetingLink) ? `<br><a href="${escapeHtml(safeMeetingUrl(apt.meetingLink))}" target="_blank" rel="noopener noreferrer" style="color:var(--color-accent); font-size:0.7rem; font-weight:600; display:inline-flex; align-items:center; gap:0.2rem; margin-top:2px;"><i data-lucide="video" style="width:11px; height:11px;"></i> Reunión</a>` : ''}
       </td>
       <td>
         <select class="form-control status-select" data-id="${apt.id}" style="padding: 0.3rem 0.5rem; font-size:0.85rem; width:130px;">
@@ -3712,7 +3966,7 @@ function appointmentDateTime(apt) {
 function renderUpcomingConsultations() {
   const tbody = document.getElementById('appointments-table-body');
   if (!tbody) return;
-  const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
+  const currentUser = getCurrentUser();
   if (!currentUser || !currentUser.specialistId) return;
 
   // Título y cabecera propios del médico (sin columna Teléfono/WhatsApp).
@@ -3746,18 +4000,18 @@ function renderUpcomingConsultations() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>
-        <strong>${apt.patientName}</strong><br>
+        <strong>${escapeHtml(apt.patientName)}</strong><br>
         <span style="font-size:0.75rem; color:var(--color-text-muted);">
-          ${apt.patientAge || '—'} años | DNI: ${apt.patientDni || '—'}
+          ${escapeHtml(apt.patientAge || '—')} años | DNI: ${escapeHtml(apt.patientDni || '—')}
         </span>
       </td>
-      <td>${getServiceName(apt)}</td>
+      <td>${escapeHtml(getServiceName(apt))}</td>
       <td>
         <strong>${apt.modality}</strong>
-        ${apt.modality === 'Virtual' && apt.meetingLink ? `<br><a href="${apt.meetingLink}" target="_blank" style="color:var(--color-accent); font-size:0.72rem; font-weight:600; display:inline-flex; align-items:center; gap:0.25rem;"><i data-lucide="video" style="width:12px; height:12px;"></i> Unirse</a>` : ''}
-        ${apt.motivoConsulta ? `<br><span style="font-size:0.72rem; color:var(--color-text-muted); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; max-width:180px;" title="${apt.motivoConsulta}">${apt.motivoConsulta}</span>` : ''}
+        ${apt.modality === 'Virtual' && safeMeetingUrl(apt.meetingLink) ? `<br><a href="${escapeHtml(safeMeetingUrl(apt.meetingLink))}" target="_blank" rel="noopener noreferrer" style="color:var(--color-accent); font-size:0.72rem; font-weight:600; display:inline-flex; align-items:center; gap:0.25rem;"><i data-lucide="video" style="width:12px; height:12px;"></i> Unirse</a>` : ''}
+        ${apt.motivoConsulta ? `<br><span style="font-size:0.72rem; color:var(--color-text-muted); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; max-width:180px;" title="${escapeHtml(apt.motivoConsulta)}">${escapeHtml(apt.motivoConsulta)}</span>` : ''}
       </td>
-      <td>${isToday ? '<span style="color:var(--color-accent); font-weight:700;">Hoy</span>' : apt.date}<br><span style="font-weight:600; color:var(--color-primary-dark);">${apt.time}</span></td>
+      <td>${isToday ? '<span style="color:var(--color-accent); font-weight:700;">Hoy</span>' : escapeHtml(apt.date)}<br><span style="font-weight:600; color:var(--color-primary-dark);">${escapeHtml(apt.time)}</span></td>
       <td><span class="status-badge status-${apt.status === 'confirmada' ? 'confirmada' : apt.status === 'realizada' ? 'realizada' : 'confirmada'}">${apt.status}</span></td>
       <td style="text-align:center;">
         <button class="btn btn-accent btn-open-record align-icon-text" data-id="${apt.id}" title="Abrir historia clínica" style="padding:0.35rem 0.6rem; font-size:0.8rem; justify-content:center;">
@@ -3813,8 +4067,8 @@ function historyChipsHtml(list, kind, canEdit) {
   } else {
     list.forEach((item, idx) => {
       html += `<span class="cr-chip" style="display:inline-flex; align-items:center; gap:0.35rem; background:rgba(0,168,150,0.1); color:var(--color-primary-dark); border:1px solid rgba(0,168,150,0.3); border-radius:20px; padding:0.25rem 0.6rem; font-size:0.8rem;">
-        <strong>${item.code}</strong> ${item.description}
-        ${canEdit ? `<button class="cr-chip-del" data-kind="${kind}" data-idx="${idx}" style="color:var(--color-danger); font-weight:700; line-height:1; padding:0 0.2rem;">×</button>` : ''}
+        <strong>${escapeHtml(item.code)}</strong> ${escapeHtml(item.description)}
+        ${canEdit ? `<button class="cr-chip-del" data-kind="${escapeHtml(kind)}" data-idx="${idx}" style="color:var(--color-danger); font-weight:700; line-height:1; padding:0 0.2rem;">×</button>` : ''}
       </span>`;
     });
   }
@@ -3824,7 +4078,7 @@ function historyChipsHtml(list, kind, canEdit) {
 
 function openClinicalRecord(recordId, opts) {
   opts = opts || {};
-  const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
+  const currentUser = getCurrentUser();
   const record = ClinicalDB.getRecordById(recordId);
   if (!record) {
     alert('No se encontró el expediente solicitado.');
@@ -3857,15 +4111,15 @@ function openClinicalRecord(recordId, opts) {
   const nameEl = document.getElementById('cr-full-patient-name');
   if (nameEl) nameEl.textContent = record.patientName;
   const idEl = document.getElementById('cr-full-record-id');
-  if (idEl) idEl.innerHTML = `Expediente <strong>${record.id}</strong>`;
+  if (idEl) idEl.innerHTML = `Expediente <strong>${escapeHtml(record.id)}</strong>`;
 
   const phoneHtml = canViewWA
-    ? `<a href="https://wa.me/${formatWhatsAppPhone(record.patientPhone)}" target="_blank" style="color:var(--color-accent); font-weight:600; display:inline-flex; align-items:center;">
-        ${record.patientPhone}
+    ? `<a href="https://wa.me/${formatWhatsAppPhone(record.patientPhone)}" target="_blank" rel="noopener noreferrer" style="color:var(--color-accent); font-weight:600; display:inline-flex; align-items:center;">
+        ${escapeHtml(record.patientPhone)}
         <i data-lucide="message-square" class="icon-inline ml-1" style="width:14px; height:14px; color:#25D366; top:0;"></i>
        </a>`
     : (isDoctor ? '<span style="color:var(--color-text-muted); font-style:italic;">Oculto (uso comercial)</span>'
-                : `<span style="font-weight:600;">${record.patientPhone || '—'}</span>`);
+                : `<span style="font-weight:600;">${escapeHtml(record.patientPhone || '—')}</span>`);
 
   const container = document.getElementById('cr-full-content');
   if (!container) return;
@@ -3873,12 +4127,12 @@ function openClinicalRecord(recordId, opts) {
   container.innerHTML = `
       <!-- Filiación -->
       <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1rem; background:var(--color-bg-light); padding:1rem; border-radius:var(--border-radius-sm); margin-bottom:1.5rem;">
-        <div><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">DNI / Cédula</label><div id="cr-dni-view" style="font-weight:600;">${record.dni || '—'}</div></div>
+        <div><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">DNI / Cédula</label><div id="cr-dni-view" style="font-weight:600;">${escapeHtml(record.dni || '—')}</div></div>
         <div><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">Edad</label><div style="font-weight:600;">${calcAge(record)} años</div></div>
-        <div><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">Sexo</label><div id="cr-sex-view" style="font-weight:600;">${record.sex || '—'}</div></div>
-        <div><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">Tipo de sangre</label><div id="cr-blood-view" style="font-weight:600;">${record.bloodType || '—'}</div></div>
+        <div><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">Sexo</label><div id="cr-sex-view" style="font-weight:600;">${escapeHtml(record.sex || '—')}</div></div>
+        <div><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">Tipo de sangre</label><div id="cr-blood-view" style="font-weight:600;">${escapeHtml(record.bloodType || '—')}</div></div>
         <div><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">Teléfono</label><div>${phoneHtml}</div></div>
-        <div style="grid-column:1/-1;"><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">Alergias</label><div id="cr-allergies-view" style="font-weight:600; color:var(--color-danger);">${record.allergies || 'Ninguna registrada'}</div></div>
+        <div style="grid-column:1/-1;"><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">Alergias</label><div id="cr-allergies-view" style="font-weight:600; color:var(--color-danger);">${escapeHtml(record.allergies || 'Ninguna registrada')}</div></div>
       </div>
 
       ${canEditClinical ? `
@@ -3887,8 +4141,8 @@ function openClinicalRecord(recordId, opts) {
           <i data-lucide="edit" class="icon-inline mr-2"></i> Editar datos de filiación
         </summary>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-top:0.75rem;">
-          <div><label style="font-size:0.8rem;">DNI / Cédula</label><input type="text" id="cr-dni" class="form-control" value="${record.dni || ''}" placeholder="DNI del paciente"></div>
-          <div><label style="font-size:0.8rem;">Fecha de nacimiento</label><input type="date" id="cr-birthdate" class="form-control" value="${record.birthDate || ''}"></div>
+          <div><label style="font-size:0.8rem;">DNI / Cédula</label><input type="text" id="cr-dni" class="form-control" value="${escapeHtml(record.dni || '')}" placeholder="DNI del paciente"></div>
+          <div><label style="font-size:0.8rem;">Fecha de nacimiento</label><input type="date" id="cr-birthdate" class="form-control" value="${escapeHtml(record.birthDate || '')}"></div>
           <div><label style="font-size:0.8rem;">Sexo</label>
             <select id="cr-sex" class="form-control">
               <option value="" ${!record.sex ? 'selected' : ''}>—</option>
@@ -3896,8 +4150,8 @@ function openClinicalRecord(recordId, opts) {
               <option value="Femenino" ${record.sex === 'Femenino' ? 'selected' : ''}>Femenino</option>
             </select>
           </div>
-          <div><label style="font-size:0.8rem;">Tipo de sangre</label><input type="text" id="cr-blood" class="form-control" value="${record.bloodType || ''}" placeholder="O+"></div>
-          <div style="grid-column: span 2;"><label style="font-size:0.8rem;">Alergias</label><input type="text" id="cr-allergies" class="form-control" value="${record.allergies || ''}" placeholder="Penicilina, AINEs..."></div>
+          <div><label style="font-size:0.8rem;">Tipo de sangre</label><input type="text" id="cr-blood" class="form-control" value="${escapeHtml(record.bloodType || '')}" placeholder="O+"></div>
+          <div style="grid-column: span 2;"><label style="font-size:0.8rem;">Alergias</label><input type="text" id="cr-allergies" class="form-control" value="${escapeHtml(record.allergies || '')}" placeholder="Penicilina, AINEs..."></div>
         </div>
         <button class="btn btn-secondary" id="cr-save-filiacion" style="margin-top:0.75rem; font-size:0.8rem;">Guardar filiación</button>
       </details>` : ''}
@@ -4149,14 +4403,14 @@ function renderNotesTimeline(recordId) {
   container.innerHTML = notes.map(n => {
     const spec = SPECIALISTS.find(d => d.id === n.specialistId);
     const dateStr = new Date(n.createdAt).toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' });
-    const diagHtml = (n.diagnosisCodes || []).map(d => `<span style="background:rgba(61,90,115,0.08); border-radius:12px; padding:0.1rem 0.5rem; font-size:0.75rem; margin-right:0.3rem;"><strong>${d.code}</strong> ${d.description}</span>`).join('');
+    const diagHtml = (n.diagnosisCodes || []).map(d => `<span style="background:rgba(61,90,115,0.08); border-radius:12px; padding:0.1rem 0.5rem; font-size:0.75rem; margin-right:0.3rem;"><strong>${escapeHtml(d.code)}</strong> ${escapeHtml(d.description)}</span>`).join('');
     return `
       <div style="border-left:3px solid var(--color-accent); padding:0.5rem 0.75rem 0.75rem; margin-bottom:0.75rem; background:rgba(61,90,115,0.02);">
         <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--color-accent); font-weight:600;">
-          <span>${spec ? spec.name : 'Especialista'}</span><span>${dateStr}</span>
+          <span>${escapeHtml(spec ? spec.name : 'Especialista')}</span><span>${escapeHtml(dateStr)}</span>
         </div>
         ${diagHtml ? `<div style="margin:0.4rem 0;">${diagHtml}</div>` : ''}
-        <p style="font-size:0.88rem; margin:0.25rem 0 0; white-space:pre-line; color:var(--color-text-dark);">${n.note || ''}</p>
+        <p style="font-size:0.88rem; margin:0.25rem 0 0; white-space:pre-line; color:var(--color-text-dark);">${escapeHtml(n.note || '')}</p>
       </div>`;
   }).join('');
 }
@@ -4581,25 +4835,10 @@ function handleSyncUpdate() {
 }
 
 // 🔄 Inicialización de Sincronización en Tiempo Real con Supabase (Citas y Personal)
-DB.syncWithCloud(handleSyncUpdate);
-DB_Users.syncWithCloud(() => {
-  if (document.getElementById('admin-dashboard')) {
-    renderUsersTable();
-  } else if (typeof window.populateBookingServices === 'function') {
-    window.populateBookingServices();
-  }
-});
-// Sincronizar el módulo clínico (expedientes, notas, recetas) al iniciar.
-if (typeof ClinicalDB !== 'undefined') {
-  ClinicalDB.syncWithCloud();
-}
-// Sincronizar firmas de médicos.
-if (typeof SignatureDB !== 'undefined') {
-  SignatureDB.syncWithCloud(() => {
-    if (document.getElementById('admin-dashboard')) {
-      renderUsersTable();
-    }
-  });
+// El sitio público carga exclusivamente los campos necesarios para disponibilidad.
+// Perfiles, historias clínicas y firmas se sincronizan después de autenticar al personal.
+if (document.getElementById('public-web')) {
+  DB.syncWithCloud(handleSyncUpdate);
 }
 
 // ==========================================================================
@@ -4943,7 +5182,7 @@ function openEstudioPicker(onSelect) {
    💊 GENERADOR DE RECETAS / ÓRDENES + PDF (pdf-lib, 100% en el navegador)
    ========================================================================== */
 function openPrescriptionBuilder(record, currentNoteDiagnoses) {
-  const currentUser = JSON.parse(safeSessionStorage.getItem('kolymedical_user'));
+  const currentUser = getCurrentUser();
   const prev = document.getElementById('prescription-modal');
   if (prev) prev.remove();
 
@@ -4973,9 +5212,9 @@ function openPrescriptionBuilder(record, currentNoteDiagnoses) {
       </div>
 
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:1rem;">
-        <div><label style="font-size:0.8rem; font-weight:600;">Paciente</label><input type="text" class="form-control" value="${record.patientName}" readonly style="background:#f0f3f4;"></div>
+        <div><label style="font-size:0.8rem; font-weight:600;">Paciente</label><input type="text" class="form-control" value="${escapeHtml(record.patientName)}" readonly style="background:#f0f3f4;"></div>
         <div><label style="font-size:0.8rem; font-weight:600;">DNI</label><input type="text" id="pr-dni" class="form-control" placeholder="Documento (opcional)"></div>
-        <div style="grid-column:1/-1;"><label style="font-size:0.8rem; font-weight:600;">Diagnóstico</label><input type="text" id="pr-diagnosis" class="form-control" value="${suggestedDiag}" placeholder="Diagnóstico clínico"></div>
+        <div style="grid-column:1/-1;"><label style="font-size:0.8rem; font-weight:600;">Diagnóstico</label><input type="text" id="pr-diagnosis" class="form-control" value="${escapeHtml(suggestedDiag)}" placeholder="Diagnóstico clínico"></div>
       </div>
 
       <label style="font-size:0.85rem; font-weight:600; color:var(--color-primary);">Ítems (medicamentos / estudios)</label>
