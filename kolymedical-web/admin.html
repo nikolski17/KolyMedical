@@ -7,7 +7,7 @@
   <title>KolyMedical — Panel Administrativo Médico</title>
   <meta name="robots" content="noindex, nofollow">
   <link rel="icon" type="image/png" href="Logosinfondo.png">
-  <link rel="stylesheet" href="styles.css?v=20260829q2">
+  <link rel="stylesheet" href="styles.css?v=20260829q3">
   <script src="https://unpkg.com/lucide@1.34.0/dist/umd/lucide.js"
     integrity="sha384-frWQkjuw7X/yo4G2C2YnAAbkHHi7uBnMwf577mOjXDG0me9gl8Yrdyu1BhvS7WX5" crossorigin="anonymous"></script>
   <!-- Google Analytics GA4 (gtag.js) -->
@@ -694,14 +694,16 @@
           <div class="admin-card-header">
             <h2>Repositorio General de Recetas Médicas</h2>
           </div>
-          <p style="color:var(--color-text-muted); font-size:0.9rem; margin-bottom:1.5rem;">Buscador general de recetas y órdenes médicas emitidas por los especialistas.</p>
+          <p style="color:var(--color-text-muted); font-size:0.9rem; margin-bottom:.4rem;">Buscador general de recetas y órdenes médicas emitidas por los especialistas.</p>
+          <p class="prescription-audit-note">Las correcciones quedan registradas. Una receta anulada se conserva para auditoría y deja de estar disponible como documento vigente.</p>
 
           <!-- Controles de Filtros -->
-          <div class="table-controls" style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; margin-bottom: 1.5rem;">
+          <div class="table-controls prescription-search-controls">
             <div class="search-box" style="flex: 1;">
               <input type="text" id="prescriptions-search" class="search-input"
                 placeholder="Buscar receta por nombre de paciente, DNI o fecha (AAAA-MM-DD)..." style="width: 100%;">
             </div>
+            <label class="prescription-voided-toggle"><input type="checkbox" id="prescriptions-show-voided"> Mostrar anuladas</label>
             <button class="btn btn-secondary align-icon-text" id="btn-clear-prescriptions-search">
               Limpiar
             </button>
@@ -891,8 +893,8 @@
   <!-- pdf-lib (generación de recetas/órdenes en PDF, 100% en el navegador) -->
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"
     integrity="sha384-weMABwrltA6jWR8DDe9Jp5blk+tZQh7ugpCsF3JwSA53WZM9/14PjS5LAJNHNjAI" crossorigin="anonymous"></script>
-  <script type="module" src="security-utils.mjs?v=20260829q2"></script>
-  <script src="app.js?v=20260829q2"></script>
+  <script type="module" src="security-utils.mjs?v=20260829q3"></script>
+  <script src="app.js?v=20260829q3"></script>
   <script>
     // Enlazar la tabla detallada de la vista de listado al buscador
     const searchEl = document.getElementById('admin-search');

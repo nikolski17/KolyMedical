@@ -132,7 +132,7 @@ function getCurrentUser() {
 let quotationModulePromise = null;
 async function getQuotationModule() {
   if (!quotationModulePromise) {
-    quotationModulePromise = import('./quotation-module.mjs?v=20260829q2').then(async (module) => {
+    quotationModulePromise = import('./quotation-module.mjs?v=20260829q3').then(async (module) => {
       await module.initializeQuotationModule({
         client: supabaseClient,
         getCurrentUser,
@@ -694,7 +694,13 @@ function mapPrescriptionFromDb(d) {
     diagnosis: d.diagnosis || '',
     items: d.items || [],
     indications: d.indications || '',
-    createdAt: d.created_at
+    createdAt: d.created_at,
+    isVoided: Boolean(d.is_voided),
+    voidReason: d.void_reason || '',
+    voidedAt: d.voided_at || null,
+    voidedBy: d.voided_by || null,
+    updatedAt: d.updated_at || d.created_at,
+    updatedBy: d.updated_by || null
   };
 }
 
@@ -847,7 +853,7 @@ const ClinicalDB = {
 
   getPrescriptionsByRecord: function (recordId) {
     return localPrescriptionsCache
-      .filter(p => p.recordId === recordId)
+      .filter(p => p.recordId === recordId && !p.isVoided)
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   },
 
@@ -859,19 +865,53 @@ const ClinicalDB = {
     if (!prescription.id) prescription.id = 'presc-' + Date.now();
     if (!prescription.createdAt) prescription.createdAt = new Date().toISOString();
 
-    localPrescriptionsCache.push(prescription);
-
     if (supabaseClient) {
-      try {
-        const { error } = await supabaseClient
+      const { data, error } = await supabaseClient
           .from('prescriptions')
-          .insert([mapPrescriptionToDb(prescription)]);
-        if (error) console.error('Error al guardar receta en Supabase:', error);
-      } catch (err) {
-        console.error('Error de red al guardar receta:', err);
-      }
+          .insert([mapPrescriptionToDb(prescription)])
+          .select('*')
+          .single();
+      if (error) throw new Error('No se pudo guardar la receta.');
+      prescription = mapPrescriptionFromDb(data);
     }
+    localPrescriptionsCache.push(prescription);
     return prescription;
+  },
+
+  updatePrescription: async function (id, changes) {
+    const current = this.getPrescriptionById(id);
+    if (!current || current.isVoided) throw new Error('La receta no está disponible para edición.');
+    const payload = {
+      diagnosis: String(changes.diagnosis || '').trim(),
+      items: Array.isArray(changes.items) ? changes.items : [],
+      indications: String(changes.indications || '').trim()
+    };
+    if (!payload.diagnosis || payload.diagnosis.length > 2000 || payload.items.length < 1 || payload.items.length > 50 || payload.indications.length > 5000) {
+      throw new Error('Revisa el diagnóstico, las indicaciones y los elementos de la receta.');
+    }
+    let updated = { ...current, ...payload, updatedAt: new Date().toISOString() };
+    if (supabaseClient) {
+      const { data, error } = await supabaseClient.from('prescriptions').update(payload).eq('id', id).select('*').single();
+      if (error) throw new Error('No se pudo guardar la corrección.');
+      updated = mapPrescriptionFromDb(data);
+    }
+    localPrescriptionsCache = localPrescriptionsCache.map(p => p.id === id ? updated : p);
+    return updated;
+  },
+
+  voidPrescription: async function (id, reason) {
+    const cleanReason = String(reason || '').trim();
+    if (cleanReason.length < 5 || cleanReason.length > 500) throw new Error('Escribe un motivo de 5 a 500 caracteres.');
+    const current = this.getPrescriptionById(id);
+    if (!current || current.isVoided) throw new Error('La receta ya no está vigente.');
+    let updated = { ...current, isVoided: true, voidReason: cleanReason, voidedAt: new Date().toISOString() };
+    if (supabaseClient) {
+      const { data, error } = await supabaseClient.from('prescriptions').update({ is_voided: true, void_reason: cleanReason }).eq('id', id).select('*').single();
+      if (error) throw new Error('No se pudo anular la receta.');
+      updated = mapPrescriptionFromDb(data);
+    }
+    localPrescriptionsCache = localPrescriptionsCache.map(p => p.id === id ? updated : p);
+    return updated;
   },
 
   // ---------- Sincronización con la nube ----------
@@ -5225,16 +5265,16 @@ function openEstudioPicker(onSelect) {
 /* ==========================================================================
    💊 GENERADOR DE RECETAS / ÓRDENES + PDF (pdf-lib, 100% en el navegador)
    ========================================================================== */
-function openPrescriptionBuilder(record, currentNoteDiagnoses) {
+function openPrescriptionBuilder(record, currentNoteDiagnoses, existingPrescription = null) {
   const currentUser = getCurrentUser();
   const prev = document.getElementById('prescription-modal');
   if (prev) prev.remove();
 
   // Diagnóstico sugerido: primero de la nota activa si existe, si no, de las anteriores.
-  let suggestedDiag = '';
-  if (currentNoteDiagnoses && currentNoteDiagnoses.length) {
+  let suggestedDiag = existingPrescription ? existingPrescription.diagnosis : '';
+  if (!existingPrescription && currentNoteDiagnoses && currentNoteDiagnoses.length) {
     suggestedDiag = currentNoteDiagnoses.map(d => `${d.code} ${d.description}`).join('; ');
-  } else {
+  } else if (!existingPrescription) {
     const notes = ClinicalDB.getNotesByRecord(record.id);
     for (const n of notes) {
       if (n.diagnosisCodes && n.diagnosisCodes.length) {
@@ -5251,13 +5291,13 @@ function openPrescriptionBuilder(record, currentNoteDiagnoses) {
   modal.innerHTML = `
     <div class="modal-content" style="max-width:720px; width:96%; padding:1.5rem; max-height:90vh; overflow-y:auto;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-        <h3 style="color:var(--color-primary); font-weight:700; margin:0;">Nueva receta / orden médica</h3>
+        <h3 style="color:var(--color-primary); font-weight:700; margin:0;">${existingPrescription ? 'Corregir receta / orden médica' : 'Nueva receta / orden médica'}</h3>
         <button id="pr-close" style="font-size:1.5rem; line-height:1; color:var(--color-text-muted);">&times;</button>
       </div>
 
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:1rem;">
         <div><label style="font-size:0.8rem; font-weight:600;">Paciente</label><input type="text" class="form-control" value="${escapeHtml(record.patientName)}" readonly style="background:#f0f3f4;"></div>
-        <div><label style="font-size:0.8rem; font-weight:600;">DNI</label><input type="text" id="pr-dni" class="form-control" placeholder="Documento (opcional)"></div>
+        <div><label style="font-size:0.8rem; font-weight:600;">DNI</label><input type="text" id="pr-dni" class="form-control" value="${escapeHtml(record.dni || '')}" readonly style="background:#f0f3f4;"></div>
         <div style="grid-column:1/-1;"><label style="font-size:0.8rem; font-weight:600;">Diagnóstico</label><input type="text" id="pr-diagnosis" class="form-control" value="${escapeHtml(suggestedDiag)}" placeholder="Diagnóstico clínico"></div>
       </div>
 
@@ -5269,12 +5309,12 @@ function openPrescriptionBuilder(record, currentNoteDiagnoses) {
       </div>
 
       <label style="font-size:0.85rem; font-weight:600; color:var(--color-primary);">Indicaciones generales</label>
-      <textarea id="pr-indications" class="form-control" rows="3" placeholder="Reposo, dieta, recomendaciones..." style="margin:0.4rem 0 1rem; font-size:0.9rem;"></textarea>
+      <textarea id="pr-indications" class="form-control" rows="3" maxlength="5000" placeholder="Reposo, dieta, recomendaciones..." style="margin:0.4rem 0 1rem; font-size:0.9rem;">${escapeHtml(existingPrescription ? existingPrescription.indications : '')}</textarea>
 
       <div style="display:flex; justify-content:flex-end; gap:0.75rem;">
         <button class="btn btn-secondary" id="pr-cancel">Cancelar</button>
         <button class="btn btn-accent align-icon-text" id="pr-generate">
-          <i data-lucide="file-text" class="icon-inline"></i> Generar PDF
+          <i data-lucide="file-text" class="icon-inline"></i> ${existingPrescription ? 'Guardar corrección' : 'Guardar y generar PDF'}
         </button>
       </div>
     </div>
@@ -5339,6 +5379,13 @@ function openPrescriptionBuilder(record, currentNoteDiagnoses) {
 
     if (row.tipo === 'medicamento') {
       const customInput = el.querySelector('.pr-custom-med-name');
+      if (row.initial) {
+        customInput.value = row.initial.nombre || '';
+        el.querySelector('.pr-dosis').value = row.initial.dosis || '';
+        el.querySelector('.pr-freq').value = row.initial.frecuencia || '';
+        el.querySelector('.pr-dur').value = row.initial.duracion || '';
+        el.querySelector('.pr-med-display').textContent = 'Medicamento cargado de la receta original.';
+      }
       customInput.addEventListener('input', () => {
         if (customInput.value.trim() !== '') {
           row.data = null;
@@ -5359,6 +5406,12 @@ function openPrescriptionBuilder(record, currentNoteDiagnoses) {
       });
     } else {
       const customStudyInput = el.querySelector('.pr-custom-study-name');
+      if (row.initial) {
+        customStudyInput.value = row.initial.nombre || '';
+        row.data = { nombre: row.initial.nombre || '', categoria: row.initial.categoria || 'Estudio' };
+        el.querySelector('.pr-study-note').value = row.initial.indicacion || '';
+        el.querySelector('.pr-study-display').textContent = 'Estudio cargado de la receta original.';
+      }
       customStudyInput.addEventListener('input', () => {
         if (customStudyInput.value.trim() !== '') {
           row.data = { nombre: customStudyInput.value.trim(), categoria: 'Laboratorio' };
@@ -5379,6 +5432,14 @@ function openPrescriptionBuilder(record, currentNoteDiagnoses) {
         });
       });
     }
+  }
+
+  if (existingPrescription) {
+    (existingPrescription.items || []).forEach(item => {
+      const row = { tipo: item.tipo === 'estudio' ? 'estudio' : 'medicamento', data: null, initial: item };
+      rows.push(row);
+      renderRow(row);
+    });
   }
 
   modal.querySelector('#pr-add-med').addEventListener('click', () => {
@@ -5437,7 +5498,7 @@ function openPrescriptionBuilder(record, currentNoteDiagnoses) {
       return;
     }
 
-    const prescription = {
+    let prescription = {
       recordId: record.id,
       specialistId: currentUser.specialistId || '',
       diagnosis: modal.querySelector('#pr-diagnosis').value.trim(),
@@ -5446,12 +5507,23 @@ function openPrescriptionBuilder(record, currentNoteDiagnoses) {
       items: items
     };
 
-    await ClinicalDB.savePrescription(prescription);
-    await generatePrescriptionPDF(record, prescription);
-    modal.remove();
+    const saveButton = modal.querySelector('#pr-generate');
+    saveButton.disabled = true;
+    try {
+      prescription = existingPrescription
+        ? await ClinicalDB.updatePrescription(existingPrescription.id, prescription)
+        : await ClinicalDB.savePrescription(prescription);
+      if (!existingPrescription) await generatePrescriptionPDF(record, prescription);
+      modal.remove();
+    } catch (error) {
+      alert(error.message || 'No se pudo guardar la receta.');
+      saveButton.disabled = false;
+      return;
+    }
 
     // Refrescar la lista de recetas del expediente si sigue abierto
     renderPrescriptionsList(record.id);
+    renderAllPrescriptionsTable();
   });
 }
 
@@ -5726,10 +5798,12 @@ function renderAllPrescriptionsTable() {
 
   const searchEl = document.getElementById('prescriptions-search');
   const searchQuery = searchEl ? searchEl.value.toLowerCase().trim() : '';
+  const showVoided = Boolean(document.getElementById('prescriptions-show-voided')?.checked);
 
   const prescriptions = ClinicalDB.getPrescriptions() || [];
   
   const filtered = prescriptions.filter(p => {
+    if (p.isVoided && !showVoided) return false;
     const record = ClinicalDB.getRecordById(p.recordId);
     if (!record) return false;
 
@@ -5761,25 +5835,35 @@ function renderAllPrescriptionsTable() {
     const dateStr = p.createdAt ? new Date(p.createdAt).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
     
     const tr = document.createElement('tr');
+    if (p.isVoided) tr.classList.add('prescription-row-voided');
+    const voidInfo = p.isVoided
+      ? `<div class="prescription-status-voided">ANULADA</div><div class="prescription-void-reason">Motivo: ${escapeHtml(p.voidReason)}</div>`
+      : '';
+    const actions = p.isVoided ? '<span class="prescription-status-voided">Sin vigencia</span>' : `
+      <button class="btn btn-secondary btn-download-pdf-general align-icon-text" title="Descargar receta PDF"><i data-lucide="file-text" class="icon-inline"></i> PDF</button>
+      <button class="btn btn-secondary btn-edit-prescription align-icon-text" title="Corregir receta"><i data-lucide="pencil" class="icon-inline"></i> Editar</button>
+      <button class="btn btn-danger btn-void-prescription align-icon-text" title="Anular receta"><i data-lucide="ban" class="icon-inline"></i> Anular</button>`;
     tr.innerHTML = `
-      <td><strong>${record ? record.patientName : 'Paciente Desconocido'}</strong><br><span style="font-size:0.75rem; color:var(--color-text-muted);">${record ? record.patientPhone : ''}</span></td>
-      <td>${record && record.dni ? record.dni : '—'}</td>
-      <td>${p.diagnosis || '—'}</td>
-      <td>${dateStr}</td>
-      <td>${doctor ? doctor.name : '—'}</td>
-      <td style="text-align:center;">
-        <button class="btn btn-secondary btn-download-pdf-general align-icon-text" style="padding:0.3rem 0.6rem; font-size:0.8rem;" title="Descargar receta PDF">
-          <i data-lucide="file-text" class="icon-inline" style="width:14px; height:14px;"></i> PDF
-        </button>
-      </td>
+      <td><strong>${escapeHtml(record ? record.patientName : 'Paciente desconocido')}</strong><br><span style="font-size:0.75rem; color:var(--color-text-muted);">${escapeHtml(record ? record.patientPhone : '')}</span></td>
+      <td>${escapeHtml(record && record.dni ? record.dni : '—')}</td>
+      <td>${escapeHtml(p.diagnosis || '—')}${voidInfo}</td>
+      <td>${escapeHtml(dateStr)}</td>
+      <td>${escapeHtml(doctor ? doctor.name : '—')}</td>
+      <td><div class="prescription-actions">${actions}</div></td>
     `;
 
-    tr.querySelector('.btn-download-pdf-general').addEventListener('click', () => {
+    tr.querySelector('.btn-download-pdf-general')?.addEventListener('click', () => {
       if (record) {
         generatePrescriptionPDF(record, p);
       } else {
         alert('No se pudo encontrar el expediente de este paciente para generar la receta.');
       }
+    });
+    tr.querySelector('.btn-edit-prescription')?.addEventListener('click', () => {
+      if (record) openPrescriptionBuilder(record, [], p);
+    });
+    tr.querySelector('.btn-void-prescription')?.addEventListener('click', () => {
+      if (record) openVoidPrescriptionDialog(p, record);
     });
 
     tbody.appendChild(tr);
@@ -5788,6 +5872,38 @@ function renderAllPrescriptionsTable() {
   if (window.lucide) {
     window.lucide.createIcons();
   }
+}
+
+function openVoidPrescriptionDialog(prescription, record) {
+  document.getElementById('void-prescription-modal')?.remove();
+  const modal = document.createElement('div');
+  modal.className = 'modal active';
+  modal.id = 'void-prescription-modal';
+  modal.style.zIndex = '3900';
+  modal.innerHTML = `<div class="modal-content" style="max-width:520px;width:94%;padding:1.5rem;">
+    <h3 style="color:var(--color-danger);margin-top:0;">Anular receta</h3>
+    <p>Se anulará la receta de <strong>${escapeHtml(record.patientName)}</strong>. Ya no podrá descargarse como vigente, pero se conservará para auditoría.</p>
+    <label for="void-prescription-reason" style="font-weight:700;">Motivo de la anulación</label>
+    <textarea id="void-prescription-reason" class="form-control" rows="4" minlength="5" maxlength="500" required placeholder="Ej.: duplicada por error de emisión"></textarea>
+    <p style="font-size:.78rem;color:var(--color-text-muted);">Mínimo 5 caracteres. Esta acción no se puede deshacer.</p>
+    <div style="display:flex;justify-content:flex-end;gap:.75rem;"><button class="btn btn-secondary" id="void-prescription-cancel">Cancelar</button><button class="btn btn-danger" id="void-prescription-confirm">Confirmar anulación</button></div>
+  </div>`;
+  document.body.appendChild(modal);
+  modal.querySelector('#void-prescription-cancel').addEventListener('click', () => modal.remove());
+  modal.querySelector('#void-prescription-confirm').addEventListener('click', async () => {
+    const reason = modal.querySelector('#void-prescription-reason').value.trim();
+    const button = modal.querySelector('#void-prescription-confirm');
+    button.disabled = true;
+    try {
+      await ClinicalDB.voidPrescription(prescription.id, reason);
+      modal.remove();
+      renderAllPrescriptionsTable();
+      renderPrescriptionsList(record.id);
+    } catch (error) {
+      alert(error.message || 'No se pudo anular la receta.');
+      button.disabled = false;
+    }
+  });
 }
 
 // Inicializar buscador de recetas
@@ -5803,4 +5919,5 @@ document.addEventListener('DOMContentLoaded', () => {
       renderAllPrescriptionsTable();
     });
   }
+  document.getElementById('prescriptions-show-voided')?.addEventListener('change', renderAllPrescriptionsTable);
 });
