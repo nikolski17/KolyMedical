@@ -1,0 +1,18 @@
+[
+  {
+    "slug": "workshop-terapia-celular-autismo-pci-2026",
+    "title": "Workshop Médico Práctico: Terapia Celular en Autismo y Parálisis Cerebral Infantil",
+    "summary": "Dos días de formación médica intensiva con sesiones académicas y prácticas sobre terapia celular por vía intratecal y sistémica.",
+    "publishedAt": "2026-08-29",
+    "eventDate": "2026-09-18",
+    "audience": "Profesionales médicos",
+    "category": "Formación médica",
+    "images": [
+      { "src": "boletines/workshop-terapia-celular-2026/flyer-workshop-terapia-celular.webp", "alt": "Flyer del Workshop Médico Práctico de Terapia Celular" },
+      { "src": "boletines/workshop-terapia-celular-2026/afiche-workshop-terapia-celular.webp", "alt": "Afiche con los ponentes del workshop" },
+      { "src": "boletines/workshop-terapia-celular-2026/portada-cronograma.webp", "alt": "Portada del cronograma académico" },
+      { "src": "boletines/workshop-terapia-celular-2026/cronograma-dia-1.webp", "alt": "Cronograma del viernes 18 de septiembre de 2026" },
+      { "src": "boletines/workshop-terapia-celular-2026/cronograma-dia-2.webp", "alt": "Cronograma del sábado 19 de septiembre de 2026" }
+    ]
+  }
+]

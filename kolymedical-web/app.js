@@ -129,6 +129,23 @@ function getCurrentUser() {
   return currentUserProfile;
 }
 
+let quotationModulePromise = null;
+async function getQuotationModule() {
+  if (!quotationModulePromise) {
+    quotationModulePromise = import('./quotation-module.mjs?v=20260829q1').then(async (module) => {
+      await module.initializeQuotationModule({
+        client: supabaseClient,
+        getCurrentUser,
+        getLogoBytes,
+        pdfSafe,
+        wrapText
+      });
+      return module;
+    });
+  }
+  return quotationModulePromise;
+}
+
 function escapeHtml(value) {
   if (window.KolySecurity) return window.KolySecurity.escapeHtml(value);
   return String(value ?? '').replace(/[&<>"']/g, (character) => ({
@@ -2068,6 +2085,8 @@ function renderDashboard() {
   const currentUser = getCurrentUser();
   const menuUsers = document.getElementById('menu-users');
   const menuAvailability = document.getElementById('menu-availability');
+  const menuQuotes = document.getElementById('menu-quotes');
+  const menuCostCatalog = document.getElementById('menu-cost-catalog');
   const roleText = document.getElementById('sidebar-user-role');
 
   // Dinamizar menú lateral según el rol (Comercial vs Historias Clínicas)
@@ -2112,21 +2131,29 @@ function renderDashboard() {
     if (menuAvailability) menuAvailability.style.display = 'block';
     if (menuSuggestions) menuSuggestions.style.display = 'block';
     if (menuPrescriptions) menuPrescriptions.style.display = 'block';
+    if (menuQuotes) menuQuotes.style.display = 'block';
+    if (menuCostCatalog) menuCostCatalog.style.display = 'block';
   } else if (currentUser && currentUser.specialistId) {
     if (menuUsers) menuUsers.style.display = 'none';
     if (menuAvailability) menuAvailability.style.display = 'none';
     if (menuSuggestions) menuSuggestions.style.display = 'none';
     if (menuPrescriptions) menuPrescriptions.style.display = 'none';
+    if (menuQuotes) menuQuotes.style.display = 'none';
+    if (menuCostCatalog) menuCostCatalog.style.display = 'none';
   } else if (currentUser && currentUser.role === 'Comercial') {
     if (menuUsers) menuUsers.style.display = 'none';
     if (menuAvailability) menuAvailability.style.display = 'none';
     if (menuSuggestions) menuSuggestions.style.display = 'block';
     if (menuPrescriptions) menuPrescriptions.style.display = 'block';
+    if (menuQuotes) menuQuotes.style.display = 'block';
+    if (menuCostCatalog) menuCostCatalog.style.display = 'none';
   } else {
     if (menuUsers) menuUsers.style.display = 'none';
     if (menuAvailability) menuAvailability.style.display = 'none';
     if (menuSuggestions) menuSuggestions.style.display = 'none';
     if (menuPrescriptions) menuPrescriptions.style.display = 'none';
+    if (menuQuotes) menuQuotes.style.display = 'none';
+    if (menuCostCatalog) menuCostCatalog.style.display = 'none';
   }
 
   // 🔒 "Ingresos Proyectados" y "Agendar Cita Interna" solo para Administrador y Comercial.
@@ -2204,6 +2231,16 @@ function renderDashboard() {
         renderSuggestionsTable();
       } else if (viewName === 'prescriptions') {
         renderAllPrescriptionsTable();
+      } else if (viewName === 'quotes') {
+        getQuotationModule().then((module) => module.renderQuotes()).catch((error) => {
+          console.error('Cotizaciones:', error);
+          alert('No se pudo abrir el módulo de cotizaciones. Inténtalo nuevamente.');
+        });
+      } else if (viewName === 'cost-catalog') {
+        getQuotationModule().then((module) => module.renderCostCatalog()).catch((error) => {
+          console.error('Catálogo permanente:', error);
+          alert(error?.message || 'No se pudo abrir el catálogo permanente.');
+        });
       }
     });
   });
@@ -5660,7 +5697,7 @@ function pdfSafe(str) {
     .replace(/[“”„]/g, '"')
     .replace(/…/g, '...')
     .replace(/ /g, ' ')
-    .replace(/[^ -ÿ]/g, '');  // fuera de latin-1 → se descarta
+    .replace(/[^\x00-\xFF]/g, '');  // fuera de latin-1 → se descarta
 }
 
 // Envuelve texto a un ancho máximo (en puntos) para pdf-lib.

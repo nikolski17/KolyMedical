@@ -7,7 +7,7 @@
   <title>KolyMedical — Panel Administrativo Médico</title>
   <meta name="robots" content="noindex, nofollow">
   <link rel="icon" type="image/png" href="Logosinfondo.png">
-  <link rel="stylesheet" href="styles.css?v=20260828">
+  <link rel="stylesheet" href="styles.css?v=20260829q1">
   <script src="https://unpkg.com/lucide@1.34.0/dist/umd/lucide.js"
     integrity="sha384-frWQkjuw7X/yo4G2C2YnAAbkHHi7uBnMwf577mOjXDG0me9gl8Yrdyu1BhvS7WX5" crossorigin="anonymous"></script>
   <!-- Google Analytics GA4 (gtag.js) -->
@@ -153,6 +153,19 @@
               <polyline points="10 9 9 9 8 9"></polyline>
             </svg>
             Buscador de Recetas
+          </button>
+          <button class="sidebar-item" data-view="quotes" id="menu-quotes" style="display: none;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sidebar-icon">
+              <path d="M4 2h14a2 2 0 0 1 2 2v18l-4-2-4 2-4-2-4 2V4a2 2 0 0 1 2-2z"></path>
+              <line x1="8" y1="7" x2="16" y2="7"></line><line x1="8" y1="11" x2="16" y2="11"></line>
+            </svg>
+            Cotizaciones
+          </button>
+          <button class="sidebar-item" data-view="cost-catalog" id="menu-cost-catalog" style="display: none;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sidebar-icon">
+              <circle cx="12" cy="12" r="9"></circle><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><line x1="12" y1="6" x2="12" y2="18"></line>
+            </svg>
+            Administrar costos
           </button>
         </nav>
 
@@ -714,6 +727,109 @@
         </div>
       </div>
 
+      <!-- VISTA: COTIZACIONES COMERCIALES -->
+      <div id="view-quotes" class="dashboard-view" style="display: none;">
+        <div class="quote-layout">
+          <section class="admin-card quote-builder-card">
+            <div class="admin-card-header quote-section-heading">
+              <div><h2>Nueva Cotización</h2><p>Los cambios de precio aquí son temporales y no modifican el catálogo permanente.</p></div>
+              <span class="quote-validity-badge">Vigencia: 7 días</span>
+            </div>
+
+            <div class="quote-patient-panel">
+              <div class="quote-mode-switch" role="radiogroup" aria-label="Origen del paciente">
+                <label><input type="radio" name="quote-patient-mode" value="registered" checked> Paciente registrado</label>
+                <label><input type="radio" name="quote-patient-mode" value="manual"> Solo para esta cotización</label>
+              </div>
+              <div class="quote-patient-fields">
+                <div class="form-group quote-patient-search-wrap">
+                  <label for="quote-patient-search">Buscar por nombre o DNI</label>
+                  <input id="quote-patient-search" class="form-control" type="search" autocomplete="off" placeholder="Escribe al menos 3 caracteres">
+                  <div id="quote-patient-results" class="quote-search-results" hidden></div>
+                </div>
+                <div class="form-group"><label for="quote-patient-name">Nombres del paciente</label><input id="quote-patient-name" class="form-control" maxlength="120" required></div>
+                <div class="form-group"><label for="quote-patient-dni">DNI / documento</label><input id="quote-patient-dni" class="form-control" inputmode="numeric" minlength="8" maxlength="12" required></div>
+              </div>
+              <input id="quote-patient-record-id" type="hidden">
+            </div>
+
+            <div class="quote-catalog-picker">
+              <div class="form-group"><label for="quote-catalog-search">Agregar estudio, procedimiento o consulta</label><input id="quote-catalog-search" class="form-control" type="search" autocomplete="off" placeholder="Buscar por código, nombre, empresa o categoría"></div>
+              <div class="form-group"><label for="quote-provider-filter">Empresa</label><select id="quote-provider-filter" class="form-control"><option value="">Todas</option></select></div>
+              <div class="form-group"><label for="quote-category-filter">Categoría</label><select id="quote-category-filter" class="form-control"><option value="">Todas</option></select></div>
+            </div>
+            <div id="quote-catalog-results" class="quote-catalog-results" aria-live="polite"></div>
+
+            <div class="table-responsive quote-lines-table-wrap">
+              <table class="admin-table quote-lines-table">
+                <thead><tr><th>Descripción</th><th>Moneda</th><th>Cantidad</th><th>Precio</th><th>Descuento</th><th>Importe</th><th></th></tr></thead>
+                <tbody id="quote-lines-body"><tr class="quote-empty-row"><td colspan="7">Busca y agrega uno o más conceptos.</td></tr></tbody>
+              </table>
+            </div>
+
+            <div class="quote-summary-grid">
+              <div class="form-group"><label for="quote-observations">Observaciones</label><textarea id="quote-observations" class="form-control" rows="4" maxlength="1000" placeholder="Condiciones o indicaciones para el paciente"></textarea></div>
+              <div class="quote-totals" aria-live="polite">
+                <div><span>Subtotal</span><strong id="quote-subtotal">S/ 0.00</strong></div>
+                <div><span>Descuento</span><strong id="quote-discount-total">S/ 0.00</strong></div>
+                <div class="quote-total-final"><span>Total</span><strong id="quote-total">S/ 0.00</strong></div>
+              </div>
+            </div>
+            <div class="quote-actions">
+              <button type="button" id="btn-quote-reset" class="btn btn-secondary">Limpiar</button>
+              <button type="button" id="btn-quote-pdf" class="btn btn-accent">Guardar y descargar PDF</button>
+            </div>
+          </section>
+
+          <section class="admin-card quote-recent-card">
+            <div class="admin-card-header"><h2>Cotizaciones recientes</h2></div>
+            <p>Se eliminan automáticamente al cumplir 7 días. El PDF permanece únicamente donde lo descargues.</p>
+            <div id="quotes-recent-list" class="quotes-recent-list"><div class="quote-loading">Cargando cotizaciones…</div></div>
+          </section>
+        </div>
+      </div>
+
+      <!-- VISTA: CATÁLOGO Y COSTOS PERMANENTES (SOLO ADMINISTRADOR) -->
+      <div id="view-cost-catalog" class="dashboard-view" style="display: none;">
+        <div class="catalog-admin-layout">
+          <section class="admin-card">
+            <div class="admin-card-header quote-section-heading"><div><h2>Costos y precios permanentes</h2><p>Solo los cambios guardados aquí modifican los valores futuros.</p></div><span id="catalog-count-badge" class="quote-validity-badge">0 conceptos</span></div>
+            <div class="catalog-toolbar">
+              <input id="catalog-admin-search" class="form-control" type="search" placeholder="Buscar código, estudio o empresa">
+              <select id="catalog-admin-provider" class="form-control"><option value="">Todas las empresas</option></select>
+              <select id="catalog-admin-category" class="form-control"><option value="">Todas las categorías</option></select>
+            </div>
+            <div class="table-responsive catalog-table-wrap">
+              <table class="admin-table"><thead><tr><th>Código</th><th>Empresa / Categoría</th><th>Descripción</th><th>Costo proveedor</th><th>Precio permanente</th><th>Estado</th><th></th></tr></thead><tbody id="catalog-admin-body"></tbody></table>
+            </div>
+          </section>
+          <aside class="admin-card catalog-form-card">
+            <div class="admin-card-header"><h2 id="catalog-form-title">Agregar estudio</h2></div>
+            <form id="catalog-admin-form">
+              <input id="catalog-item-id" type="hidden">
+              <div class="form-group"><label for="catalog-code">Código</label><input id="catalog-code" class="form-control" required maxlength="20" placeholder="EMP-CAT-001"></div>
+              <div class="form-group"><label for="catalog-provider-code">Código de empresa</label><input id="catalog-provider-code" class="form-control" required maxlength="8" placeholder="EMP"></div>
+              <div class="form-group"><label for="catalog-provider-name">Empresa</label><input id="catalog-provider-name" class="form-control" required maxlength="160"></div>
+              <div class="form-group"><label for="catalog-item-type">Tipo</label><input id="catalog-item-type" class="form-control" required maxlength="80" placeholder="Estudio"></div>
+              <div class="form-group"><label for="catalog-category-code">Código de categoría</label><input id="catalog-category-code" class="form-control" required maxlength="8" placeholder="LAB"></div>
+              <div class="form-group"><label for="catalog-category">Categoría</label><input id="catalog-category" class="form-control" required maxlength="120"></div>
+              <div class="form-group"><label for="catalog-name">Nombre del estudio o servicio</label><input id="catalog-name" class="form-control" required maxlength="240"></div>
+              <div class="form-group"><label for="catalog-variant">Variante</label><input id="catalog-variant" class="form-control" maxlength="160" placeholder="Presencial, con contraste, etc."></div>
+              <div class="catalog-money-fields">
+                <div class="form-group"><label for="catalog-currency">Moneda</label><select id="catalog-currency" class="form-control"><option value="PEN">Soles</option><option value="USD">Dólares</option></select></div>
+                <div class="form-group"><label for="catalog-supplier-cost">Costo proveedor</label><input id="catalog-supplier-cost" class="form-control" type="number" min="0" max="10000000" step="0.01"></div>
+                <div class="form-group"><label for="catalog-permanent-price">Precio permanente</label><input id="catalog-permanent-price" class="form-control" type="number" min="0" max="10000000" step="0.01" required></div>
+              </div>
+              <div class="form-group"><label for="catalog-term">Plazo o material</label><input id="catalog-term" class="form-control" maxlength="240"></div>
+              <div class="form-group"><label for="catalog-notes">Notas internas</label><textarea id="catalog-notes" class="form-control" rows="3" maxlength="1000"></textarea></div>
+              <label class="catalog-checkbox"><input id="catalog-requires-confirmation" type="checkbox"> Requiere confirmar vigencia antes de cotizar</label>
+              <label class="catalog-checkbox"><input id="catalog-active" type="checkbox" checked> Concepto activo</label>
+              <div class="quote-actions"><button type="button" id="btn-catalog-cancel" class="btn btn-secondary">Cancelar</button><button type="submit" class="btn btn-accent">Guardar costo permanente</button></div>
+            </form>
+          </aside>
+        </div>
+      </div>
+
       <!-- VISTA 5: MI PERFIL / CAMBIO DE CONTRASEÑA -->
       <div id="view-profile" class="dashboard-view" style="display: none;">
         <div class="admin-card" style="max-width: 500px; margin: 0 auto;">
@@ -775,8 +891,8 @@
   <!-- pdf-lib (generación de recetas/órdenes en PDF, 100% en el navegador) -->
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"
     integrity="sha384-weMABwrltA6jWR8DDe9Jp5blk+tZQh7ugpCsF3JwSA53WZM9/14PjS5LAJNHNjAI" crossorigin="anonymous"></script>
-  <script type="module" src="security-utils.mjs?v=20260828b"></script>
-  <script src="app.js?v=20260828b"></script>
+  <script type="module" src="security-utils.mjs?v=20260829q1"></script>
+  <script src="app.js?v=20260829q1"></script>
   <script>
     // Enlazar la tabla detallada de la vista de listado al buscador
     const searchEl = document.getElementById('admin-search');

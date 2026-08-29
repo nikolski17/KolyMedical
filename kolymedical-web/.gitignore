@@ -1,0 +1,36 @@
+# Claude Cache
+.claude/
+
+# Operating System Files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Document references
+*.pdf
+
+# Local/Development Configs
+.env
+
+# Agent frameworks
+.agents/
+
+.gemini/
+
+# Secrets and local platform state
+Credenciales/
+client_secret_*.json
+.env.*
+!.env.example
+supabase/.temp/
+supabase.exe
+
+# Build artifacts
+graphify-out/
+tests/
+tools/
+*.docx
+*.sql
+serve.py
+package.json
+*.exe
