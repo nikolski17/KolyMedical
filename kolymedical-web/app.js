@@ -132,7 +132,7 @@ function getCurrentUser() {
 let quotationModulePromise = null;
 async function getQuotationModule() {
   if (!quotationModulePromise) {
-    quotationModulePromise = import('./quotation-module.mjs?v=20260829q1').then(async (module) => {
+    quotationModulePromise = import('./quotation-module.mjs?v=20260829q2').then(async (module) => {
       await module.initializeQuotationModule({
         client: supabaseClient,
         getCurrentUser,
