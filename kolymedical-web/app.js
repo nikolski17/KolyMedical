@@ -130,9 +130,11 @@ function getCurrentUser() {
 }
 
 let quotationModulePromise = null;
+let bulletinLeadsModulePromise = null;
+let bulletinLeadsCache = [];
 async function getQuotationModule() {
   if (!quotationModulePromise) {
-    quotationModulePromise = import('./quotation-module.mjs?v=20260829q3').then(async (module) => {
+    quotationModulePromise = import('./quotation-module.mjs?v=20260830b1').then(async (module) => {
       await module.initializeQuotationModule({
         client: supabaseClient,
         getCurrentUser,
@@ -144,6 +146,26 @@ async function getQuotationModule() {
     });
   }
   return quotationModulePromise;
+}
+
+function getBulletinLeadsModule() {
+  if (!bulletinLeadsModulePromise) bulletinLeadsModulePromise = import('./bulletin-leads.mjs?v=20260830b1');
+  return bulletinLeadsModulePromise;
+}
+
+async function loadBulletinLeads() {
+  const user = getCurrentUser();
+  if (!supabaseClient || !user || !['Administrador', 'Comercial'].includes(user.role)) {
+    bulletinLeadsCache = [];
+    return [];
+  }
+  try {
+    bulletinLeadsCache = await (await getBulletinLeadsModule()).fetchBulletinLeads(supabaseClient);
+  } catch (error) {
+    console.error('Contactos del boletín:', error);
+    bulletinLeadsCache = [];
+  }
+  return bulletinLeadsCache;
 }
 
 function escapeHtml(value) {
@@ -2074,7 +2096,8 @@ async function initAdminDashboard() {
       DB_Users.syncWithCloud(),
       DB.syncWithCloud(),
       ClinicalDB.syncWithCloud(),
-      SignatureDB.syncWithCloud()
+      SignatureDB.syncWithCloud(),
+      loadBulletinLeads()
     ]);
     renderDashboard();
   } else {
@@ -2111,7 +2134,8 @@ function initLoginForm() {
         DB_Users.syncWithCloud(),
         DB.syncWithCloud(),
         ClinicalDB.syncWithCloud(),
-        SignatureDB.syncWithCloud()
+        SignatureDB.syncWithCloud(),
+        loadBulletinLeads()
       ]);
       renderDashboard();
     } else {
@@ -2127,6 +2151,7 @@ function renderDashboard() {
   const menuAvailability = document.getElementById('menu-availability');
   const menuQuotes = document.getElementById('menu-quotes');
   const menuCostCatalog = document.getElementById('menu-cost-catalog');
+  const menuBulletinLeads = document.getElementById('menu-bulletin-leads');
   const roleText = document.getElementById('sidebar-user-role');
 
   // Dinamizar menú lateral según el rol (Comercial vs Historias Clínicas)
@@ -2173,6 +2198,7 @@ function renderDashboard() {
     if (menuPrescriptions) menuPrescriptions.style.display = 'block';
     if (menuQuotes) menuQuotes.style.display = 'block';
     if (menuCostCatalog) menuCostCatalog.style.display = 'block';
+    if (menuBulletinLeads) menuBulletinLeads.style.display = 'block';
   } else if (currentUser && currentUser.specialistId) {
     if (menuUsers) menuUsers.style.display = 'none';
     if (menuAvailability) menuAvailability.style.display = 'none';
@@ -2180,6 +2206,7 @@ function renderDashboard() {
     if (menuPrescriptions) menuPrescriptions.style.display = 'none';
     if (menuQuotes) menuQuotes.style.display = 'none';
     if (menuCostCatalog) menuCostCatalog.style.display = 'none';
+    if (menuBulletinLeads) menuBulletinLeads.style.display = 'none';
   } else if (currentUser && currentUser.role === 'Comercial') {
     if (menuUsers) menuUsers.style.display = 'none';
     if (menuAvailability) menuAvailability.style.display = 'none';
@@ -2187,6 +2214,7 @@ function renderDashboard() {
     if (menuPrescriptions) menuPrescriptions.style.display = 'block';
     if (menuQuotes) menuQuotes.style.display = 'block';
     if (menuCostCatalog) menuCostCatalog.style.display = 'none';
+    if (menuBulletinLeads) menuBulletinLeads.style.display = 'block';
   } else {
     if (menuUsers) menuUsers.style.display = 'none';
     if (menuAvailability) menuAvailability.style.display = 'none';
@@ -2194,6 +2222,7 @@ function renderDashboard() {
     if (menuPrescriptions) menuPrescriptions.style.display = 'none';
     if (menuQuotes) menuQuotes.style.display = 'none';
     if (menuCostCatalog) menuCostCatalog.style.display = 'none';
+    if (menuBulletinLeads) menuBulletinLeads.style.display = 'none';
   }
 
   // 🔒 "Ingresos Proyectados" y "Agendar Cita Interna" solo para Administrador y Comercial.
@@ -2281,6 +2310,8 @@ function renderDashboard() {
           console.error('Catálogo permanente:', error);
           alert(error?.message || 'No se pudo abrir el catálogo permanente.');
         });
+      } else if (viewName === 'bulletin-leads') {
+        renderBulletinLeadsTable();
       }
     });
   });
@@ -3028,6 +3059,44 @@ function updateStats() {
   renderNotifications();
 }
 
+function renderBulletinLeadsTable() {
+  const tbody = document.getElementById('bulletin-leads-table-body');
+  if (!tbody) return;
+  const query = (document.getElementById('bulletin-leads-search')?.value || '').trim().toLowerCase();
+  const statusFilter = document.getElementById('bulletin-leads-filter')?.value || '';
+  const filtered = bulletinLeadsCache.filter((lead) => {
+    const haystack = `${lead.first_names} ${lead.last_names} ${lead.medical_license} ${lead.phone} ${lead.email}`.toLowerCase();
+    return (!query || haystack.includes(query)) && (!statusFilter || lead.status === statusFilter);
+  });
+  document.getElementById('bulletin-leads-count').textContent = `${filtered.length} contacto${filtered.length === 1 ? '' : 's'}`;
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--color-text-muted);">No hay médicos interesados con estos filtros.</td></tr>';
+    return;
+  }
+  const statusLabels = { new:'Nuevo', contacted:'Contactado', enrolled:'Inscrito', closed:'Cerrado' };
+  tbody.innerHTML = '';
+  filtered.forEach((lead) => {
+    const row = document.createElement('tr');
+    const whatsapp = `https://wa.me/${formatWhatsAppPhone(lead.phone)}?text=${encodeURIComponent(`Hola Dr(a). ${lead.first_names} ${lead.last_names}, le escribimos de KolyMedical por su interés en el Workshop Médico de Terapia Celular.`)}`;
+    row.innerHTML = `<td><strong>${escapeHtml(`${lead.first_names} ${lead.last_names}`)}</strong><br><span class="text-muted">${escapeHtml(lead.specialty || 'Especialidad no indicada')}</span></td><td>${escapeHtml(lead.medical_license)}</td><td>${escapeHtml(lead.phone)}<br><a href="mailto:${encodeURIComponent(lead.email)}">${escapeHtml(lead.email)}</a></td><td>${escapeHtml(new Date(lead.created_at).toLocaleString('es-PE'))}</td><td><select class="bulletin-lead-status" aria-label="Estado de contacto">${Object.entries(statusLabels).map(([value,label]) => `<option value="${value}" ${lead.status === value ? 'selected' : ''}>${label}</option>`).join('')}</select></td><td><div class="bulletin-lead-contact-actions"><a class="btn btn-accent" href="${whatsapp}" target="_blank" rel="noopener noreferrer">WhatsApp</a><a class="btn btn-secondary" href="mailto:${encodeURIComponent(lead.email)}">Correo</a></div></td>`;
+    row.querySelector('.bulletin-lead-status').addEventListener('change', async (event) => {
+      event.target.disabled = true;
+      try {
+        const module = await getBulletinLeadsModule();
+        const updated = await module.updateBulletinLead(supabaseClient, lead.id, event.target.value, lead.commercial_notes || '');
+        bulletinLeadsCache = bulletinLeadsCache.map(item => item.id === lead.id ? updated : item);
+        renderBulletinLeadsTable();
+        renderNotifications();
+      } catch (error) {
+        alert(error.message || 'No se pudo cambiar el estado.');
+        event.target.value = lead.status;
+        event.target.disabled = false;
+      }
+    });
+    tbody.appendChild(row);
+  });
+}
+
 function renderNotifications() {
   const dropdownContainer = document.getElementById('notifications-dropdown-container');
   if (!dropdownContainer) return;
@@ -3046,13 +3115,15 @@ function renderNotifications() {
 
   // Notificaciones: solicitudes pendientes o con hora "Por coordinar"
   const pendingApts = appointments.filter(a => a.status === 'pendiente' || a.time === 'Por coordinar' || (a.time && a.time.includes('Por coordinar')));
+  const pendingLeads = bulletinLeadsCache.filter(lead => lead.status === 'new');
+  const notificationCount = pendingApts.length + pendingLeads.length;
 
   const badge = document.getElementById('notifications-badge');
   const list = document.getElementById('notifications-list');
 
   if (badge) {
-    if (pendingApts.length > 0) {
-      badge.textContent = pendingApts.length;
+    if (notificationCount > 0) {
+      badge.textContent = notificationCount;
       badge.style.display = 'inline-block';
     } else {
       badge.style.display = 'none';
@@ -3060,10 +3131,21 @@ function renderNotifications() {
   }
 
   if (list) {
-    if (pendingApts.length === 0) {
+    if (notificationCount === 0) {
       list.innerHTML = '<p style="padding: 1rem; text-align: center; color: var(--color-text-muted); font-size: 0.8rem; margin: 0;">No hay notificaciones nuevas.</p>';
     } else {
       list.innerHTML = '';
+      pendingLeads.forEach(lead => {
+        const item = document.createElement('div');
+        item.className = 'notification-item bulletin-lead-notification';
+        item.style.cssText = 'padding:.75rem 1rem;border-bottom:1px solid var(--color-border);cursor:pointer;';
+        item.innerHTML = `<div style="display:flex;justify-content:space-between;gap:.5rem;"><strong>${escapeHtml(`${lead.first_names} ${lead.last_names}`)}</strong><span class="status-badge status-pendiente">MÉDICO</span></div><p style="margin:.35rem 0;font-size:.78rem;color:var(--color-text-muted);">Interés en Workshop · ${escapeHtml(lead.medical_license)}<br>${escapeHtml(lead.phone)}</p><button class="btn btn-accent" style="width:100%;font-size:.72rem;padding:.3rem;">Abrir contacto</button>`;
+        item.addEventListener('click', () => {
+          document.getElementById('notifications-menu').style.display = 'none';
+          document.getElementById('menu-bulletin-leads')?.click();
+        });
+        list.appendChild(item);
+      });
       pendingApts.forEach(apt => {
         const service = SERVICES.find(s => s.id === apt.serviceId);
         const item = document.createElement('div');
@@ -5908,6 +5990,8 @@ function openVoidPrescriptionDialog(prescription, record) {
 
 // Inicializar buscador de recetas
 document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('bulletin-leads-search')?.addEventListener('input', renderBulletinLeadsTable);
+  document.getElementById('bulletin-leads-filter')?.addEventListener('change', renderBulletinLeadsTable);
   const prescriptionsSearch = document.getElementById('prescriptions-search');
   if (prescriptionsSearch) {
     prescriptionsSearch.addEventListener('input', renderAllPrescriptionsTable);

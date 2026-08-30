@@ -2858,3 +2858,30 @@ textarea.form-control {
 .prescription-status-voided { display:inline-block; margin-top:.25rem; color:#b42318; font-size:.75rem; font-weight:700; }
 .prescription-void-reason { font-size:.72rem; color:var(--color-text-muted); margin-top:.2rem; max-width:30rem; }
 @media (max-width: 760px) { .prescription-search-controls { grid-template-columns:1fr; } }
+.bulletin-interest-shell { margin-top:2.5rem; margin-bottom:3rem; padding:2rem; display:grid; grid-template-columns:minmax(240px,.8fr) minmax(320px,1.2fr); gap:2rem; background:linear-gradient(135deg,#07182b,#0e3150); color:#fff; border:1px solid rgba(62,207,232,.28); border-radius:22px; box-shadow:0 22px 60px rgba(5,22,40,.18); }
+.bulletin-interest-intro h2,.bulletin-interest-intro h3 { color:#fff; margin:.5rem 0 .75rem; font-size:clamp(1.5rem,3vw,2.2rem); }
+.bulletin-interest-intro p { color:rgba(255,255,255,.76); line-height:1.65; }
+.bulletin-interest-form { background:#fff; color:#26394d; border-radius:16px; padding:1.35rem; box-shadow:0 12px 30px rgba(0,0,0,.18); }
+.bulletin-interest-form fieldset { border:0; padding:0; margin:0; }
+.bulletin-interest-form legend { font-weight:800; color:#294e6d; margin-bottom:.9rem; }
+.bulletin-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:.85rem; }
+.bulletin-form-grid label { display:grid; gap:.35rem; font-size:.78rem; font-weight:700; }
+.bulletin-form-grid label span { font-weight:400; color:#697b8c; }
+.bulletin-form-grid .form-control { min-width:0; }
+.bulletin-consent { display:flex; gap:.55rem; align-items:flex-start; margin:1rem 0; font-size:.76rem; color:#596d80; line-height:1.45; }
+.bulletin-consent input { margin-top:.2rem; }
+.bulletin-honeypot { position:absolute!important; left:-10000px!important; width:1px!important; height:1px!important; overflow:hidden!important; }
+.bulletin-form-status { min-height:1.25rem; margin:.7rem 0 0; color:#087f6f; font-size:.82rem; font-weight:700; }
+.bulletin-form-status.is-error { color:#b42318; }
+.bulletin-form-success { display:flex; gap:.65rem; flex-wrap:wrap; margin-top:.75rem; }
+.bulletin-form-success[hidden] { display:none; }
+.bulletin-investment { margin:2rem 0; padding:1.8rem; display:grid; grid-template-columns:.9fr 1.1fr; gap:2rem; background:#eef7fb; border:1px solid #c9e8f1; border-radius:18px; }
+.bulletin-investment h3 { margin:.45rem 0; color:#294e6d; }
+.bulletin-price { color:#087f8d; font-size:1.35rem; font-weight:850; }
+.bulletin-includes { background:#fff; padding:1.2rem 1.35rem; border-radius:14px; }
+.bulletin-includes h4 { margin:0 0 .7rem; color:#294e6d; }
+.bulletin-includes ul { margin:0; padding-left:1.15rem; display:grid; gap:.5rem; }
+.bulletin-interest-final { width:100%; }
+.bulletin-lead-status { border:1px solid var(--color-border); border-radius:8px; padding:.35rem; background:var(--color-bg-light); }
+.bulletin-lead-contact-actions { display:flex; gap:.35rem; flex-wrap:wrap; }
+@media (max-width:760px) { .bulletin-interest-shell,.bulletin-investment { grid-template-columns:1fr; padding:1.25rem; } .bulletin-form-grid { grid-template-columns:1fr; } }
