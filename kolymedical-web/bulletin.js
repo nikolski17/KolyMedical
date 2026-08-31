@@ -16,7 +16,7 @@ document.querySelectorAll('.bulletin-interest-form').forEach((form) => {
     try {
       if (!client) throw new Error('No hay conexión disponible.');
       const result = await submitBulletinLead(client, value);
-      if (typeof window.fbq === 'function') window.fbq('trackSingle', '1079137687941980', 'Lead');
+      if (typeof window.fbq === 'function') window.fbq('track', 'Lead');
       status.textContent = result.alreadyRegistered ? 'Ya tenemos una solicitud activa con este correo.' : 'Datos recibidos. Un asesor de KolyMedical podrá contactarte.';
       success.hidden = false;
       const message = encodeURIComponent(`Hola KolyMedical, soy Dr(a). ${result.value.firstNames} ${result.value.lastNames}, colegiatura ${result.value.medicalLicense}. Dejé mis datos en el boletín y deseo información del Workshop Médico de Terapia Celular.`);
