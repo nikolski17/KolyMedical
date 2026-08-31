@@ -84,7 +84,7 @@
       ]
     },
     {
-      "source": "/(index.html|boletin.html|app.js|styles.css|security-utils.mjs|quote-utils.mjs|quotation-module.mjs)",
+      "source": "/(index.html|boletin.html|app.js|bulletin.js|meta-pixel.js|styles.css|security-utils.mjs|quote-utils.mjs|quotation-module.mjs)",
       "headers": [
         {
           "key": "Cache-Control",
