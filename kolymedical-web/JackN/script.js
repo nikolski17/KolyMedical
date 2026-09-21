@@ -11,8 +11,8 @@ function bloomFlower() {
     ? '<span class="button-spark">✦</span> Guardar el deseo <span aria-hidden="true">♡</span>'
     : '<span class="button-spark">✦</span> Hacer florecer <span aria-hidden="true">→</span>';
   flowerMessage.textContent = isBlooming
-    ? 'Que la primavera te traiga todo lo bonito que mereces.'
-    : 'La flor guarda un deseo para ti.';
+    ? 'Que todos tus sueños encuentren su momento.'
+    : 'La flor guarda un deseo para tus sueños.';
 }
 
 bloomButton.addEventListener('click', bloomFlower);
