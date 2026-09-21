@@ -2,6 +2,9 @@ const bloomButton = document.querySelector('#bloomButton');
 const flowerStage = document.querySelector('#flower');
 const flower = document.querySelector('.flower');
 const flowerMessage = document.querySelector('#flowerMessage');
+const dedicationAudio = document.querySelector('#dedicationAudio');
+const musicStatus = document.querySelector('#musicStatus');
+const musicStart = document.querySelector('#musicStart');
 
 function bloomFlower() {
   const isBlooming = flower.classList.toggle('is-blooming');
@@ -25,3 +28,26 @@ flowerStage.addEventListener('keydown', (event) => {
     bloomFlower();
   }
 });
+
+async function startDedicationAudio() {
+  if (!dedicationAudio) return;
+
+  try {
+    await dedicationAudio.play();
+    musicStatus.textContent = 'Reproduciendo para ti.';
+    musicStart.hidden = true;
+  } catch {
+    musicStatus.textContent = 'Toca el botón para comenzar la canción.';
+    musicStart.hidden = false;
+  }
+}
+
+dedicationAudio.addEventListener('play', () => {
+  musicStatus.textContent = 'Reproduciendo para ti.';
+  musicStart.hidden = true;
+});
+dedicationAudio.addEventListener('pause', () => {
+  if (!dedicationAudio.ended) musicStatus.textContent = 'Canción pausada.';
+});
+musicStart.addEventListener('click', startDedicationAudio);
+startDedicationAudio();

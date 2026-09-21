@@ -24,6 +24,23 @@
         <div class="scroll-cue" aria-hidden="true"><span></span>desliza suavemente</div>
       </section>
 
+      <section class="music-section shell" aria-labelledby="music-title">
+        <div class="music-card">
+          <div class="section-kicker">Una canción para ti</div>
+          <h2 id="music-title">Eres tú</h2>
+          <p>Déjala sonar cuando quieras recorrer esta pequeña página.</p>
+          <div class="audio-row">
+            <span class="music-icon" aria-hidden="true">♫</span>
+            <audio id="dedicationAudio" autoplay preload="auto" controls>
+              <source src="/JackN/assets/eres-tu.mp3" type="audio/mpeg" />
+              Tu navegador no puede reproducir este audio.
+            </audio>
+          </div>
+          <p class="music-status" id="musicStatus" role="status" aria-live="polite">Intentando reproducir automáticamente…</p>
+          <button class="music-start" id="musicStart" type="button" hidden>▶ Activar la canción</button>
+        </div>
+      </section>
+
       <section class="letter-section shell" aria-labelledby="letter-title">
         <div class="section-kicker">Una flor para mi princesita</div>
         <h2 id="letter-title">Que nunca dejes de perseguir tus sueños</h2>
