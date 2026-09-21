@@ -4,6 +4,10 @@
   "trailingSlash": false,
   "rewrites": [
     {
+      "source": "/JackN",
+      "destination": "/JackN/index.html"
+    },
+    {
       "source": "/boletines/:path*",
       "destination": "https://raw.githubusercontent.com/nikolski17/KolyMedical/2f2ed56a9dcf8416c022d2a81a698a70a7e50681/kolymedical-web/boletines/:path*"
     },
