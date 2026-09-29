@@ -1,0 +1,24 @@
+# Deploy only the static web application. Local records, credentials, exports,
+# signatures, development artifacts, and source data must never be uploaded.
+/*
+!index.html
+!admin.html
+!boletin.html
+!boletines/**
+!kolytechdemo.html
+!app.js
+!styles.css
+!bulletin.js
+!bulletin-leads.mjs
+!meta-pixel.js
+!Koly_MEDICAL_banner_cropped.png
+!Logosinfondo.png
+!quotation-module.mjs
+!quote-utils.mjs
+!security-utils.mjs
+!kolytechdemo.js
+!kolytechdemo.css
+!robots.txt
+!sitemap.xml
+!vercel.json
+!googlef4b543b4f27b2445.html

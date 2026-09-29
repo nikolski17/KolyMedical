@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="description" content="Demo interactiva KolyTech para agenda, receta y orden digital.">
+  <title>KolyTech Demo | Agenda y documentos digitales</title>
+  <link rel="stylesheet" href="kolytechdemo.css?v=20260926b1">
+  <script src="kolytechdemo.js?v=20260926b1" defer></script>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="demo-brand" href="/" aria-label="Volver a KolyMedical">
+      <span class="demo-brand-mark">K</span>
+      <span>
+        <strong>KolyTech</strong>
+        <small>Herramientas para centros de salud</small>
+      </span>
+    </a>
+    <span class="demo-badge">MODO DEMOSTRACIÓN</span>
+    <a class="demo-back-link" href="/">Volver al sitio</a>
+  </header>
+
+  <main class="demo-shell">
+    <section class="demo-hero" aria-labelledby="demo-title">
+      <div>
+        <p class="eyebrow">KolyTech · entorno de prueba</p>
+        <h1 id="demo-title">Historia, agenda y documentos en un solo lugar</h1>
+        <p class="hero-copy">Explora el flujo de un consultorio con una agenda que puede enviar una cita de prueba a Google Calendar y documentos digitales con firma visual de demostración.</p>
+      </div>
+      <div class="demo-warning" role="note">
+        <strong>Esta demo no guarda datos clínicos.</strong>
+        <span>La información vive únicamente en la memoria de esta pestaña y se elimina al recargar o cerrar la web. No se escribe en la base clínica.</span>
+      </div>
+    </section>
+
+    <div id="demo-status" class="demo-status" role="status" aria-live="polite" hidden></div>
+
+    <section class="demo-grid" aria-label="Funciones de demostración">
+      <article class="demo-card">
+        <div class="card-heading">
+          <div>
+            <p class="eyebrow">01 · Agenda</p>
+            <h2>Enviar una cita al calendario</h2>
+          </div>
+          <span class="card-icon" aria-hidden="true">▦</span>
+        </div>
+        <p class="card-copy">Registra una cita temporal y envíala a Google Calendar como evento claramente identificado como DEMO.</p>
+
+        <form id="demo-appointment-form" class="demo-form" data-demo-form novalidate>
+          <div class="field-group field-span-2">
+            <label for="demo-patient-name">Nombre del paciente</label>
+            <input id="demo-patient-name" name="patientName" autocomplete="off" maxlength="120" placeholder="Ej. Ana Torres" required>
+          </div>
+          <div class="field-group">
+            <label for="demo-patient-phone">WhatsApp / teléfono</label>
+            <input id="demo-patient-phone" name="patientPhone" inputmode="numeric" autocomplete="off" maxlength="9" placeholder="987654321" required>
+          </div>
+          <div class="field-group">
+            <label for="demo-service">Servicio</label>
+            <select id="demo-service" name="service" required>
+              <option value="">Selecciona un servicio</option>
+              <option>Consulta de Medicina Regenerativa</option>
+              <option>Consulta de Nutrición Clínica</option>
+              <option>Consulta de Psicología Clínica</option>
+              <option>Consulta de Hematología Clínica</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="demo-date">Fecha</label>
+            <input id="demo-date" name="date" type="date" required>
+          </div>
+          <div class="field-group">
+            <label for="demo-time">Hora</label>
+            <input id="demo-time" name="time" type="time" required>
+          </div>
+          <div class="field-group field-span-2">
+            <label for="demo-modality">Modalidad</label>
+            <select id="demo-modality" name="modality" required>
+              <option value="Presencial">Presencial</option>
+              <option value="Virtual">Virtual</option>
+            </select>
+          </div>
+          <button class="primary-button field-span-2" type="submit">Agregar a agenda y enviar al calendario <span aria-hidden="true">→</span></button>
+        </form>
+
+        <div class="agenda-panel" aria-live="polite">
+          <div class="subheading-row">
+            <h3>Agenda temporal</h3>
+            <span id="demo-agenda-count" class="count-pill">0 citas</span>
+          </div>
+          <p id="demo-empty-state" class="empty-state">Todavía no hay citas en esta sesión de demo.</p>
+          <div id="demo-agenda-list" class="agenda-list"></div>
+        </div>
+      </article>
+
+      <article class="demo-card">
+        <div class="card-heading">
+          <div>
+            <p class="eyebrow">02 · Documentos</p>
+            <h2>Receta y orden digital</h2>
+          </div>
+          <span class="card-icon" aria-hidden="true">✎</span>
+        </div>
+        <p class="card-copy">Genera una vista previa temporal para revisar cómo podría verse un documento emitido por el consultorio.</p>
+
+        <form id="demo-document-form" class="demo-form" data-demo-form novalidate>
+          <div class="field-group">
+            <label for="demo-document-type">Tipo de documento</label>
+            <select id="demo-document-type" name="documentType">
+              <option value="receta">Receta médica</option>
+              <option value="orden">Orden médica</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="demo-document-date">Fecha</label>
+            <input id="demo-document-date" name="documentDate" type="date">
+          </div>
+          <div class="field-group field-span-2">
+            <label for="demo-document-patient">Paciente</label>
+            <input id="demo-document-patient" name="documentPatient" maxlength="120" placeholder="Ej. Ana Torres">
+          </div>
+          <div class="field-group field-span-2">
+            <label for="demo-document-diagnosis">Diagnóstico o motivo</label>
+            <input id="demo-document-diagnosis" name="diagnosis" maxlength="160" placeholder="Ej. Control y seguimiento">
+          </div>
+          <div class="field-group field-span-2">
+            <label id="demo-detail-label" for="demo-document-detail" data-detail-label>Medicamento e indicaciones</label>
+            <textarea id="demo-document-detail" name="detail" rows="4" maxlength="500" placeholder="Ej. Producto, dosis, frecuencia e indicaciones"></textarea>
+          </div>
+          <div class="form-actions field-span-2">
+            <button class="secondary-button" type="button" id="demo-print-document">Imprimir vista previa</button>
+            <button class="ghost-button" type="button" id="demo-reset">Limpiar demo</button>
+          </div>
+        </form>
+
+        <div id="demo-document-preview" class="document-preview" aria-live="polite">
+          <span class="demo-signature-fallback">FIRMA DE PRUEBA — NO VÁLIDA PARA ATENCIÓN CLÍNICA</span>
+        </div>
+      </article>
+    </section>
+
+    <section class="demo-features" aria-label="Alcance del entorno de prueba">
+      <div><span>✓</span><strong>Historia clínica electrónica</strong><small>Flujo visual de atención</small></div>
+      <div><span>✓</span><strong>Firma electrónica médica</strong><small>Firma de prueba no válida</small></div>
+      <div><span>✓</span><strong>Recetas y órdenes digitales</strong><small>Vista previa temporal</small></div>
+      <div><span>✓</span><strong>Agenda conectada</strong><small>Evento demo en Calendar</small></div>
+    </section>
+  </main>
+
+  <footer class="demo-footer">
+    <span>KolyTech · Entorno seguro de demostración</span>
+    <span>Los datos de esta demo se eliminan al recargar la página.</span>
+  </footer>
+</body>
+</html>
