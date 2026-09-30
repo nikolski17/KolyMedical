@@ -1928,6 +1928,35 @@ let calendarViewMode = localStorage.getItem('kolymedical_calendar_view') || 'mon
 // ----------------------------------------------------- 
 // (INITIAL_USERS está definido arriba del archivo, junto a INITIAL_APPOINTMENTS)
 
+async function getAdminUserSaveErrorCode(error) {
+  const response = error?.context;
+  if (!response || typeof response.clone !== 'function') return '';
+  try {
+    const payload = await response.clone().json();
+    return typeof payload?.error === 'string' ? payload.error : '';
+  } catch {
+    return '';
+  }
+}
+
+function getAdminUserSaveErrorMessage(code) {
+  const messages = {
+    account_creation_superadmin_only: 'Solo Superadministración de KolyTech puede crear cuentas nuevas. Inicia sesión con esa cuenta; el administrador del centro no puede enviar invitaciones.',
+    invalid_user: 'Revisa los datos. El nombre de usuario debe tener 3–32 caracteres en minúscula, números, punto, guion o guion bajo. El correo va en el campo separado.',
+    center_required: 'Selecciona el centro al que pertenecerá esta cuenta.',
+    center_inactive: 'El centro seleccionado no está activo. Elige un centro activo desde Administración de centros.',
+    role_forbidden: 'Ese rol no está disponible para esta cuenta. Verifica que hayas ingresado como Superadministración de KolyTech.',
+    center_forbidden: 'Tu sesión no tiene autorización para administrar el centro seleccionado.',
+    unauthorized: 'La sesión administrativa venció. Vuelve a ingresar y confirma que estás usando la cuenta de Superadministración de KolyTech.',
+    forbidden: 'Esta acción requiere permisos de Superadministración de KolyTech.',
+    invite_failed: 'No se pudo enviar la invitación. Verifica el correo y que no exista ya una cuenta con esa dirección.',
+    service_unavailable: 'El servicio de cuentas no está disponible en este momento. Inténtalo nuevamente más tarde.',
+    profile_failed: 'No se pudo completar el perfil de la cuenta. No vuelvas a enviar la invitación todavía; revisa la lista de personal primero.',
+    catalog_failed: 'No se pudo guardar la configuración del especialista. Revisa los datos y vuelve a intentarlo.'
+  };
+  return messages[code] || 'No se pudo guardar la cuenta. Revisa los datos y confirma que tu sesión administrativa siga activa.';
+}
+
 const DB_Users = {
   getUsers: function () {
     return localUsersCache;
@@ -1939,12 +1968,14 @@ const DB_Users = {
     let action = 'update';
     if (userObj.accountPending && !userObj.email) action = 'update_pending';
     else if (!userObj.id || userObj.accountPending) action = 'invite';
+    if (action === 'invite' && current?.isPlatformAdmin !== true) return false;
     const { data, error } = await supabaseClient.functions.invoke('admin-users', {
       body: { action, user: userObj }
     });
     if (error || !data?.user) {
-      console.error('No se pudo guardar la cuenta de personal:', error);
-      return false;
+      const errorCode = await getAdminUserSaveErrorCode(error);
+      console.error('No se pudo guardar la cuenta de personal:', { status: error?.status, code: errorCode || 'unknown' });
+      return { ok: false, errorCode };
     }
     const saved = mapUserFromDb(data.user);
     if (action === 'update_pending') {
@@ -1957,7 +1988,7 @@ const DB_Users = {
     const index = localUsersCache.findIndex((u) => u.id === saved.id || u.username === saved.username);
     if (index === -1) localUsersCache.push(saved);
     else localUsersCache[index] = saved;
-    return { user: saved, invitationSent: data.invitationSent === true, pending: saved.accountPending === true };
+    return { ok: true, user: saved, invitationSent: data.invitationSent === true, pending: saved.accountPending === true };
   },
 
   deleteUser: async function (userId) {
@@ -3531,11 +3562,17 @@ function initUserManagementForm() {
   const etiquetaInput = document.getElementById('user-etiqueta');
   const centerGroup = document.getElementById('user-center-group');
   const centerSelect = document.getElementById('user-center');
+  const creationNotice = document.getElementById('admin-user-creation-notice');
   if (getCurrentUser()?.isPlatformAdmin === true) {
-    roleSelect.innerHTML = '<option value="Administrador">Administrador del centro</option>';
-    roleSelect.value = 'Administrador';
+    roleSelect.innerHTML = '<option value="">Selecciona un rol</option><option value="Administrador">Administrador del centro</option><option value="Comercial">Comercial / Recepcionista</option><option value="Médico">Médico Especialista</option><option value="Nutricionista">Nutricionista</option><option value="Psicólogo">Psicólogo</option>';
+    roleSelect.value = '';
     if (centerGroup) centerGroup.style.display = 'block';
+    if (centerSelect) centerSelect.required = true;
     refreshPlatformCenterSelect();
+  } else {
+    if (centerSelect) centerSelect.required = false;
+    form.style.display = 'none';
+    if (creationNotice) creationNotice.style.display = 'block';
   }
   loadMedicalSpecialtiesForUser();
 
@@ -3566,6 +3603,7 @@ function initUserManagementForm() {
 
   roleSelect.addEventListener('change', updateVisibility);
   usernameInput.addEventListener('input', () => {
+    usernameInput.value = usernameInput.value.toLowerCase();
     const role = roleSelect.value;
     const editId = document.getElementById('user-edit-id').value;
     if (isSpecialistRole(role)) {
@@ -3594,6 +3632,10 @@ function initUserManagementForm() {
     const priceVal = priceGroup ? Number.parseFloat(document.getElementById('user-price').value) : 100;
 
     const existingUser = editId ? DB_Users.getUsers().find((u) => u.id === editId) : null;
+    if (!existingUser && getCurrentUser()?.isPlatformAdmin !== true) {
+      alert('Solo Superadministración puede crear cuentas nuevas. Puedes editar cuentas existentes de tu centro.');
+      return;
+    }
     const accountPending = pendingInput
       ? pendingInput.value === 'true'
       : existingUser?.accountPending === true;
@@ -3686,12 +3728,12 @@ function initUserManagementForm() {
     }
 
     const saveResult = await DB_Users.saveUser(newUser);
-    if (!saveResult) {
+    if (!saveResult || saveResult.ok === false) {
       SPECIALISTS = specialistsBefore;
       SERVICES = servicesBefore;
       safeLocalStorage.setItem(centerStorageKey('kolymedical_specialists'), JSON.stringify(SPECIALISTS));
       safeLocalStorage.setItem(centerStorageKey('kolymedical_services'), JSON.stringify(SERVICES));
-      alert('No se pudo guardar la cuenta. Verifica los datos o la sesión administrativa.');
+      alert(getAdminUserSaveErrorMessage(saveResult?.errorCode));
       return;
     }
     alert(saveResult.invitationSent
@@ -3739,6 +3781,10 @@ function initUserManagementForm() {
 }
 
 function editUserAccount(user) {
+  const form = document.getElementById('admin-user-form');
+  const creationNotice = document.getElementById('admin-user-creation-notice');
+  if (form) form.style.display = 'block';
+  if (creationNotice) creationNotice.style.display = 'none';
   document.getElementById('user-form-title').textContent = user.accountPending
     ? 'Editar Trabajador Pendiente'
     : 'Editar Trabajador';
@@ -3817,6 +3863,11 @@ function resetUserForm() {
   if (getCurrentUser()?.isPlatformAdmin === true) refreshPlatformCenterSelect();
   document.getElementById('user-specialty').required = false;
   document.getElementById('btn-cancel-user-edit').style.display = 'none';
+  if (getCurrentUser()?.isPlatformAdmin !== true) {
+    document.getElementById('admin-user-form').style.display = 'none';
+    const creationNotice = document.getElementById('admin-user-creation-notice');
+    if (creationNotice) creationNotice.style.display = 'block';
+  }
 }
 
 // Actualizar Tarjetas de Estadísticas
