@@ -15,6 +15,38 @@ export function normalizeUsername(value) {
   return /^[a-z0-9][a-z0-9._-]{2,31}$/.test(normalized) ? normalized : '';
 }
 
+const REMEMBERED_LOGIN_KEY = 'kolymedical_remembered_login';
+
+function normalizeRememberedLogin(value) {
+  const normalized = String(value ?? '').trim().toLowerCase();
+  return normalized.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)
+    ? normalized
+    : '';
+}
+
+export function getRememberedLogin(storage) {
+  try {
+    return normalizeRememberedLogin(storage?.getItem(REMEMBERED_LOGIN_KEY));
+  } catch (error) {
+    return '';
+  }
+}
+
+export function setRememberedLogin(storage, value, shouldRemember) {
+  try {
+    if (!shouldRemember) {
+      storage?.removeItem(REMEMBERED_LOGIN_KEY);
+      return true;
+    }
+    const normalized = normalizeRememberedLogin(value);
+    if (!normalized) return false;
+    storage?.setItem(REMEMBERED_LOGIN_KEY, normalized);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
 export function validatePasswordStrength(value) {
   const password = String(value ?? '');
   const checks = {
@@ -63,7 +95,9 @@ export function validatePublicAppointment(input) {
 
 const api = Object.freeze({
   escapeHtml,
+  getRememberedLogin,
   normalizeUsername,
+  setRememberedLogin,
   validatePasswordStrength,
   validatePublicAppointment
 });

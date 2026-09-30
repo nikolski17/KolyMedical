@@ -4,10 +4,6 @@
   "trailingSlash": false,
   "rewrites": [
     {
-      "source": "/JackN",
-      "destination": "/JackN/index.html"
-    },
-    {
       "source": "/boletines/:path*",
       "destination": "https://raw.githubusercontent.com/nikolski17/KolyMedical/2f2ed56a9dcf8416c022d2a81a698a70a7e50681/kolymedical-web/boletines/:path*"
     },
@@ -46,7 +42,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'sha256-WHJS6B5J0BE0G4qjOT9mGz1VdPz2JEy0FDB1BYZWbjc=' 'sha256-J8JqQwyvh5JYlxvXsajIDLSQ5OQrKXfairUkWjKYzAk=' 'sha256-MCj8/lm56eTNLoV1rqjMu3bJogKJJFcvoS1ltjT6wfU=' 'sha256-whiuWMTSHukkaPXSiKe83ch0WJqfVokEZJ6NwEVVj7g=' 'sha256-BI6wL73TgFxWz6yRljwiuwqnNrndI7f4rvqBWa0FZzc=' https://www.googletagmanager.com https://connect.facebook.net https://unpkg.com https://cdn.jsdelivr.net; script-src-attr 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://tounxohlvyjcwcyeddlg.supabase.co wss://tounxohlvyjcwcyeddlg.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net https://www.google.com https://www.facebook.com https://connect.facebook.net; frame-src https://www.google.com; worker-src 'none'; upgrade-insecure-requests; block-all-mixed-content"
+          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'sha256-WHJS6B5J0BE0G4qjOT9mGz1VdPz2JEy0FDB1BYZWbjc=' 'sha256-J8JqQwyvh5JYlxvXsajIDLSQ5OQrKXfairUkWjKYzAk=' 'sha256-MCj8/lm56eTNLoV1rqjMu3bJogKJJFcvoS1ltjT6wfU=' 'sha256-whiuWMTSHukkaPXSiKe83ch0WJqfVokEZJ6NwEVVj7g=' 'sha256-BI6wL73TgFxWz6yRljwiuwqnNrndI7f4rvqBWa0FZzc=' https://www.googletagmanager.com https://connect.facebook.net https://unpkg.com https://cdn.jsdelivr.net https://cdn.sheetjs.com; script-src-attr 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://tounxohlvyjcwcyeddlg.supabase.co wss://tounxohlvyjcwcyeddlg.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net https://www.google.com https://www.facebook.com https://connect.facebook.net; frame-src https://www.google.com; worker-src 'none'; upgrade-insecure-requests; block-all-mixed-content"
         },
         {
           "key": "X-Content-Type-Options",
@@ -88,7 +84,33 @@
       ]
     },
     {
-      "source": "/(index.html|boletin.html|app.js|bulletin.js|meta-pixel.js|styles.css|security-utils.mjs|quote-utils.mjs|quotation-module.mjs)",
+      "source": "/kolytechdemo.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow, noarchive"
+        }
+      ]
+    },
+    {
+      "source": "/kolytechdemo",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow, noarchive"
+        }
+      ]
+    },
+    {
+      "source": "/(index.html|boletin.html|app.js|bulletin.js|meta-pixel.js|styles.css|security-utils.mjs|quote-utils.mjs|quotation-module.mjs|kolytechdemo.js|kolytechdemo.css)",
       "headers": [
         {
           "key": "Cache-Control",

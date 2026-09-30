@@ -1,0 +1,52 @@
+# Deploy only the static web application. Local records, credentials, exports,
+# signatures, development artifacts, and source data must never be uploaded.
+/*
+!index.html
+!admin.html
+!boletin.html
+!boletines/**
+!kolytechdemo.html
+!app.js
+!styles.css
+!bulletin.js
+!bulletin-leads.mjs
+!meta-pixel.js
+!Koly_MEDICAL_banner_cropped.png
+!Logosinfondo.png
+!quotation-module.mjs
+!quote-utils.mjs
+!security-utils.mjs
+!kolytechdemo.js
+!kolytechdemo.css
+!robots.txt
+!sitemap.xml
+!vercel.json
+!googlef4b543b4f27b2445.html
+
+# Vercel's Git build can evaluate ignore patterns from the repository root
+# even when the project's Root Directory is kolymedical-web. In that case,
+# explicitly allow this folder and only the public app files listed below.
+!/kolymedical-web/
+/kolymedical-web/*
+!/kolymedical-web/index.html
+!/kolymedical-web/admin.html
+!/kolymedical-web/boletin.html
+!/kolymedical-web/boletines/
+!/kolymedical-web/boletines/**
+!/kolymedical-web/kolytechdemo.html
+!/kolymedical-web/app.js
+!/kolymedical-web/styles.css
+!/kolymedical-web/bulletin.js
+!/kolymedical-web/bulletin-leads.mjs
+!/kolymedical-web/meta-pixel.js
+!/kolymedical-web/Koly_MEDICAL_banner_cropped.png
+!/kolymedical-web/Logosinfondo.png
+!/kolymedical-web/quotation-module.mjs
+!/kolymedical-web/quote-utils.mjs
+!/kolymedical-web/security-utils.mjs
+!/kolymedical-web/kolytechdemo.js
+!/kolymedical-web/kolytechdemo.css
+!/kolymedical-web/robots.txt
+!/kolymedical-web/sitemap.xml
+!/kolymedical-web/vercel.json
+!/kolymedical-web/googlef4b543b4f27b2445.html

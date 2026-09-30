@@ -4,10 +4,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KolyMedical — Panel Administrativo Médico</title>
+  <title>KolyTech — Plataforma de Gestión Médica</title>
   <meta name="robots" content="noindex, nofollow">
   <link rel="icon" type="image/png" href="Logosinfondo.png">
-  <link rel="stylesheet" href="styles.css?v=20260830b1">
+  <link rel="stylesheet" href="styles.css?v=20260924b1">
   <script src="https://unpkg.com/lucide@1.34.0/dist/umd/lucide.js"
     integrity="sha384-frWQkjuw7X/yo4G2C2YnAAbkHHi7uBnMwf577mOjXDG0me9gl8Yrdyu1BhvS7WX5" crossorigin="anonymous"></script>
   <!-- Google Analytics GA4 (gtag.js) -->
@@ -29,14 +29,14 @@
     
     <!-- Marca de agua translúcida gigante en el fondo -->
     <div class="login-bg-watermark" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 65vh; height: 65vh; opacity: 0.025; pointer-events: none; z-index: 1;">
-      <img src="Logosinfondo.png" alt="KolyMedical Watermark" style="width: 100%; height: 100%; object-fit: contain; filter: brightness(0) invert(1);">
+      <img src="Logosinfondo.png" alt="KolyTech Watermark" style="width: 100%; height: 100%; object-fit: contain; filter: brightness(0) invert(1);">
     </div>
 
     <div class="login-card">
       <div class="login-logo">
-        <img src="Logosinfondo.png" alt="KolyMedical Logo" class="logo-icon"
+        <img src="Logosinfondo.png" alt="KolyTech Logo" class="logo-icon"
           style="width: 70px; height: 70px; object-fit: contain;">
-        <h2>Panel Médico</h2>
+        <h2 id="login-brand-name">KolyTech</h2>
         <p style="font-size: 0.85rem; color: rgba(255,255,255,0.65);">Acceso exclusivo para el personal autorizado</p>
       </div>
 
@@ -51,6 +51,13 @@
           <input type="password" id="login-pass" class="form-control" placeholder="Ingrese contraseña" required
             autocomplete="current-password">
         </div>
+        <div class="login-options">
+          <label class="remember-user-control" for="login-remember-user">
+            <input type="checkbox" id="login-remember-user" autocomplete="off">
+            <span>Recordar usuario</span>
+          </label>
+          <small>Solo se guardará el correo, nunca la contraseña.</small>
+        </div>
         <button type="submit" class="btn btn-primary" style="width: 100%;">Iniciar Sesión</button>
       </form>
     </div>
@@ -64,17 +71,17 @@
         <div class="logo-container"
           style="color: white; margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; width: 100%;">
           <div style="display: flex; align-items: center; gap: 0.6rem;">
-            <img src="Logosinfondo.png" alt="KolyMedical Logo"
+            <img src="Logosinfondo.png" alt="KolyTech Logo"
               style="width: 30px; height: 30px; object-fit: contain; filter: brightness(0) invert(1);">
             <div>
-              <div style="font-size: 1.15rem; font-weight: 800; letter-spacing: 1.5px; font-family: var(--font-family-serif, serif); line-height: 1.2;">
-                KOLYMEDICAL
+              <div id="sidebar-brand-name" style="font-size: 1.15rem; font-weight: 800; letter-spacing: 1.5px; font-family: var(--font-family-serif, serif); line-height: 1.2;">
+                KOLYTECH
               </div>
               <span id="sidebar-user-role"
                 style="font-size: 0.6rem; color: rgba(255,255,255,0.5); display:block; letter-spacing:0.8px; text-transform: uppercase; margin-top: 2px;">ADMINISTRACIÓN</span>
             </div>
           </div>
-          <!-- Engranaje al lado de KOLYMEDICAL -->
+          <!-- Engranaje de configuración de KolyTech -->
           <button id="btn-sidebar-profile"
             style="color: rgba(255,255,255,0.5); cursor: pointer; transition: var(--transition-fast); display: flex; align-items: center;"
             title="Mi Perfil"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -171,6 +178,10 @@
             </svg>
             Administrar costos
           </button>
+          <button class="sidebar-item" data-view="platform" id="menu-platform" style="display:none;">
+            <i data-lucide="building-2" class="sidebar-icon" style="width:18px;height:18px;"></i>
+            Administración de centros
+          </button>
         </nav>
 
         <!-- Cuadro de frases sutiles (tipo vidrio opaco / glassmorphism) -->
@@ -220,7 +231,7 @@
       <header class="admin-header" style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
         <div class="admin-title">
           <h1>Panel de Control</h1>
-          <p>Ecosistema Médico KolyMedical — Agenda y Pacientes</p>
+          <p>KolyTech — Agenda, pacientes y operación de centros médicos</p>
         </div>
         <!-- 🔔 Bandeja de Notificaciones (para Administrador y Comercial) -->
         <div id="notifications-dropdown-container" style="position: relative; display: inline-block;">
@@ -406,16 +417,19 @@
                 </select>
               </div>
               <div class="form-group" id="admin-booking-meetlink-group" style="display: none;">
-                <label for="admin-booking-meetlink">
-                  <span style="display: flex; align-items: center; gap: 0.4rem;">
-                    🔗 Link de Reunión (Google Meet / Zoom):
-                  </span>
-                </label>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
+                  <label for="admin-booking-meetlink" style="margin: 0;">
+                    🔗 Link de Reunión (Meet / Zoom / Sala):
+                  </label>
+                  <button type="button" id="btn-admin-auto-meetlink" class="btn btn-secondary" style="padding: 0.15rem 0.45rem; font-size: 0.72rem; height: auto;">
+                    📹 Generar Sala
+                  </button>
+                </div>
                 <input type="url" id="admin-booking-meetlink" class="form-control"
-                  placeholder="https://meet.google.com/abc-defg-hij"
+                  placeholder="https://meet.google.com/... o clic en 'Generar Sala'"
                   style="font-size: 0.9rem;">
                 <p style="margin: 0.25rem 0 0; font-size: 0.72rem; color: var(--color-text-muted);">
-                  Este enlace será visible para el especialista y el comercial.
+                  Este enlace será visible para el paciente, especialista y comercial.
                 </p>
               </div>
               <div class="form-group">
@@ -432,6 +446,72 @@
             </form>
           </div>
         </div>
+      </div>
+
+      <div id="view-platform" class="dashboard-view" style="display:none;">
+        <section class="admin-card" style="margin-bottom:1.25rem;">
+          <div class="admin-card-header"><div><h2>Invitar superadministrador</h2><p style="color:var(--color-text-muted);margin:.35rem 0 0;">El acceso a KolyTech se entrega por correo seguro. La contraseña la establece su titular desde la invitación.</p></div></div>
+          <form id="platform-admin-invite-form" class="form-grid-2" style="align-items:end;">
+            <div class="form-group"><label for="platform-admin-invite-username">Usuario</label><input id="platform-admin-invite-username" class="form-control" maxlength="32" pattern="[a-z0-9][a-z0-9._-]{2,31}" autocomplete="username" required></div>
+            <div class="form-group"><label for="platform-admin-invite-fullname">Nombre completo</label><input id="platform-admin-invite-fullname" class="form-control" maxlength="120" autocomplete="name" required></div>
+            <div class="form-group"><label for="platform-admin-invite-email">Correo de acceso</label><input id="platform-admin-invite-email" class="form-control" type="email" maxlength="254" autocomplete="email" required></div>
+            <button type="submit" class="btn btn-accent">Enviar invitación segura</button>
+          </form>
+          <p id="platform-admin-invite-status" role="status" aria-live="polite" style="margin:.65rem 0 0;"></p>
+        </section>
+
+        <section class="admin-card" style="margin-bottom:1.25rem;">
+          <div class="admin-card-header" style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;">
+            <div><h2>Centros de salud afiliados</h2><p style="color:var(--color-text-muted);margin:.35rem 0 0;">Administra el acceso, módulos y la identidad visual de cada organización.</p></div>
+            <button type="button" class="btn btn-accent" id="btn-platform-new-center">Crear centro</button>
+          </div>
+          <div class="table-responsive"><table class="admin-table"><thead><tr><th>Centro</th><th>Identificador</th><th>Estado</th><th>Módulos activos</th><th></th></tr></thead><tbody id="platform-centers-body"><tr><td colspan="5">Cargando centros…</td></tr></tbody></table></div>
+        </section>
+
+        <section class="admin-card" id="platform-center-editor" style="display:none;margin-bottom:1.25rem;">
+          <div class="admin-card-header"><h2 id="platform-center-form-title">Nuevo centro</h2></div>
+          <form id="platform-center-form">
+            <input type="hidden" id="platform-center-id">
+            <div class="form-grid-2">
+              <div class="form-group"><label for="platform-center-name">Nombre legal / del centro</label><input id="platform-center-name" class="form-control" maxlength="120" required></div>
+              <div class="form-group"><label for="platform-center-brand">Nombre que verá el paciente</label><input id="platform-center-brand" class="form-control" maxlength="120" required></div>
+              <div class="form-group"><label for="platform-center-slug">Código de acceso</label><input id="platform-center-slug" class="form-control" pattern="[a-z0-9][a-z0-9-]{1,62}" maxlength="63" placeholder="rx-solution" required></div>
+              <div class="form-group"><label for="platform-system-name">Nombre de la plataforma</label><input id="platform-system-name" class="form-control" maxlength="80" value="KolyTech" required></div>
+              <div class="form-group"><label for="platform-center-status">Estado de acceso</label><select id="platform-center-status" class="form-control"><option value="pending">Pendiente</option><option value="active">Activo</option><option value="suspended">Suspendido</option></select></div>
+              <div class="form-group"><label for="platform-center-logo">URL de logo (opcional, HTTPS)</label><input id="platform-center-logo" class="form-control" type="url" maxlength="500" placeholder="https://…"></div>
+              <div class="form-group"><label for="platform-primary-color">Color principal</label><input id="platform-primary-color" class="form-control" type="color" value="#3D5A73"></div>
+              <div class="form-group"><label for="platform-accent-color">Color de acento</label><input id="platform-accent-color" class="form-control" type="color" value="#00A896"></div>
+            </div>
+            <h3 style="margin:1rem 0 .5rem;">Opciones habilitadas para este centro</h3>
+            <div class="platform-module-grid">
+              <label><input type="checkbox" data-platform-module="agenda"> Agenda y calendario</label>
+              <label><input type="checkbox" data-platform-module="clinical_records"> Historias clínicas</label>
+              <label><input type="checkbox" data-platform-module="availability"> Disponibilidad médica</label>
+              <label><input type="checkbox" data-platform-module="staff"> Gestión de personal</label>
+              <label><input type="checkbox" data-platform-module="prescriptions"> Recetas y órdenes</label>
+              <label><input type="checkbox" data-platform-module="quotations"> Cotizaciones</label>
+              <label><input type="checkbox" data-platform-module="pricing_catalog"> Catálogo y precios</label>
+              <label><input type="checkbox" data-platform-module="bulletin"> Buzón de interesados</label>
+            </div>
+            <div style="display:flex;gap:.75rem;justify-content:flex-end;margin-top:1.25rem;">
+              <button type="button" class="btn btn-secondary" id="btn-platform-cancel-center">Cancelar</button>
+              <button type="submit" class="btn btn-accent">Guardar configuración</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="admin-card">
+          <div class="admin-card-header"><div><h2>Especialidades médicas</h2><p style="color:var(--color-text-muted);margin:.35rem 0 0;">Catálogo global disponible para asignar a los perfiles clínicos de los centros.</p></div></div>
+          <form id="platform-specialty-form" class="form-grid-2" style="align-items:end;margin-bottom:1rem;">
+            <input type="hidden" id="platform-specialty-edit-code">
+            <div class="form-group"><label for="platform-specialty-name">Nombre de especialidad</label><input id="platform-specialty-name" class="form-control" maxlength="120" placeholder="Ej. Radiología Intervencionista" required></div>
+            <div class="form-group"><label for="platform-specialty-group">Área</label><select id="platform-specialty-group" class="form-control"><option value="clinica">Clínica</option><option value="quirurgica">Quirúrgica</option><option value="apoyo-diagnostico">Apoyo diagnóstico</option><option value="salud-publica">Salud pública</option><option value="subespecialidad">Subespecialidad</option><option value="otra">Otra</option></select></div>
+            <div class="form-group"><label for="platform-specialty-code">Código único</label><input id="platform-specialty-code" class="form-control" maxlength="80" pattern="[a-z0-9-]{2,80}" placeholder="radiologia-intervencionista" required></div>
+            <button type="submit" class="btn btn-accent" style="margin-bottom:1rem;">Añadir especialidad</button>
+          </form>
+          <div class="table-responsive"><table class="admin-table"><thead><tr><th>Especialidad</th><th>Área</th><th>Fuente</th><th>Estado</th><th></th></tr></thead><tbody id="platform-specialties-body"><tr><td colspan="5">Cargando especialidades…</td></tr></tbody></table></div>
+        </section>
+        <p style="font-size:.78rem;color:var(--color-text-muted);margin:1rem 0;">El catálogo base se organizó con referencias del MINSA y CONAREME. La disponibilidad oficial de títulos y subespecialidades puede variar; el superadministrador puede actualizar este catálogo.</p>
       </div>
 
       <!-- VISTA 2: CALENDARIO INTERACTIVO -->
@@ -499,7 +579,7 @@
           <!-- Tabla de Cuentas de Personal -->
           <div class="admin-card">
             <div class="admin-card-header">
-              <h2>Cuentas del Personal Clínico</h2>
+              <h2 id="users-table-title">Cuentas del Personal Clínico</h2>
             </div>
             <div class="table-responsive">
               <table class="admin-table">
@@ -508,6 +588,7 @@
                     <th>Usuario</th>
                     <th>Nombre Completo</th>
                     <th>Especialidad / Rol</th>
+                    <th>Centro</th>
                     <th>Firma</th>
                     <th>Acciones</th>
                   </tr>
@@ -548,18 +629,20 @@
               <div class="form-group">
                 <label for="user-role">Rol:</label>
                 <select id="user-role" class="form-control" required>
-                  <option value="Administrador">Administrador</option>
                   <option value="Médico">Médico Especialista</option>
                   <option value="Nutricionista">Nutricionista</option>
                   <option value="Psicólogo">Psicólogo</option>
                   <option value="Comercial">Comercial / Recepcionista</option>
                 </select>
               </div>
+              <div class="form-group" id="user-center-group" style="display:none;">
+                <label for="user-center">Centro de salud</label>
+                <select id="user-center" class="form-control"><option value="">Selecciona un centro</option></select>
+              </div>
               <!-- Campos solo para roles médicos/especialistas -->
               <div class="form-group" id="user-specialty-group" style="display:none;">
                 <label for="user-specialty">Especialidad (aparece en la receta):</label>
-                <input type="text" id="user-specialty" class="form-control"
-                  placeholder="Ej. Cardiología, Medicina Interna...">
+                <select id="user-specialty" class="form-control"><option value="">Selecciona especialidad</option></select>
               </div>
               <div class="form-group" id="user-price-group" style="display:none;">
                 <label for="user-price">Costo por Consulta / Servicio (S/):</label>
@@ -584,6 +667,17 @@
 
       <!-- VISTA 4.5: DISPONIBILIDAD MÉDICA -->
       <div id="view-availability" class="dashboard-view" style="display: none;">
+        <section class="admin-card" id="center-calendar-integration-panel" style="max-width:760px;margin:0 auto 1.25rem;">
+          <div class="admin-card-header"><h2>Google Calendar del centro</h2></div>
+          <p style="color:var(--color-text-muted);font-size:.88rem;margin:.25rem 0 1rem;">Cada centro conecta su propia cuenta institucional. Solo se sincroniza la fecha, la hora y el tipo de servicio o estudio. No se envían el nombre, DNI, teléfono ni motivo clínico del paciente.</p>
+          <div id="center-calendar-platform-selector" class="form-group" hidden><label for="center-calendar-center-select">Centro a configurar</label><select id="center-calendar-center-select" class="form-control"></select></div>
+          <p id="center-calendar-connection-status" role="status" aria-live="polite" style="margin:.5rem 0 1rem;">Consultando conexión…</p>
+          <div style="display:flex;gap:.65rem;flex-wrap:wrap;">
+            <button type="button" id="btn-center-calendar-connect" class="btn btn-accent">Conectar cuenta oficial</button>
+            <button type="button" id="btn-center-calendar-test" class="btn btn-secondary" hidden>Probar conexión</button>
+            <button type="button" id="btn-center-calendar-disconnect" class="btn btn-secondary" hidden>Desconectar</button>
+          </div>
+        </section>
         <div class="admin-card" style="max-width: 600px; margin: 0 auto;">
           <div class="admin-card-header">
             <h2>Configuración de Disponibilidad Médica</h2>
@@ -771,6 +865,7 @@
               <div class="form-group"><label for="quote-catalog-search">Agregar estudio, procedimiento o consulta</label><input id="quote-catalog-search" class="form-control" type="search" autocomplete="off" placeholder="Buscar por código, nombre, empresa o categoría"></div>
               <div class="form-group"><label for="quote-provider-filter">Empresa</label><select id="quote-provider-filter" class="form-control"><option value="">Todas</option></select></div>
               <div class="form-group"><label for="quote-category-filter">Categoría</label><select id="quote-category-filter" class="form-control"><option value="">Todas</option></select></div>
+              <div class="form-group"><label for="quote-catalog-sort">Ordenar resultados</label><select id="quote-catalog-sort" class="form-control"><option value="name">Nombre</option><option value="price-asc">Precio menor a mayor (por moneda)</option><option value="price-desc">Precio mayor a menor (por moneda)</option></select></div>
             </div>
             <div id="quote-catalog-results" class="quote-catalog-results" aria-live="polite"></div>
 
@@ -808,10 +903,32 @@
         <div class="catalog-admin-layout">
           <section class="admin-card">
             <div class="admin-card-header quote-section-heading"><div><h2>Costos y precios permanentes</h2><p>Solo los cambios guardados aquí modifican los valores futuros.</p></div><span id="catalog-count-badge" class="quote-validity-badge">0 conceptos</span></div>
+            <div class="catalog-import-launch">
+              <div><strong>Actualizar desde una lista Excel</strong><p>Detecta columnas habituales, permite revisar filas y no envía el archivo a un servicio externo.</p></div>
+              <input id="catalog-import-file" type="file" accept=".xlsx,.xls,.xlsm,.csv,.ods" hidden>
+              <button type="button" class="btn btn-secondary" id="btn-catalog-import">Elegir archivo</button>
+            </div>
+            <section class="catalog-import-panel" id="catalog-import-panel" hidden aria-label="Revisión de importación">
+              <div class="admin-card-header"><div><h3>Revisar lista: <span id="catalog-import-file-name"></span></h3><p id="catalog-import-summary" aria-live="polite"></p></div></div>
+              <div class="catalog-import-defaults">
+                <div class="form-group"><label for="catalog-import-provider">Empresa por defecto si la hoja no tiene esa columna</label><input id="catalog-import-provider" class="form-control" maxlength="160"></div>
+                <div class="form-group"><label for="catalog-import-category">Categoría por defecto</label><input id="catalog-import-category" class="form-control" maxlength="120" value="General"></div>
+                <div class="form-group"><label for="catalog-import-currency">Moneda por defecto</label><select id="catalog-import-currency" class="form-control"><option value="PEN">PEN — soles</option><option value="USD">USD — dólares</option></select></div>
+              </div>
+              <div class="table-responsive"><table class="admin-table"><thead><tr><th>Fila</th><th>Estudio o servicio</th><th>Categoría</th><th>Precio</th><th>Resultado</th></tr></thead><tbody id="catalog-import-preview-body"></tbody></table></div>
+              <p id="catalog-import-preview-overflow" class="catalog-import-overflow"></p>
+              <details id="catalog-import-errors" class="catalog-import-errors" hidden><summary>Ver filas que se omitirán</summary><ul id="catalog-import-error-list"></ul></details>
+              <div class="quote-actions"><button type="button" id="btn-catalog-import-cancel" class="btn btn-secondary">Cancelar</button><button type="button" id="btn-catalog-import-confirm" class="btn btn-accent" disabled>Importar cambios</button></div>
+            </section>
             <div class="catalog-toolbar">
               <input id="catalog-admin-search" class="form-control" type="search" placeholder="Buscar código, estudio o empresa">
               <select id="catalog-admin-provider" class="form-control"><option value="">Todas las empresas</option></select>
               <select id="catalog-admin-category" class="form-control"><option value="">Todas las categorías</option></select>
+              <select id="catalog-admin-sort" class="form-control" aria-label="Ordenar catálogo">
+                <option value="name">Orden alfabético</option>
+                <option value="price-asc">Precio menor a mayor (por moneda)</option>
+                <option value="price-desc">Precio mayor a menor (por moneda)</option>
+              </select>
             </div>
             <div class="table-responsive catalog-table-wrap">
               <table class="admin-table"><thead><tr><th>Código</th><th>Empresa / Categoría</th><th>Descripción</th><th>Costo proveedor</th><th>Precio permanente</th><th>Estado</th><th></th></tr></thead><tbody id="catalog-admin-body"></tbody></table>
@@ -826,7 +943,7 @@
               <div class="form-group"><label for="catalog-provider-name">Empresa</label><input id="catalog-provider-name" class="form-control" required maxlength="160"></div>
               <div class="form-group"><label for="catalog-item-type">Tipo</label><input id="catalog-item-type" class="form-control" required maxlength="80" placeholder="Estudio"></div>
               <div class="form-group"><label for="catalog-category-code">Código de categoría</label><input id="catalog-category-code" class="form-control" required maxlength="8" placeholder="LAB"></div>
-              <div class="form-group"><label for="catalog-category">Categoría</label><input id="catalog-category" class="form-control" required maxlength="120"></div>
+              <div class="form-group"><label for="catalog-category">Categoría</label><input id="catalog-category" class="form-control" required maxlength="120" list="imaging-category-suggestions"><datalist id="imaging-category-suggestions"><option value="Ecografía"><option value="Mamografía"><option value="Tomografía"><option value="Rayos X"><option value="Histerosalpingografía"><option value="Resonancia magnética"><option value="Densitometría"><option value="Medicina nuclear"></datalist></div>
               <div class="form-group"><label for="catalog-name">Nombre del estudio o servicio</label><input id="catalog-name" class="form-control" required maxlength="240"></div>
               <div class="form-group"><label for="catalog-variant">Variante</label><input id="catalog-variant" class="form-control" maxlength="160" placeholder="Presencial, con contraste, etc."></div>
               <div class="catalog-money-fields">
@@ -834,6 +951,8 @@
                 <div class="form-group"><label for="catalog-supplier-cost">Costo proveedor</label><input id="catalog-supplier-cost" class="form-control" type="number" min="0" max="10000000" step="0.01"></div>
                 <div class="form-group"><label for="catalog-permanent-price">Precio permanente</label><input id="catalog-permanent-price" class="form-control" type="number" min="0" max="10000000" step="0.01" required></div>
               </div>
+              <label class="catalog-checkbox"><input id="catalog-appointment-enabled" type="checkbox"> Habilitar para agendar citas y estudios</label>
+              <div class="form-group"><label for="catalog-appointment-duration">Duración reservada en agenda</label><select id="catalog-appointment-duration" class="form-control"><option value="1">1 hora</option><option value="2">2 horas</option><option value="3">3 horas</option><option value="4">4 horas</option><option value="5">5 horas</option><option value="6">6 horas</option><option value="7">7 horas</option><option value="8">8 horas</option></select></div>
               <div class="form-group"><label for="catalog-term">Plazo o material</label><input id="catalog-term" class="form-control" maxlength="240"></div>
               <div class="form-group"><label for="catalog-notes">Notas internas</label><textarea id="catalog-notes" class="form-control" rows="3" maxlength="1000"></textarea></div>
               <label class="catalog-checkbox"><input id="catalog-requires-confirmation" type="checkbox"> Requiere confirmar vigencia antes de cotizar</label>
@@ -905,8 +1024,8 @@
   <!-- pdf-lib (generación de recetas/órdenes en PDF, 100% en el navegador) -->
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"
     integrity="sha384-weMABwrltA6jWR8DDe9Jp5blk+tZQh7ugpCsF3JwSA53WZM9/14PjS5LAJNHNjAI" crossorigin="anonymous"></script>
-  <script type="module" src="security-utils.mjs?v=20260830b1"></script>
-  <script src="app.js?v=20260830b1"></script>
+  <script type="module" src="security-utils.mjs?v=20260924b1"></script>
+  <script src="app.js?v=20260929-kolytech-access1"></script>
   <script>
     // Enlazar la tabla detallada de la vista de listado al buscador
     const searchEl = document.getElementById('admin-search');
