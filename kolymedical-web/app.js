@@ -2270,9 +2270,10 @@ async function initAdminDashboard() {
     const { data: sessionData } = await supabaseClient.auth.getSession();
     const sessionUser = sessionData?.session?.user;
     if (sessionUser) {
-      if (!currentUserProfile || currentUserProfile.id !== sessionUser.id || !Object.prototype.hasOwnProperty.call(currentUserProfile, 'isPlatformAdmin')) {
-        currentUserProfile = await loadCurrentProfile(sessionUser.id);
-      }
+      // Refresh the authoritative server profile on every session restore.
+      // A cached role may be stale and must never control privileged UI access.
+      currentUserProfile = await loadCurrentProfile(sessionUser.id);
+      if (!currentUserProfile) safeLocalStorage.removeItem('koly_cached_profile');
       authenticated = Boolean(currentUserProfile);
       if (authenticated && (AUTH_REDIRECT_TYPE === 'recovery' || AUTH_REDIRECT_TYPE === 'invite')) {
         showPasswordRecoveryForm(sessionUser);
