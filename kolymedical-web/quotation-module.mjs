@@ -1,4 +1,6 @@
 import { calculateQuoteTotals, createQuoteSnapshot, quoteExpiresAt } from './quote-utils.mjs';
+import { completeCatalogImport, parseCatalogSheet } from './catalog-import.mjs';
+import { sortCatalogItems } from './catalog-imaging.mjs';
 
 let context;
 let initialized = false;
@@ -6,6 +8,10 @@ let catalog = [];
 let catalogWithCosts = [];
 let quoteLines = [];
 let patientSearchTimer;
+let catalogImportRecords = [];
+let catalogImportRows = [];
+let catalogImportItems = [];
+let spreadsheetLibraryPromise = null;
 
 const byId = (id) => document.getElementById(id);
 const text = (value) => String(value ?? '').trim();
@@ -105,10 +111,10 @@ function renderCatalogPicker() {
   const query = text(byId('quote-catalog-search').value).toLocaleLowerCase('es');
   const provider = byId('quote-provider-filter').value;
   const category = byId('quote-category-filter').value;
-  const filtered = catalog.filter((item) => {
+  const filtered = sortCatalogItems(catalog.filter((item) => {
     const haystack = `${item.code} ${item.name} ${item.variant} ${item.provider_name} ${item.category}`.toLocaleLowerCase('es');
     return (!query || haystack.includes(query)) && (!provider || item.provider_name === provider) && (!category || item.category === category);
-  }).slice(0, 18);
+  }), byId('quote-catalog-sort')?.value || 'name').slice(0, 18);
 
   results.replaceChildren();
   filtered.forEach((item) => {
@@ -335,7 +341,7 @@ function renderAdminCatalog() {
   const body = byId('catalog-admin-body'); if (!body) return;
   const query = text(byId('catalog-admin-search').value).toLocaleLowerCase('es');
   const provider = byId('catalog-admin-provider').value, category = byId('catalog-admin-category').value;
-  const filtered = catalogWithCosts.filter((item) => `${item.code} ${item.name} ${item.variant} ${item.provider_name}`.toLocaleLowerCase('es').includes(query) && (!provider || item.provider_name === provider) && (!category || item.category === category));
+  const filtered = sortCatalogItems(catalogWithCosts.filter((item) => `${item.code} ${item.name} ${item.variant} ${item.provider_name} ${item.category}`.toLocaleLowerCase('es').includes(query) && (!provider || item.provider_name === provider) && (!category || item.category === category)), byId('catalog-admin-sort')?.value || 'name');
   byId('catalog-count-badge').textContent = `${filtered.length} conceptos`;
   body.replaceChildren();
   filtered.forEach((item) => {
@@ -346,8 +352,19 @@ function renderAdminCatalog() {
     const supplier = row.insertCell(); supplier.className = 'catalog-price'; supplier.textContent = item.supplier_cost == null ? '—' : money(item.supplier_cost, item.currency);
     const price = row.insertCell(); price.className = 'catalog-price'; price.textContent = money(item.permanent_price, item.currency);
     const status = row.insertCell(); status.textContent = item.active ? (item.requires_confirmation ? 'Confirmar vigencia' : 'Activo') : 'Inactivo'; if (item.requires_confirmation) status.className = 'catalog-review';
-    const action = row.insertCell(); const edit = document.createElement('button'); edit.type = 'button'; edit.className = 'btn btn-secondary'; edit.style.padding = '.35rem .55rem'; edit.textContent = 'Editar'; edit.addEventListener('click', () => editCatalogItem(item)); action.appendChild(edit);
+    const action = row.insertCell();
+    const edit = document.createElement('button'); edit.type = 'button'; edit.className = 'btn btn-secondary'; edit.style.padding = '.35rem .55rem'; edit.textContent = 'Editar'; edit.addEventListener('click', () => editCatalogItem(item)); action.appendChild(edit);
+    const toggle = document.createElement('button'); toggle.type = 'button'; toggle.className = 'btn btn-secondary'; toggle.style.cssText = 'padding:.35rem .55rem;margin-left:.35rem;color:var(--color-danger);'; toggle.textContent = item.active ? 'Quitar' : 'Reactivar'; toggle.setAttribute('aria-label', `${item.active ? 'Desactivar' : 'Reactivar'} ${item.name}`); toggle.addEventListener('click', () => toggleCatalogItem(item)); action.appendChild(toggle);
   });
+}
+
+async function toggleCatalogItem(item) {
+  const action = item.active ? 'quitar' : 'reactivar';
+  if (!confirm(`¿Deseas ${action} “${item.name}” del catálogo? ${item.active ? 'Se conservará en cotizaciones anteriores.' : 'Volverá a estar disponible para cotizaciones.'}`)) return;
+  const { error } = await context.client.from('quotation_catalog').update({ active: !item.active }).eq('id', item.id);
+  if (error) { console.error(error); alert('No se pudo cambiar el estado del estudio.'); return; }
+  await loadAdminCatalog();
+  await loadCatalog();
 }
 
 function editCatalogItem(item) {
@@ -357,9 +374,11 @@ function editCatalogItem(item) {
     'catalog-category-code': item.category_code, 'catalog-category': item.category,
     'catalog-name': item.name, 'catalog-variant': item.variant, 'catalog-currency': item.currency,
     'catalog-supplier-cost': item.supplier_cost ?? '', 'catalog-permanent-price': item.permanent_price,
+    'catalog-appointment-duration': item.appointment_duration_hours ?? 1,
     'catalog-term': item.material_or_term, 'catalog-notes': item.notes,
   };
   Object.entries(values).forEach(([id, value]) => { byId(id).value = value ?? ''; });
+  byId('catalog-appointment-enabled').checked = Boolean(item.appointment_enabled);
   byId('catalog-requires-confirmation').checked = Boolean(item.requires_confirmation);
   byId('catalog-active').checked = Boolean(item.active);
   byId('catalog-form-title').textContent = `Editar ${item.code}`;
@@ -381,6 +400,8 @@ async function saveCatalogItem(event) {
     item_type: text(byId('catalog-item-type').value), category_code: safeUpper(byId('catalog-category-code').value),
     category: text(byId('catalog-category').value), name: text(byId('catalog-name').value), variant: text(byId('catalog-variant').value),
     currency: byId('catalog-currency').value, permanent_price: Number(byId('catalog-permanent-price').value),
+    appointment_enabled: byId('catalog-appointment-enabled').checked,
+    appointment_duration_hours: Number(byId('catalog-appointment-duration').value),
     material_or_term: text(byId('catalog-term').value), notes: text(byId('catalog-notes').value),
     source_label: id ? undefined : 'Ingreso manual del administrador',
     requires_confirmation: byId('catalog-requires-confirmation').checked, active: byId('catalog-active').checked,
@@ -397,15 +418,169 @@ async function saveCatalogItem(event) {
   resetCatalogForm(); await loadAdminCatalog(); await loadCatalog();
 }
 
+function loadSpreadsheetLibrary() {
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  if (spreadsheetLibraryPromise) return spreadsheetLibraryPromise;
+  spreadsheetLibraryPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
+    script.async = true;
+    script.crossOrigin = 'anonymous';
+    script.dataset.sheetjs = 'true';
+    script.onload = () => window.XLSX ? resolve(window.XLSX) : reject(new Error('No se pudo cargar el lector de Excel.'));
+    script.onerror = () => reject(new Error('No se pudo conectar con el lector de Excel.'));
+    document.head.appendChild(script);
+  }).catch((error) => { spreadsheetLibraryPromise = null; throw error; });
+  return spreadsheetLibraryPromise;
+}
+
+function openCatalogImportPicker() {
+  byId('catalog-import-file').click();
+}
+
+async function readCatalogImportFile(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  if (file.size > 10 * 1024 * 1024) {
+    alert('El archivo supera el máximo de 10 MB. Divide la lista y vuelve a cargarla.');
+    event.target.value = '';
+    return;
+  }
+  try {
+    const XLSX = await loadSpreadsheetLibrary();
+    const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: false, raw: true });
+    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+    if (!firstSheet) throw new Error('El archivo no contiene hojas para leer.');
+    catalogImportRows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, raw: true, defval: '', blankrows: false });
+    if (!catalogImportRows.length) throw new Error('La primera hoja está vacía.');
+    if (catalogImportRows.length > 2001) throw new Error('La lista supera 2,000 filas. Divídela en varios archivos para revisarla.');
+    const center = context.getCurrentCenter?.();
+    byId('catalog-import-provider').value = center?.brand_name || center?.display_name || '';
+    byId('catalog-import-category').value = 'General';
+    byId('catalog-import-currency').value = 'PEN';
+    byId('catalog-import-file-name').textContent = file.name;
+    byId('catalog-import-panel').hidden = false;
+    refreshCatalogImportPreview();
+    byId('catalog-import-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (error) {
+    console.error('Importación de catálogo:', error);
+    alert(error.message || 'No se pudo leer el archivo. Usa una hoja Excel compatible.');
+    event.target.value = '';
+  }
+}
+
+function refreshCatalogImportPreview() {
+  const parsed = parseCatalogSheet(catalogImportRows, {
+    defaults: {
+      providerName: byId('catalog-import-provider').value,
+      category: byId('catalog-import-category').value,
+      currency: byId('catalog-import-currency').value,
+    },
+  });
+  catalogImportRecords = parsed.records || [];
+  catalogImportItems = completeCatalogImport(catalogImportRecords, catalogWithCosts, context.getCurrentUser()?.centerId);
+  const invalid = catalogImportRecords.filter((record) => record.errors.length);
+  const importBySourceRow = new Map(catalogImportItems.map((item) => [item.import_source_row, item]));
+  const updateCount = catalogImportItems.filter((item) => item.id).length;
+  const createCount = catalogImportItems.length - updateCount;
+  const summary = byId('catalog-import-summary');
+  if (parsed.error) summary.textContent = parsed.error;
+  else summary.textContent = `${createCount} conceptos nuevos y ${updateCount} actualizaciones listas. ${invalid.length} filas incompletas se omitirán.`;
+  const body = byId('catalog-import-preview-body');
+  body.replaceChildren();
+  catalogImportRecords.slice(0, 25).forEach((record) => {
+    const row = body.insertRow();
+    row.insertCell().textContent = String(record.sourceRow);
+    row.insertCell().textContent = record.item.name || '—';
+    row.insertCell().textContent = record.item.category || '—';
+    row.insertCell().textContent = `${record.item.currency} ${Number.isFinite(record.item.permanent_price) ? record.item.permanent_price.toFixed(2) : '—'}`;
+    const status = row.insertCell();
+    const plannedItem = importBySourceRow.get(record.sourceRow);
+    status.textContent = record.errors.length ? record.errors.join(' ') : (plannedItem?.id ? 'Actualizar existente' : 'Agregar nuevo');
+    status.className = record.errors.length ? 'catalog-import-invalid' : 'catalog-import-valid';
+  });
+  byId('catalog-import-preview-overflow').textContent = catalogImportRecords.length > 25
+    ? `Vista previa de 25 de ${catalogImportRecords.length} filas.`
+    : `${catalogImportRecords.length} filas leídas.`;
+  const errorsDetails = byId('catalog-import-errors');
+  const errorList = byId('catalog-import-error-list');
+  errorList.replaceChildren();
+  invalid.forEach((record) => {
+    const entry = document.createElement('li');
+    entry.textContent = `Fila ${record.sourceRow}: ${record.errors.join(' ')}`;
+    errorList.appendChild(entry);
+  });
+  errorsDetails.hidden = invalid.length === 0;
+  byId('btn-catalog-import-confirm').disabled = !catalogImportItems.length || Boolean(parsed.error);
+}
+
+async function confirmCatalogImport() {
+  const centerId = context.getCurrentUser()?.centerId;
+  if (!centerId || !catalogImportItems.length) { alert('No hay filas válidas para importar en este centro.'); return; }
+  const button = byId('btn-catalog-import-confirm');
+  setLoading(button, true, 'Actualizando catálogo…');
+  try {
+    const catalogRows = catalogImportItems.map(({ supplier_cost: _supplierCost, import_source_row: _sourceRow, ...item }) => item);
+    const { data: saved, error } = await context.client.from('quotation_catalog')
+      .upsert(catalogRows, { onConflict: 'center_id,code' }).select('id,center_id,code');
+    if (error) throw error;
+    const savedByCode = new Map((saved || []).map((item) => [item.code, item]));
+    const supplierCosts = catalogImportItems.filter((item) => Number.isFinite(item.supplier_cost))
+      .map((item) => {
+        const catalogItem = savedByCode.get(item.code);
+        return catalogItem ? {
+          catalog_item_id: catalogItem.id,
+          center_id: centerId,
+          supplier_cost: item.supplier_cost,
+          pricing_factor: item.supplier_cost > 0 ? item.permanent_price / item.supplier_cost : null,
+        } : null;
+      }).filter(Boolean);
+    if (supplierCosts.length) {
+      const { error: costError } = await context.client.from('supplier_costs')
+        .upsert(supplierCosts, { onConflict: 'catalog_item_id' });
+      if (costError) throw new Error('Los estudios se guardaron, pero algunos costos de proveedor requieren revisión. ' + costError.message);
+    }
+    const invalidCount = catalogImportRecords.filter((record) => record.errors.length).length;
+    alert(`Importación terminada: ${catalogImportItems.length} conceptos agregados o actualizados.${invalidCount ? ` Se omitieron ${invalidCount} filas incompletas.` : ''}`);
+    catalogImportRows = [];
+    catalogImportRecords = [];
+    catalogImportItems = [];
+    byId('catalog-import-file').value = '';
+    byId('catalog-import-panel').hidden = true;
+    await loadAdminCatalog();
+    await loadCatalog();
+  } catch (error) {
+    console.error('Importación del catálogo:', error);
+    await loadAdminCatalog().catch(() => {});
+    alert(error.message || 'No se pudo completar la importación. Revisa el catálogo antes de reintentar.');
+  } finally {
+    setLoading(button, false);
+  }
+}
+
+function cancelCatalogImport() {
+  catalogImportRows = [];
+  catalogImportRecords = [];
+  catalogImportItems = [];
+  byId('catalog-import-file').value = '';
+  byId('catalog-import-panel').hidden = true;
+}
+
 function bindEvents() {
   document.querySelectorAll('input[name="quote-patient-mode"]').forEach((input) => input.addEventListener('change', applyPatientMode));
   byId('quote-patient-search').addEventListener('input', () => { clearTimeout(patientSearchTimer); patientSearchTimer = setTimeout(searchPatients, 280); });
-  ['quote-catalog-search', 'quote-provider-filter', 'quote-category-filter'].forEach((id) => byId(id).addEventListener(id.includes('search') ? 'input' : 'change', renderCatalogPicker));
+  ['quote-catalog-search', 'quote-provider-filter', 'quote-category-filter', 'quote-catalog-sort'].forEach((id) => byId(id).addEventListener(id.includes('search') ? 'input' : 'change', renderCatalogPicker));
   byId('btn-quote-reset').addEventListener('click', resetQuote);
   byId('btn-quote-pdf').addEventListener('click', saveAndDownloadQuote);
-  ['catalog-admin-search', 'catalog-admin-provider', 'catalog-admin-category'].forEach((id) => byId(id).addEventListener(id.includes('search') ? 'input' : 'change', renderAdminCatalog));
+  ['catalog-admin-search', 'catalog-admin-provider', 'catalog-admin-category', 'catalog-admin-sort'].forEach((id) => byId(id).addEventListener(id.includes('search') ? 'input' : 'change', renderAdminCatalog));
   byId('catalog-admin-form').addEventListener('submit', saveCatalogItem);
   byId('btn-catalog-cancel').addEventListener('click', resetCatalogForm);
+  byId('btn-catalog-import').addEventListener('click', openCatalogImportPicker);
+  byId('catalog-import-file').addEventListener('change', readCatalogImportFile);
+  ['catalog-import-provider', 'catalog-import-category'].forEach((id) => byId(id).addEventListener('input', refreshCatalogImportPreview));
+  byId('catalog-import-currency').addEventListener('change', refreshCatalogImportPreview);
+  byId('btn-catalog-import-confirm').addEventListener('click', confirmCatalogImport);
+  byId('btn-catalog-import-cancel').addEventListener('click', cancelCatalogImport);
 }
 
 export async function initializeQuotationModule(nextContext) {

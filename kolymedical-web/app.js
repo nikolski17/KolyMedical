@@ -74,21 +74,6 @@ const SUPABASE_URL = "https://tounxohlvyjcwcyeddlg.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvdW54b2hsdnlqY3djeWVkZGxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3OTMzNTAsImV4cCI6MjA5OTM2OTM1MH0.IZtNzjH7gF4fW27dGy1R6vy-uIEFV8iOwduXYRGY03M";
 const AUTH_REDIRECT_TYPE = new URLSearchParams(window.location.hash.slice(1)).get('type');
 
-let supabaseClient = null;
-if (window.supabase) {
-  try {
-    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: true,
-        detectSessionInUrl: Boolean(document.getElementById('admin-dashboard'))
-      }
-    });
-  } catch (err) {
-    console.error("Error al inicializar el cliente de Supabase:", err);
-  }
-}
-
 // Safe storage wrapper to prevent crashes in private windows / Brave Shields
 const safeLocalStorage = {
   getItem: function (key) {
@@ -116,6 +101,22 @@ const safeSessionStorage = {
 };
 window.safeSessionStorage = safeSessionStorage;
 
+let supabaseClient = null;
+if (window.supabase) {
+  try {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        storage: safeLocalStorage,
+        detectSessionInUrl: Boolean(document.getElementById('admin-dashboard') || document.getElementById('login-section'))
+      }
+    });
+  } catch (err) {
+    console.error("Error al inicializar el cliente de Supabase:", err);
+  }
+}
+
 // Memoria caché local para consultas sincrónicas instantáneas
 let localAppointmentsCache = [];
 let localUsersCache = [];
@@ -124,9 +125,28 @@ let localRecordsCache = [];      // clinical_records
 let localNotesCache = [];        // evolution_notes
 let localPrescriptionsCache = []; // prescriptions
 let currentUserProfile = null;
+let currentCenterConfig = null;
+let currentCenterModules = null;
+let platformCentersCache = [];
+let platformSpecialtiesCache = [];
+let platformAdminInitialized = false;
+let platformCentersRealtimeChannel = null;
+let platformCentersRefreshTimer = null;
+let centerCalendarUiInitialized = false;
+let userSpecialtiesCache = [];
+try {
+  const savedProfile = safeLocalStorage.getItem('koly_cached_profile');
+  if (savedProfile) currentUserProfile = JSON.parse(savedProfile);
+} catch (e) { }
 
 function getCurrentUser() {
   return currentUserProfile;
+}
+
+const KOLYMEDICAL_CENTER_ID = '00000000-0000-4000-8000-000000000001';
+function centerStorageKey(key, centerId = getCurrentUser()?.centerId || currentUserProfile?.centerId) {
+  if (!document.getElementById('admin-dashboard') || !centerId || centerId === KOLYMEDICAL_CENTER_ID) return key;
+  return `${key}::${centerId}`;
 }
 
 let quotationModulePromise = null;
@@ -134,10 +154,11 @@ let bulletinLeadsModulePromise = null;
 let bulletinLeadsCache = [];
 async function getQuotationModule() {
   if (!quotationModulePromise) {
-    quotationModulePromise = import('./quotation-module.mjs?v=20260830b1').then(async (module) => {
+    quotationModulePromise = import('./quotation-module.mjs?v=20260929-platform-admin').then(async (module) => {
       await module.initializeQuotationModule({
         client: supabaseClient,
         getCurrentUser,
+        getCurrentCenter: () => currentCenterConfig,
         getLogoBytes,
         pdfSafe,
         wrapText
@@ -176,9 +197,25 @@ function escapeHtml(value) {
 }
 
 function safeMeetingUrl(value) {
+  if (!value) return '';
+  const trimmed = String(value).trim();
   try {
-    const url = new URL(String(value || ''));
-    return url.protocol === 'https:' && url.hostname === 'meet.google.com' ? url.href : '';
+    const url = new URL(trimmed);
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return '';
+    const host = url.hostname.toLowerCase();
+    const isAllowedHost =
+      host === 'meet.google.com' ||
+      host.endsWith('.google.com') ||
+      host.endsWith('.zoom.us') ||
+      host === 'zoom.us' ||
+      host === 'teams.microsoft.com' ||
+      host === 'teams.live.com' ||
+      host === 'meet.jit.si' ||
+      host.endsWith('.jit.si') ||
+      host === 'whereby.com' ||
+      host.endsWith('.whereby.com') ||
+      host.endsWith('kolymedical.lat');
+    return isAllowedHost ? url.href : '';
   } catch {
     return '';
   }
@@ -207,18 +244,19 @@ try {
   localAppointmentsCache = localAppointmentsCache.filter(a => !['apt-1', 'apt-2', 'apt-3', 'apt-4'].includes(a.id));
   localUsersCache = INITIAL_USERS;
 
-  const cachedSpecialists = safeLocalStorage.getItem('kolymedical_specialists');
-  SPECIALISTS = cachedSpecialists ? JSON.parse(cachedSpecialists) : INITIAL_SPECIALISTS;
+  const useKolyDefaults = !document.getElementById('admin-dashboard') || !currentUserProfile?.centerId || currentUserProfile.centerId === KOLYMEDICAL_CENTER_ID;
+  const cachedSpecialists = safeLocalStorage.getItem(centerStorageKey('kolymedical_specialists'));
+  SPECIALISTS = cachedSpecialists ? JSON.parse(cachedSpecialists) : (useKolyDefaults ? INITIAL_SPECIALISTS : []);
 
   // Asegurar compatibilidad para Dr. Pedraza (coordinarSolo) en perfiles de caché existentes
   const pedrazaObj = SPECIALISTS.find(d => d.id === 'pedraza');
   if (pedrazaObj && pedrazaObj.coordinarSolo === undefined) {
     pedrazaObj.coordinarSolo = true;
-    safeLocalStorage.setItem('kolymedical_specialists', JSON.stringify(SPECIALISTS));
+    safeLocalStorage.setItem(centerStorageKey('kolymedical_specialists'), JSON.stringify(SPECIALISTS));
   }
 
-  const cachedServices = safeLocalStorage.getItem('kolymedical_services');
-  SERVICES = cachedServices ? JSON.parse(cachedServices) : INITIAL_SERVICES;
+  const cachedServices = safeLocalStorage.getItem(centerStorageKey('kolymedical_services'));
+  SERVICES = cachedServices ? JSON.parse(cachedServices) : (useKolyDefaults ? INITIAL_SERVICES : []);
 
   // Limpieza de servicios duplicados y restablecimiento de IDs estándar
   if (SERVICES && SERVICES.length > 0) {
@@ -243,19 +281,20 @@ try {
       }
     });
 
-    INITIAL_SERVICES.forEach(initS => {
-      if (!SERVICES.some(s => s.id === initS.id)) {
-        SERVICES.push({ ...initS });
-      }
-    });
+    if (useKolyDefaults) {
+      INITIAL_SERVICES.forEach(initS => {
+        if (!SERVICES.some(s => s.id === initS.id)) SERVICES.push({ ...initS });
+      });
+    }
 
-    safeLocalStorage.setItem('kolymedical_services', JSON.stringify(SERVICES));
+    safeLocalStorage.setItem(centerStorageKey('kolymedical_services'), JSON.stringify(SERVICES));
   }
 } catch (e) {
   localAppointmentsCache = INITIAL_APPOINTMENTS;
   localUsersCache = INITIAL_USERS;
-  SPECIALISTS = INITIAL_SPECIALISTS;
-  SERVICES = INITIAL_SERVICES;
+  const useKolyDefaults = !document.getElementById('admin-dashboard') || !currentUserProfile?.centerId || currentUserProfile.centerId === KOLYMEDICAL_CENTER_ID;
+  SPECIALISTS = useKolyDefaults ? INITIAL_SPECIALISTS : [];
+  SERVICES = useKolyDefaults ? INITIAL_SERVICES : [];
 }
 
 // Inicializar cachés del módulo clínico por separado (no deben tumbar los datos base si fallan)
@@ -346,7 +385,9 @@ function mapUserFromDb(dbU) {
     workStart: dbU.work_start || undefined,
     workEnd: dbU.work_end || undefined,
     slotDuration: dbU.slot_duration || undefined,
-    coordinarSolo: dbU.coordinar_solo !== undefined ? dbU.coordinar_solo : undefined
+    coordinarSolo: dbU.coordinar_solo !== undefined ? dbU.coordinar_solo : undefined,
+    centerId: dbU.center_id || undefined,
+    isPlatformAdmin: dbU.is_platform_admin === true && dbU.role === 'Administrador'
   };
 }
 
@@ -388,8 +429,8 @@ function applyServiceCatalog(rows) {
     const user = localUsersCache.find((item) => item.specialistId === specialistId);
     if (user) user.consultationPrice = price;
   });
-  safeLocalStorage.setItem('kolymedical_specialists', JSON.stringify(SPECIALISTS));
-  safeLocalStorage.setItem('kolymedical_services', JSON.stringify(SERVICES));
+  safeLocalStorage.setItem(centerStorageKey('kolymedical_specialists'), JSON.stringify(SPECIALISTS));
+  safeLocalStorage.setItem(centerStorageKey('kolymedical_services'), JSON.stringify(SERVICES));
 }
 
 async function syncServiceCatalogFromCloud() {
@@ -402,6 +443,54 @@ async function syncServiceCatalogFromCloud() {
     return;
   }
   applyServiceCatalog(data);
+  await syncBookableStudiesFromCloud();
+}
+
+async function syncBookableStudiesFromCloud() {
+  if (!supabaseClient) return;
+  const user = getCurrentUser();
+  let data = null;
+  let error = null;
+  if (user?.centerId) {
+    ({ data, error } = await supabaseClient.from('quotation_catalog')
+      .select('code, name, variant, category, currency, permanent_price, appointment_duration_hours')
+      .eq('center_id', user.centerId).eq('active', true).eq('appointment_enabled', true)
+      .order('category').order('name').limit(1000));
+  } else {
+    ({ data, error } = await supabaseClient.from('quotation_catalog')
+      .select('code, name, variant, category, appointment_duration_hours')
+      .eq('center_id', KOLYMEDICAL_CENTER_ID).eq('active', true).eq('appointment_enabled', true)
+      .order('category').order('name').limit(1000));
+  }
+  if (error) {
+    console.warn('No se pudieron cargar los estudios habilitados para agenda.');
+    return;
+  }
+
+  SERVICES = SERVICES.filter((service) => !service.isCatalogStudy);
+  (data || []).forEach((row) => {
+    const id = String(row.service_id || row.code || '').toLowerCase();
+    const rawPrice = row.price ?? row.permanent_price;
+    const price = rawPrice == null || rawPrice === '' ? null : Number(rawPrice);
+    const durationHours = Number(row.duration_hours ?? row.appointment_duration_hours ?? 1);
+    const name = String(row.display_name || [row.name, row.variant].filter(Boolean).join(' — ')).trim();
+    if (!/^[a-z0-9_-]{2,64}$/.test(id) || name.length < 2 ||
+        (price !== null && (!Number.isFinite(price) || price < 0)) ||
+        !Number.isInteger(durationHours) || durationHours < 1 || durationHours > 8) return;
+    SERVICES.push({
+      id,
+      name,
+      category: String(row.category || 'Apoyo diagnóstico'),
+      price,
+      currency: row.currency === 'USD' ? 'USD' : 'PEN',
+      specialistId: null,
+      duration: durationHours * 60,
+      durationHours,
+      isCatalogStudy: true,
+    });
+  });
+  safeLocalStorage.setItem(centerStorageKey('kolymedical_services'), JSON.stringify(SERVICES));
+  window.populateBookingServices?.();
 }
 
 const DB = {
@@ -550,7 +639,7 @@ const DB = {
   },
 
   saveSuggestion: function(name, text) {
-    let stored = safeLocalStorage.getItem('kolymedical_suggestions');
+    let stored = safeLocalStorage.getItem(centerStorageKey('kolymedical_suggestions'));
     let suggestions = stored ? JSON.parse(stored) : [];
     suggestions.push({
       id: 'sug-' + Date.now(),
@@ -558,20 +647,20 @@ const DB = {
       text: text,
       date: new Date().toISOString().split('T')[0]
     });
-    safeLocalStorage.setItem('kolymedical_suggestions', JSON.stringify(suggestions));
+    safeLocalStorage.setItem(centerStorageKey('kolymedical_suggestions'), JSON.stringify(suggestions));
   },
 
   getSuggestions: function() {
-    let stored = safeLocalStorage.getItem('kolymedical_suggestions');
+    let stored = safeLocalStorage.getItem(centerStorageKey('kolymedical_suggestions'));
     return stored ? JSON.parse(stored) : [];
   },
 
   deleteSuggestion: function(id) {
-    let stored = safeLocalStorage.getItem('kolymedical_suggestions');
+    let stored = safeLocalStorage.getItem(centerStorageKey('kolymedical_suggestions'));
     if (stored) {
       let suggestions = JSON.parse(stored);
       suggestions = suggestions.filter(s => s.id !== id);
-      safeLocalStorage.setItem('kolymedical_suggestions', JSON.stringify(suggestions));
+      safeLocalStorage.setItem(centerStorageKey('kolymedical_suggestions'), JSON.stringify(suggestions));
     }
   },
 
@@ -1344,7 +1433,11 @@ function initPublicWeb() {
         renderedServiceNames.add(normalizedName);
         const opt = document.createElement('option');
         opt.value = s.id;
-        opt.textContent = `${s.name} — S/ ${s.price}`;
+        const currency = s.currency === 'USD' ? 'USD' : 'PEN';
+        const priceLabel = Number.isFinite(s.price)
+          ? ` — ${new Intl.NumberFormat('es-PE', { style: 'currency', currency }).format(s.price)}`
+          : '';
+        opt.textContent = `${s.name}${priceLabel}`;
         selectService.appendChild(opt);
       }
     });
@@ -1393,6 +1486,15 @@ function initPublicWeb() {
         selectDoctor.disabled = true;
       }
 
+      if (service?.isCatalogStudy && matchingDocs.length === 0) {
+        selectDoctor.innerHTML = '<option value="">Agenda del centro</option>';
+        selectDoctor.disabled = true;
+        if (modalityNote) {
+          modalityNote.textContent = 'Estudio de apoyo al diagnóstico. El centro confirmará la hora exacta de atención.';
+          modalityNote.style.display = 'block';
+        }
+      }
+
       // Si es Fibroscan, obligar presencial por el Dr. Ruslan Golovliov
       if (serviceVal === 'fibroscan') {
         // Limpiar opción temporal si existía
@@ -1435,7 +1537,7 @@ function initPublicWeb() {
           }
         }
         selectModality.disabled = false;
-        modalityNote.style.display = 'none';
+        if (!service?.isCatalogStudy || matchingDocs.length > 0) modalityNote.style.display = 'none';
       }
       if (window.lucide) window.lucide.createIcons();
     } else {
@@ -1595,8 +1697,10 @@ function initPublicWeb() {
       const service = document.getElementById('booking-service').value;
       const doctor = document.getElementById('booking-doctor').value;
       const modality = document.getElementById('booking-modality').value;
+      const selectedService = SERVICES.find((item) => item.id === service);
       const homeCare = service === 'curacion_heridas';
-      if (!service || (!homeCare && !doctor) || !modality) {
+      const centerScheduledStudy = selectedService?.isCatalogStudy === true;
+      if (!service || (!homeCare && !centerScheduledStudy && !doctor) || !modality) {
         alert('Por favor complete todos los datos del paso 1.');
         return false;
       }
@@ -1643,6 +1747,7 @@ function initPublicWeb() {
     const patientAge = parseInt(document.getElementById('booking-age').value);
     const patientPhone = document.getElementById('booking-phone').value.replace(/\D/g, '');
     const motivoConsulta = (document.getElementById('booking-motivo').value || '').trim();
+    const service = SERVICES.find(s => s.id === serviceId);
 
     let assignedTracker = 'Brayan'; // Default fallback
     const trackers = DB_Users.getUsers().filter(u => u.role === 'Comercial' && u.trackedBy).map(u => u.trackedBy);
@@ -1672,8 +1777,11 @@ function initPublicWeb() {
       time,
       modality,
       motivoConsulta,
+      meetingLink: modality === 'Virtual' ? `https://meet.jit.si/KolyMedical-${Math.random().toString(36).substring(2, 8)}-${Date.now().toString().slice(-4)}` : '',
       status: 'pendiente',
-      trackedBy: assignedTracker
+      trackedBy: assignedTracker,
+      isProcedure: service?.isCatalogStudy === true,
+      durationHours: service?.isCatalogStudy ? service.durationHours : 1
     };
 
     try {
@@ -1684,7 +1792,6 @@ function initPublicWeb() {
     }
 
     // Declarar ANTES del evento GA4 para evitar el ReferenceError (Temporal Dead Zone)
-    const service = SERVICES.find(s => s.id === serviceId);
     const doctor = SPECIALISTS.find(d => d.id === specialistId);
 
     // Enviar evento de conversión a Google Analytics GA4
@@ -1703,8 +1810,8 @@ function initPublicWeb() {
     if (patientDni) {
       msgBody += `- *DNI:* ${patientDni}\n`;
     }
-    msgBody += `- *Servicio:* ${service.name}\n` +
-      `- *Especialista:* ${doctor.name}\n` +
+    msgBody += `- *Servicio:* ${service?.name || serviceId}\n` +
+      `- *Especialista:* ${doctor?.name || (service?.isCatalogStudy ? 'Agenda del centro (por confirmar)' : 'Por asignar')}\n` +
       `- *Fecha:* ${date}\n` +
       `- *Hora:* ${time}\n` +
       `- *Modalidad:* ${modality}\n` +
@@ -1827,7 +1934,8 @@ const DB_Users = {
   },
 
   saveUser: async function (userObj) {
-    if (!supabaseClient || getCurrentUser()?.role !== 'Administrador') return false;
+    const current = getCurrentUser();
+    if (!supabaseClient || (current?.role !== 'Administrador' && current?.isPlatformAdmin !== true)) return false;
     let action = 'update';
     if (userObj.accountPending && !userObj.email) action = 'update_pending';
     else if (!userObj.id || userObj.accountPending) action = 'invite';
@@ -1873,9 +1981,9 @@ const DB_Users = {
       try {
         const profilesRequest = supabaseClient
           .from('profiles')
-          .select('id, username, email, fullname, role, tracked_by, specialist_id, specialty, work_days, work_start, work_end, slot_duration, coordinar_solo, active')
+          .select('id, username, email, fullname, role, tracked_by, specialist_id, specialty, work_days, work_start, work_end, slot_duration, coordinar_solo, center_id, is_platform_admin, active')
           .eq('active', true);
-        const legacyRequest = getCurrentUser()?.role === 'Administrador'
+        const legacyRequest = getCurrentUser()?.role === 'Administrador' && getCurrentUser()?.isPlatformAdmin !== true
           ? supabaseClient
             .from('users')
             .select('username, fullname, role, tracked_by, specialist_id, specialty, work_days, work_start, work_end, slot_duration, coordinar_solo')
@@ -1909,6 +2017,10 @@ const DB_Users = {
             }
           }
 
+          if (getCurrentUser()?.isPlatformAdmin === true) {
+            mergedUsers = mergedUsers.filter((user) => user.role === 'Administrador');
+          }
+
           localUsersCache = mergedUsers;
           syncSpecialistsFromUsers();
           if (callback) callback();
@@ -1935,6 +2047,10 @@ const DB_Users = {
 
 function syncSpecialistsFromUsers() {
   const users = DB_Users.getUsers();
+  if (!users.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--color-text-muted);">No hay cuentas para mostrar.</td></tr>';
+    return;
+  }
   users.forEach(u => {
     if (isSpecialistRole(u.role) || u.specialistId) {
       const specId = u.specialistId || generateSpecialistId(u.username);
@@ -1998,8 +2114,8 @@ function syncSpecialistsFromUsers() {
     }
   });
 
-  safeLocalStorage.setItem('kolymedical_specialists', JSON.stringify(SPECIALISTS));
-  safeLocalStorage.setItem('kolymedical_services', JSON.stringify(SERVICES));
+  safeLocalStorage.setItem(centerStorageKey('kolymedical_specialists'), JSON.stringify(SPECIALISTS));
+  safeLocalStorage.setItem(centerStorageKey('kolymedical_services'), JSON.stringify(SERVICES));
 }
 
 const CLINIC_QUOTES = [
@@ -2013,13 +2129,86 @@ const CLINIC_QUOTES = [
 ];
 
 async function loadCurrentProfile(userId) {
+  if (!supabaseClient) return null;
   const { data, error } = await supabaseClient
     .from('profiles')
-    .select('id, username, email, fullname, role, tracked_by, specialist_id, specialty, work_days, work_start, work_end, slot_duration, coordinar_solo, active')
+    .select('id, username, email, fullname, role, tracked_by, specialist_id, specialty, work_days, work_start, work_end, slot_duration, coordinar_solo, center_id, is_platform_admin, active')
     .eq('id', userId)
     .single();
   if (error || !data || data.active !== true) return null;
-  return mapUserFromDb(data);
+  const previousCenterId = currentUserProfile?.centerId || null;
+  const profile = mapUserFromDb(data);
+  if (profile.centerId && profile.centerId !== previousCenterId) {
+    localAppointmentsCache = [];
+    localUsersCache = [];
+    localRecordsCache = [];
+    localNotesCache = [];
+    localPrescriptionsCache = [];
+    try {
+      const savedSpecialists = safeLocalStorage.getItem(centerStorageKey('kolymedical_specialists', profile.centerId));
+      const savedServices = safeLocalStorage.getItem(centerStorageKey('kolymedical_services', profile.centerId));
+      const isKolyMedical = profile.centerId === KOLYMEDICAL_CENTER_ID;
+      SPECIALISTS = savedSpecialists ? JSON.parse(savedSpecialists) : (isKolyMedical ? INITIAL_SPECIALISTS.map((item) => ({ ...item })) : []);
+      SERVICES = savedServices ? JSON.parse(savedServices) : (isKolyMedical ? INITIAL_SERVICES.map((item) => ({ ...item })) : []);
+    } catch {
+      SPECIALISTS = profile.centerId === KOLYMEDICAL_CENTER_ID ? INITIAL_SPECIALISTS.map((item) => ({ ...item })) : [];
+      SERVICES = profile.centerId === KOLYMEDICAL_CENTER_ID ? INITIAL_SERVICES.map((item) => ({ ...item })) : [];
+    }
+  }
+  currentCenterConfig = null;
+  currentCenterModules = null;
+  if (!profile.isPlatformAdmin && profile.centerId) {
+    const centerIsAvailable = await loadCenterConfiguration(profile.centerId);
+    if (!centerIsAvailable) return null;
+  }
+  safeLocalStorage.setItem('koly_cached_profile', JSON.stringify(profile));
+  return profile;
+}
+
+async function loadCenterConfiguration(centerId) {
+  if (!supabaseClient || !centerId) return false;
+  const [{ data: center, error: centerError }, { data: moduleRows, error: moduleError }] = await Promise.all([
+    supabaseClient.from('centers').select('id, slug, display_name, brand_name, system_name, status, active, brand_primary_color, brand_accent_color, logo_url').eq('id', centerId).maybeSingle(),
+    supabaseClient.from('center_module_access').select('module_key, enabled').eq('center_id', centerId)
+  ]);
+  if (centerError || !center) console.warn('No se pudo cargar la marca del centro.');
+  if (moduleError) console.warn('No se pudo cargar la configuración de módulos.');
+  currentCenterConfig = center || null;
+  currentCenterModules = Object.fromEntries((moduleRows || []).map((row) => [row.module_key, row.enabled === true]));
+  if (center) applyCenterBranding(center);
+  return !centerError && !moduleError && center?.active === true && center?.status === 'active';
+}
+
+function applyCenterBranding(center) {
+  const root = document.documentElement;
+  const adjustHex = (hex, factor) => {
+    const channels = hex.slice(1).match(/.{2}/g).map((channel) => Number.parseInt(channel, 16));
+    return `#${channels.map((channel) => Math.max(0, Math.min(255, Math.round(channel + (factor < 0 ? channel * factor : (255 - channel) * factor)))).toString(16).padStart(2, '0')).join('')}`;
+  };
+  if (center.brand_primary_color && /^#[0-9a-f]{6}$/i.test(center.brand_primary_color)) {
+    root.style.setProperty('--color-primary', center.brand_primary_color);
+    const channels = center.brand_primary_color.slice(1).match(/.{2}/g).map((channel) => Number.parseInt(channel, 16));
+    root.style.setProperty('--color-primary-rgb', channels.join(', '));
+    root.style.setProperty('--color-primary-dark', adjustHex(center.brand_primary_color, -0.35));
+    root.style.setProperty('--color-primary-light', adjustHex(center.brand_primary_color, 0.25));
+  }
+  if (center.brand_accent_color && /^#[0-9a-f]{6}$/i.test(center.brand_accent_color)) {
+    root.style.setProperty('--color-accent', center.brand_accent_color);
+    root.style.setProperty('--color-accent-light', adjustHex(center.brand_accent_color, 0.2));
+  }
+  const brand = String(center.brand_name || center.display_name || 'KolyMedical');
+  const system = String(center.system_name || 'KolyTech');
+  document.title = `${system} — ${brand}`;
+  const sidebarBrand = document.getElementById('sidebar-brand-name');
+  if (sidebarBrand) sidebarBrand.textContent = brand.toLocaleUpperCase('es');
+  const loginBrand = document.getElementById('login-brand-name');
+  if (loginBrand) loginBrand.textContent = system;
+  document.querySelectorAll('.logo-container img, .login-logo img').forEach((img) => {
+    if (center.logo_url && /^https:\/\//i.test(center.logo_url)) img.src = center.logo_url;
+    img.alt = `${brand} — ${system}`;
+  });
+  const dashboardSubtitle = document.querySelector('.admin-title p');
+  if (dashboardSubtitle) dashboardSubtitle.textContent = `${system} — ${brand}`;
 }
 
 function showPasswordRecoveryForm(user) {
@@ -2078,28 +2267,45 @@ async function initAdminDashboard() {
 
   let authenticated = false;
   if (supabaseClient) {
-    const { data } = await supabaseClient.auth.getUser();
-    if (data && data.user) {
-      currentUserProfile = await loadCurrentProfile(data.user.id);
+    const { data: sessionData } = await supabaseClient.auth.getSession();
+    const sessionUser = sessionData?.session?.user;
+    if (sessionUser) {
+      // Refresh the authoritative server profile on every session restore.
+      // A cached role may be stale and must never control privileged UI access.
+      currentUserProfile = await loadCurrentProfile(sessionUser.id);
+      if (!currentUserProfile) safeLocalStorage.removeItem('koly_cached_profile');
       authenticated = Boolean(currentUserProfile);
       if (authenticated && (AUTH_REDIRECT_TYPE === 'recovery' || AUTH_REDIRECT_TYPE === 'invite')) {
-        showPasswordRecoveryForm(data.user);
+        showPasswordRecoveryForm(sessionUser);
         return;
       }
+    } else {
+      currentUserProfile = null;
+      safeLocalStorage.removeItem('koly_cached_profile');
     }
   }
 
   if (authenticated) {
     loginSection.style.display = 'none';
     dashboardSection.style.display = 'grid';
-    await Promise.all([
-      DB_Users.syncWithCloud(),
-      DB.syncWithCloud(),
-      ClinicalDB.syncWithCloud(),
-      SignatureDB.syncWithCloud(),
-      loadBulletinLeads()
-    ]);
+    // 1. Renderizado instantáneo con memoria caché (0 ms)
     renderDashboard();
+
+    // 2. Sincronización en segundo plano con Supabase para refrescar datos frescos
+    const syncPromise = currentUserProfile?.isPlatformAdmin
+      ? DB_Users.syncWithCloud()
+      : Promise.all([
+        DB_Users.syncWithCloud(),
+        DB.syncWithCloud(),
+        ClinicalDB.syncWithCloud(),
+        SignatureDB.syncWithCloud(),
+        loadBulletinLeads()
+      ]);
+    syncPromise.then(() => {
+      renderDashboard();
+    }).catch((err) => {
+      console.warn('Sincronización en segundo plano:', err);
+    });
   } else {
     loginSection.style.display = 'flex';
     dashboardSection.style.display = 'none';
@@ -2109,10 +2315,27 @@ async function initAdminDashboard() {
 
 function initLoginForm() {
   const form = document.getElementById('login-form');
+  const loginUser = document.getElementById('login-user');
+  const rememberUser = document.getElementById('login-remember-user');
+  if (!form || !loginUser || form.dataset.initialized === 'true') return;
+
+  form.dataset.initialized = 'true';
+  const rememberedLogin = window.KolySecurity?.getRememberedLogin?.(window.safeLocalStorage) || '';
+  if (rememberedLogin) {
+    loginUser.value = rememberedLogin;
+    if (rememberUser) rememberUser.checked = true;
+  }
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const emailVal = document.getElementById('login-user').value.trim().toLowerCase();
+    const emailVal = loginUser.value.trim().toLowerCase();
     const passVal = document.getElementById('login-pass').value;
+
+    window.KolySecurity?.setRememberedLogin?.(
+      window.safeLocalStorage,
+      emailVal,
+      Boolean(rememberUser?.checked)
+    );
 
     if (!supabaseClient) {
       alert('No se pudo establecer una conexión segura. Inténtalo nuevamente.');
@@ -2130,14 +2353,23 @@ function initLoginForm() {
     if (currentUserProfile) {
       document.getElementById('login-section').style.display = 'none';
       document.getElementById('dashboard-section').style.display = 'grid';
-      await Promise.all([
-        DB_Users.syncWithCloud(),
-        DB.syncWithCloud(),
-        ClinicalDB.syncWithCloud(),
-        SignatureDB.syncWithCloud(),
-        loadBulletinLeads()
-      ]);
+      // Renderizado instantáneo
       renderDashboard();
+
+      const syncPromise = currentUserProfile?.isPlatformAdmin
+        ? DB_Users.syncWithCloud()
+        : Promise.all([
+          DB_Users.syncWithCloud(),
+          DB.syncWithCloud(),
+          ClinicalDB.syncWithCloud(),
+          SignatureDB.syncWithCloud(),
+          loadBulletinLeads()
+        ]);
+      syncPromise.then(() => {
+        renderDashboard();
+      }).catch((err) => {
+        console.warn('Sincronización en segundo plano:', err);
+      });
     } else {
       await supabaseClient.auth.signOut();
       alert('Correo, contraseña o cuenta no válidos.');
@@ -2147,6 +2379,28 @@ function initLoginForm() {
 
 function renderDashboard() {
   const currentUser = getCurrentUser();
+  const platformMenu = document.getElementById('menu-platform');
+  if (currentUser?.isPlatformAdmin === true) {
+    const roleText = document.getElementById('sidebar-user-role');
+    if (roleText) roleText.textContent = 'SUPERADMINISTRADOR';
+    const subtitle = document.querySelector('.admin-title p');
+    if (subtitle) subtitle.innerHTML = `Bienvenido, <strong>${escapeHtml(currentUser.fullname)}</strong> | Rol: <strong>Superadministrador</strong>`;
+    const notifications = document.getElementById('notifications-dropdown-container');
+    if (notifications) notifications.style.display = 'none';
+    document.querySelectorAll('.sidebar-item').forEach((item) => {
+      item.style.display = ['menu-platform', 'menu-users'].includes(item.id) ? 'block' : 'none';
+    });
+    if (platformMenu) platformMenu.style.display = 'block';
+    document.querySelectorAll('.dashboard-view').forEach((view) => {
+      view.style.display = view.id === 'view-platform' ? 'block' : 'none';
+    });
+    initUserManagementForm();
+    initProfileForm();
+    bindPlatformAdminNavigation();
+    renderPlatformAdmin();
+    return;
+  }
+  if (platformMenu) platformMenu.style.display = 'none';
   const menuUsers = document.getElementById('menu-users');
   const menuAvailability = document.getElementById('menu-availability');
   const menuQuotes = document.getElementById('menu-quotes');
@@ -2224,6 +2478,7 @@ function renderDashboard() {
     if (menuCostCatalog) menuCostCatalog.style.display = 'none';
     if (menuBulletinLeads) menuBulletinLeads.style.display = 'none';
   }
+  applyCenterModuleVisibility();
 
   // 🔒 "Ingresos Proyectados" y "Agendar Cita Interna" solo para Administrador y Comercial.
   // Los médicos/especialistas no ven estos módulos.
@@ -2278,10 +2533,20 @@ function renderDashboard() {
 
   sidebarItems.forEach(item => {
     item.addEventListener('click', () => {
+      const viewName = item.getAttribute('data-view');
+      const requiredModule = {
+        dashboard: 'agenda', calendar: 'agenda', list: 'clinical_records', availability: 'availability',
+        users: 'staff', prescriptions: 'prescriptions', quotes: 'quotations',
+        'cost-catalog': 'pricing_catalog', 'bulletin-leads': 'bulletin', suggestions: 'bulletin'
+      }[viewName];
+      if (viewName === 'platform' && getCurrentUser()?.isPlatformAdmin !== true) return;
+      if (requiredModule && !centerModuleEnabled(requiredModule)) {
+        alert('Esta opción no está habilitada para tu centro.');
+        return;
+      }
       sidebarItems.forEach(i => i.classList.remove('active'));
       item.classList.add('active');
 
-      const viewName = item.getAttribute('data-view');
       contentSections.forEach(sec => {
         sec.style.display = sec.id === `view-${viewName}` ? 'block' : 'none';
       });
@@ -2312,6 +2577,8 @@ function renderDashboard() {
         });
       } else if (viewName === 'bulletin-leads') {
         renderBulletinLeadsTable();
+      } else if (viewName === 'platform') {
+        renderPlatformAdmin();
       }
     });
   });
@@ -2319,7 +2586,12 @@ function renderDashboard() {
   // Cerrar Sesión
   document.getElementById('btn-logout').addEventListener('click', async () => {
     currentUserProfile = null;
-    await supabaseClient.auth.signOut();
+    safeLocalStorage.removeItem('koly_cached_profile');
+    safeLocalStorage.removeItem('koly_cached_appointments');
+    safeLocalStorage.removeItem('koly_cached_users');
+    if (supabaseClient) {
+      await supabaseClient.auth.signOut();
+    }
     location.reload();
   });
 
@@ -2334,6 +2606,59 @@ function renderDashboard() {
   updateStats();
   renderCalendarWidget();
   renderAppointmentsTable();
+}
+
+function centerModuleEnabled(key) {
+  return currentCenterModules !== null && currentCenterModules[key] === true;
+}
+
+function applyCenterModuleVisibility() {
+  const current = getCurrentUser();
+  if (!current || current.isPlatformAdmin) return;
+  const availability = document.getElementById('menu-availability');
+  const users = document.getElementById('menu-users');
+  const prescriptions = document.getElementById('menu-prescriptions');
+  const quotes = document.getElementById('menu-quotes');
+  const catalog = document.getElementById('menu-cost-catalog');
+  const bulletin = document.getElementById('menu-bulletin-leads');
+  const suggestions = document.getElementById('menu-suggestions');
+  const dashboard = document.querySelector('.sidebar-item[data-view="dashboard"]');
+  const calendar = document.querySelector('.sidebar-item[data-view="calendar"]');
+  const records = document.querySelector('.sidebar-item[data-view="list"]');
+
+  if (!centerModuleEnabled('availability')) availability && (availability.style.display = 'none');
+  if (!centerModuleEnabled('staff')) users && (users.style.display = 'none');
+  if (!centerModuleEnabled('prescriptions')) prescriptions && (prescriptions.style.display = 'none');
+  if (!centerModuleEnabled('quotations')) quotes && (quotes.style.display = 'none');
+  if (!centerModuleEnabled('pricing_catalog')) catalog && (catalog.style.display = 'none');
+  if (!centerModuleEnabled('bulletin')) {
+    bulletin && (bulletin.style.display = 'none');
+    suggestions && (suggestions.style.display = 'none');
+  }
+  if (!centerModuleEnabled('agenda')) {
+    dashboard && (dashboard.style.display = 'none');
+    calendar && (calendar.style.display = 'none');
+  }
+  if (!centerModuleEnabled('clinical_records')) records && (records.style.display = 'none');
+  const viewModules = {
+    'view-dashboard': 'agenda', 'view-calendar': 'agenda', 'view-list': 'clinical_records',
+    'view-availability': 'availability', 'view-users': 'staff', 'view-prescriptions': 'prescriptions',
+    'view-quotes': 'quotations', 'view-cost-catalog': 'pricing_catalog',
+    'view-bulletin-leads': 'bulletin', 'view-suggestions': 'bulletin'
+  };
+  Object.entries(viewModules).forEach(([viewId, moduleKey]) => {
+    if (!centerModuleEnabled(moduleKey)) {
+      const view = document.getElementById(viewId);
+      if (view) view.style.display = 'none';
+    }
+  });
+  if (!centerModuleEnabled('agenda')) {
+    const firstVisible = [...document.querySelectorAll('.sidebar-item')].find((item) =>
+      item.style.display !== 'none' && item.dataset.view && item.dataset.view !== 'platform'
+    );
+    const firstView = firstVisible && document.getElementById(`view-${firstVisible.dataset.view}`);
+    if (firstView) firstView.style.display = 'block';
+  }
 }
 
 // -----------------------------------------------------
@@ -2383,6 +2708,9 @@ function renderAvailabilityView() {
   const currentUser = getCurrentUser();
   if (!currentUser || currentUser.role !== 'Administrador') return;
 
+  initCenterCalendarIntegration();
+  loadCenterCalendarStatus();
+
   const selectDoc = document.getElementById('availability-doctor-select');
   const containerSelect = document.getElementById('availability-doctor-select-container');
   if (!selectDoc) return;
@@ -2398,6 +2726,134 @@ function renderAvailabilityView() {
   });
 
   loadDoctorAvailabilityIntoForm();
+}
+
+function selectedCalendarCenterId() {
+  const selected = document.getElementById('center-calendar-center-select')?.value;
+  const user = getCurrentUser();
+  return user?.isPlatformAdmin ? (selected || user.centerId) : user?.centerId;
+}
+
+async function callCenterCalendar(action, centerId = selectedCalendarCenterId()) {
+  if (!supabaseClient || getCurrentUser()?.role !== 'Administrador' || !centerId) {
+    throw new Error('Se requiere una cuenta administradora del centro.');
+  }
+  const { data, error } = await supabaseClient.functions.invoke('center-calendar', { body: { action, centerId } });
+  if (error || data?.error) {
+    const errorCode = data?.error;
+    if (errorCode === 'google_calendar_setup_required') throw new Error('Falta configurar el cliente OAuth de Google en el servidor.');
+    if (errorCode === 'center_must_be_active') throw new Error('Activa este centro antes de conectar su calendario.');
+    throw new Error('No se pudo completar la operación de Google Calendar. Revisa la conexión y permisos del centro.');
+  }
+  return data;
+}
+
+function initCenterCalendarIntegration() {
+  if (centerCalendarUiInitialized) return;
+  centerCalendarUiInitialized = true;
+  const connectButton = document.getElementById('btn-center-calendar-connect');
+  const testButton = document.getElementById('btn-center-calendar-test');
+  const disconnectButton = document.getElementById('btn-center-calendar-disconnect');
+  document.getElementById('center-calendar-center-select')?.addEventListener('change', loadCenterCalendarStatus);
+  connectButton?.addEventListener('click', async () => {
+    connectButton.disabled = true;
+    try {
+      const result = await callCenterCalendar('start');
+      if (!result.authorizationUrl || !/^https:\/\/accounts\.google\.com\//.test(result.authorizationUrl)) throw new Error('No se recibió el enlace seguro de Google.');
+      location.assign(result.authorizationUrl);
+    } catch (error) {
+      alert(error.message || 'No se pudo iniciar la conexión con Google.');
+      connectButton.disabled = false;
+    }
+  });
+  testButton?.addEventListener('click', async () => {
+    testButton.disabled = true;
+    try {
+      await callCenterCalendar('test');
+      alert('Conexión activa. El calendario de este centro respondió correctamente.');
+    } catch (error) {
+      alert(error.message || 'No se pudo probar el calendario.');
+    } finally { testButton.disabled = false; }
+  });
+  disconnectButton?.addEventListener('click', async () => {
+    if (!confirm('¿Desconectar Google Calendar de este centro? Las citas existentes en Google no se borrarán.')) return;
+    disconnectButton.disabled = true;
+    try {
+      await callCenterCalendar('disconnect');
+      await loadCenterCalendarStatus();
+    } catch (error) {
+      alert(error.message || 'No se pudo desconectar el calendario.');
+    } finally { disconnectButton.disabled = false; }
+  });
+}
+
+async function loadCenterCalendarStatus() {
+  const panel = document.getElementById('center-calendar-integration-panel');
+  if (!panel) return;
+  const user = getCurrentUser();
+  const selectorWrap = document.getElementById('center-calendar-platform-selector');
+  const selector = document.getElementById('center-calendar-center-select');
+  const status = document.getElementById('center-calendar-connection-status');
+  const connectButton = document.getElementById('btn-center-calendar-connect');
+  const testButton = document.getElementById('btn-center-calendar-test');
+  const disconnectButton = document.getElementById('btn-center-calendar-disconnect');
+  if (!user || user.role !== 'Administrador') { panel.hidden = true; return; }
+  panel.hidden = false;
+
+  if (user.isPlatformAdmin === true && selector && !platformCentersCache.length) {
+    selectorWrap.hidden = false;
+    selector.innerHTML = '<option value="">Cargando centros…</option>';
+    try {
+      const result = await callPlatformAdmin('list_centers');
+      platformCentersCache = result.centers || [];
+      refreshCalendarCenterSelect();
+    } catch {
+      selector.replaceChildren(new Option('No se pudieron cargar los centros', ''));
+    }
+  }
+
+  const centerId = selectedCalendarCenterId();
+  if (!centerId) {
+    status.textContent = 'No hay un centro activo seleccionado.';
+    connectButton.disabled = true;
+    testButton.hidden = true;
+    disconnectButton.hidden = true;
+    return;
+  }
+  status.textContent = 'Consultando conexión…';
+  try {
+    const result = await callCenterCalendar('status', centerId);
+    if (result.connected) {
+      status.textContent = `Cuenta conectada: ${result.email}. Agenda principal del centro.`;
+      connectButton.textContent = 'Cambiar cuenta oficial';
+      connectButton.disabled = false;
+      testButton.hidden = false;
+      disconnectButton.hidden = false;
+    } else {
+      status.textContent = 'Sin cuenta conectada. Las citas todavía no se copian a Google Calendar.';
+      connectButton.textContent = 'Conectar cuenta oficial';
+      connectButton.disabled = false;
+      testButton.hidden = true;
+      disconnectButton.hidden = true;
+    }
+  } catch (error) {
+    status.textContent = error.message || 'No se pudo consultar la conexión.';
+    connectButton.disabled = false;
+    testButton.hidden = true;
+    disconnectButton.hidden = true;
+  }
+
+  const callbackStatus = new URL(location.href).searchParams.get('calendar');
+  if (callbackStatus && !window.safeSessionStorage?.getItem('koly_calendar_callback_seen')) {
+    window.safeSessionStorage?.setItem('koly_calendar_callback_seen', 'true');
+    const message = callbackStatus === 'connected' ? 'Cuenta de Google conectada al centro.'
+      : callbackStatus === 'denied' ? 'No se otorgó permiso para conectar la agenda.'
+      : 'No se pudo completar la conexión con Google. Revisa OAuth y vuelve a intentarlo.';
+    alert(message);
+    const cleanUrl = new URL(location.href);
+    cleanUrl.searchParams.delete('calendar');
+    history.replaceState({}, document.title, `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
+  }
 }
 
 function loadDoctorAvailabilityIntoForm() {
@@ -2497,7 +2953,7 @@ function initAvailabilityManagement() {
         SPECIALISTS[doctorIndex].slotDuration = slotDuration;
       }
 
-      safeLocalStorage.setItem('kolymedical_specialists', JSON.stringify(SPECIALISTS));
+      safeLocalStorage.setItem(centerStorageKey('kolymedical_specialists'), JSON.stringify(SPECIALISTS));
 
       // Sincronizar también en el objeto de usuario y guardar en Supabase
       const allUsers = DB_Users.getUsers();
@@ -2521,13 +2977,15 @@ function initAvailabilityManagement() {
 // -----------------------------------------------------
 // ¿El rol corresponde a un especialista (con etiqueta, disponibilidad y firma)?
 function isSpecialistRole(role) {
-  return !!role && role !== 'Administrador' && role !== 'Comercial' && role !== 'Recepcionista';
+  return !!role && !['Administrador', 'Superadministrador', 'Comercial', 'Recepcionista'].includes(role);
 }
 
 // Genera una etiqueta (specialistId) única a partir del nombre de usuario.
 function generateSpecialistId(username, excludeId) {
   let base = (username || 'medico').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
   if (!base) base = 'medico';
+  const centerId = getCurrentUser()?.centerId;
+  if (centerId && centerId !== KOLYMEDICAL_CENTER_ID) base = `c${centerId.replace(/-/g, '').slice(0, 8)}_${base}`;
   let candidate = base;
   let n = 1;
   while (SPECIALISTS.some(s => s.id === candidate && candidate !== excludeId)) {
@@ -2539,6 +2997,8 @@ function generateSpecialistId(username, excludeId) {
 function renderUsersTable() {
   const tbody = document.getElementById('users-table-body');
   if (!tbody) return;
+  const tableTitle = document.getElementById('users-table-title');
+  if (tableTitle) tableTitle.textContent = getCurrentUser()?.isPlatformAdmin ? 'Administradores de centros' : 'Cuentas del Personal Clínico';
   tbody.innerHTML = '';
 
   const users = DB_Users.getUsers();
@@ -2548,6 +3008,10 @@ function renderUsersTable() {
     const pendingAccountLabel = u.accountPending
       ? '<br><span style="font-size:0.7rem; color:var(--color-warning);">Pendiente de reactivación</span>'
       : '';
+    const isPlatformAdmin = getCurrentUser()?.isPlatformAdmin === true;
+    const canManageThisAccount = isPlatformAdmin
+      ? u.role === 'Administrador' && !u.isPlatformAdmin
+      : u.role !== 'Administrador';
 
     // Celda de firma: solo aplica a especialistas; muestra estado y botón de carga.
     let firmaCell = '<span style="color:var(--color-text-muted); font-size:0.8rem;">—</span>';
@@ -2569,13 +3033,14 @@ function renderUsersTable() {
       <td><strong>${escapeHtml(u.username)}</strong>${u.specialistId ? `<br><code style="font-size:0.7rem; color:var(--color-text-muted);">${escapeHtml(u.specialistId)}</code>` : ''}</td>
       <td>${escapeHtml(u.fullname)}</td>
       <td><span class="status-badge ${u.role === 'Administrador' ? 'status-realizada' : 'status-confirmada'}">${escapeHtml(roleLabel)}</span>${pendingAccountLabel}</td>
+      <td>${escapeHtml(platformCentersCache.find((center) => center.id === u.centerId)?.brand_name || platformCentersCache.find((center) => center.id === u.centerId)?.display_name || currentCenterConfig?.brand_name || (u.centerId ? 'Centro asignado' : 'KolyMedical'))}</td>
       <td>${firmaCell}</td>
       <td>
         <div style="display:flex; gap:0.5rem;">
-          <button class="btn btn-secondary btn-edit-user align-icon-text" data-username="${u.username}" title="${u.accountPending ? 'Reactivar y enviar invitación' : 'Editar cuenta'}" style="padding:0.2rem 0.5rem; font-size:0.8rem; justify-content:center;">
+          <button class="btn btn-secondary btn-edit-user align-icon-text" data-username="${u.username}" title="${u.accountPending ? 'Reactivar y enviar invitación' : 'Editar cuenta'}" style="padding:0.2rem 0.5rem; font-size:0.8rem; justify-content:center;" ${canManageThisAccount ? '' : 'disabled'}>
             <i data-lucide="edit" class="icon-inline" style="width:14px; height:14px; top:0;"></i>
           </button>
-          <button class="btn btn-secondary btn-delete-user align-icon-text" data-username="${u.username}" title="${u.accountPending ? 'Registro histórico protegido' : 'Eliminar cuenta'}" style="padding:0.2rem 0.5rem; font-size:0.8rem; color:var(--color-danger); border-color:var(--color-danger); justify-content:center;" ${(u.username === 'admin' || u.accountPending) ? 'disabled' : ''}>
+          <button class="btn btn-secondary btn-delete-user align-icon-text" data-username="${u.username}" title="${u.accountPending ? 'Registro histórico protegido' : 'Eliminar cuenta'}" style="padding:0.2rem 0.5rem; font-size:0.8rem; color:var(--color-danger); border-color:var(--color-danger); justify-content:center;" ${(u.username === 'admin' || !canManageThisAccount || u.accountPending) ? 'disabled' : ''}>
             <i data-lucide="trash-2" class="icon-inline" style="width:14px; height:14px; top:0;"></i>
           </button>
         </div>
@@ -2588,8 +3053,8 @@ function renderUsersTable() {
         if (u.specialistId) {
           SPECIALISTS = SPECIALISTS.filter(s => s.id !== u.specialistId);
           SERVICES = SERVICES.filter(s => s.specialistId !== u.specialistId);
-          safeLocalStorage.setItem('kolymedical_specialists', JSON.stringify(SPECIALISTS));
-          safeLocalStorage.setItem('kolymedical_services', JSON.stringify(SERVICES));
+          safeLocalStorage.setItem(centerStorageKey('kolymedical_specialists'), JSON.stringify(SPECIALISTS));
+          safeLocalStorage.setItem(centerStorageKey('kolymedical_services'), JSON.stringify(SERVICES));
 
           const filterDocSelect = document.getElementById('admin-filter-doctor');
           if (filterDocSelect) {
@@ -2710,6 +3175,314 @@ function openSignatureManager(user) {
   });
 }
 
+function bindPlatformAdminNavigation() {
+  if (document.body.dataset.platformNavBound === 'true') return;
+  document.body.dataset.platformNavBound = 'true';
+  const allowedViews = new Set(['platform', 'users']);
+  document.querySelectorAll('.sidebar-item').forEach((item) => {
+    if (!allowedViews.has(item.dataset.view)) return;
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.sidebar-item').forEach((entry) => entry.classList.remove('active'));
+      item.classList.add('active');
+      document.querySelectorAll('.dashboard-view').forEach((view) => {
+        view.style.display = view.id === `view-${item.dataset.view}` ? 'block' : 'none';
+      });
+      if (item.dataset.view === 'platform') renderPlatformAdmin();
+      if (item.dataset.view === 'users') renderUsersTable();
+    });
+  });
+  document.getElementById('btn-sidebar-profile')?.addEventListener('click', () => {
+    document.querySelectorAll('.sidebar-item').forEach((entry) => entry.classList.remove('active'));
+    document.querySelectorAll('.dashboard-view').forEach((view) => { view.style.display = view.id === 'view-profile' ? 'block' : 'none'; });
+    renderProfileView();
+  });
+  document.getElementById('btn-logout')?.addEventListener('click', async () => {
+    currentUserProfile = null;
+    safeLocalStorage.removeItem('koly_cached_profile');
+    safeLocalStorage.removeItem('koly_cached_users');
+    if (supabaseClient) await supabaseClient.auth.signOut();
+    location.reload();
+  });
+}
+
+async function callPlatformAdmin(action, payload = {}) {
+  if (getCurrentUser()?.isPlatformAdmin !== true || !supabaseClient) throw new Error('Se requiere el perfil de superadministrador.');
+  const { data, error } = await supabaseClient.functions.invoke('platform-admin', { body: { action, ...payload } });
+  if (error || data?.error) throw new Error('No se pudo completar la operación de plataforma. Revisa que la migración y la función estén activas.');
+  return data;
+}
+
+function subscribeToPlatformCenterChanges() {
+  if (!supabaseClient || getCurrentUser()?.isPlatformAdmin !== true || platformCentersRealtimeChannel) return;
+  platformCentersRealtimeChannel = supabaseClient.channel('platform-centers-live')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'centers' }, () => {
+      clearTimeout(platformCentersRefreshTimer);
+      platformCentersRefreshTimer = setTimeout(() => loadPlatformAdminData(), 180);
+    })
+    .subscribe((status) => {
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        console.warn('La actualización en tiempo real de centros no está disponible.');
+      }
+    });
+}
+
+function renderPlatformAdmin() {
+  if (getCurrentUser()?.isPlatformAdmin !== true) return;
+  subscribeToPlatformCenterChanges();
+  if (!platformAdminInitialized) {
+    platformAdminInitialized = true;
+    document.getElementById('platform-admin-invite-form')?.addEventListener('submit', invitePlatformAdmin);
+    document.getElementById('btn-platform-new-center')?.addEventListener('click', () => openPlatformCenterForm());
+    document.getElementById('btn-platform-cancel-center')?.addEventListener('click', () => {
+      document.getElementById('platform-center-editor').style.display = 'none';
+    });
+    document.getElementById('platform-center-form')?.addEventListener('submit', savePlatformCenterForm);
+    document.getElementById('platform-centers-body')?.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-platform-edit-center]');
+      if (!button) return;
+      const center = platformCentersCache.find((item) => item.id === button.dataset.platformEditCenter);
+      if (center) openPlatformCenterForm(center);
+    });
+    document.getElementById('platform-specialty-name')?.addEventListener('input', (event) => {
+      const codeInput = document.getElementById('platform-specialty-code');
+      if (!document.getElementById('platform-specialty-edit-code').value) {
+        codeInput.value = event.target.value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80);
+      }
+    });
+    document.getElementById('platform-specialty-form')?.addEventListener('submit', savePlatformSpecialtyForm);
+    document.getElementById('platform-specialties-body')?.addEventListener('click', handlePlatformSpecialtyAction);
+  }
+  loadPlatformAdminData();
+}
+
+async function invitePlatformAdmin(event) {
+  event.preventDefault();
+  const form = document.getElementById('platform-admin-invite-form');
+  const status = document.getElementById('platform-admin-invite-status');
+  const submit = form?.querySelector('button[type="submit"]');
+  if (!form || !status || !submit) return;
+  const user = {
+    username: document.getElementById('platform-admin-invite-username').value.trim().toLowerCase(),
+    fullname: document.getElementById('platform-admin-invite-fullname').value.trim(),
+    email: document.getElementById('platform-admin-invite-email').value.trim().toLowerCase()
+  };
+  if (!window.confirm(`Enviar invitación de superadministrador a ${user.email}? La persona creará su propia contraseña.`)) return;
+  submit.disabled = true;
+  status.textContent = 'Enviando invitación segura…';
+  try {
+    const result = await callPlatformAdmin('invite_platform_admin', { user });
+    status.textContent = result.invitationSent
+      ? `Invitación enviada a ${result.email}. La cuenta quedará lista cuando su titular confirme el correo y cree su contraseña.`
+      : 'No se pudo confirmar el envío de la invitación.';
+    if (result.invitationSent) form.reset();
+  } catch (error) {
+    status.textContent = error.message || 'No se pudo enviar la invitación.';
+  } finally {
+    submit.disabled = false;
+  }
+}
+
+async function loadPlatformAdminData() {
+  try {
+    const [centersResult, specialtiesResult] = await Promise.all([
+      callPlatformAdmin('list_centers'),
+      callPlatformAdmin('list_specialties')
+    ]);
+    platformCentersCache = centersResult.centers || [];
+    platformSpecialtiesCache = specialtiesResult.specialties || [];
+    renderPlatformCentersTable();
+    renderPlatformSpecialtiesTable();
+    refreshPlatformCenterSelect();
+    refreshCalendarCenterSelect();
+    if (getCurrentUser()?.isPlatformAdmin === true) renderUsersTable();
+  } catch (error) {
+    const centersBody = document.getElementById('platform-centers-body');
+    const specialtiesBody = document.getElementById('platform-specialties-body');
+    if (centersBody) centersBody.innerHTML = '<tr><td colspan="5">No fue posible cargar. La migración del panel y la función de servidor aún deben estar activas.</td></tr>';
+    if (specialtiesBody) specialtiesBody.innerHTML = '<tr><td colspan="5">Catálogo no disponible hasta activar la configuración de plataforma.</td></tr>';
+    console.warn('Administración de plataforma:', error);
+  }
+}
+
+function refreshCalendarCenterSelect() {
+  const selector = document.getElementById('center-calendar-center-select');
+  const selectorWrap = document.getElementById('center-calendar-platform-selector');
+  if (!selector || getCurrentUser()?.isPlatformAdmin !== true) return;
+  selectorWrap.hidden = false;
+  const previous = selector.value;
+  const activeCenters = platformCentersCache.filter((center) => center.active && center.status === 'active');
+  selector.replaceChildren(...activeCenters.map((center) => new Option(center.brand_name || center.display_name, center.id)));
+  const userCenter = getCurrentUser()?.centerId;
+  selector.value = activeCenters.some((center) => center.id === previous) ? previous
+    : activeCenters.some((center) => center.id === userCenter) ? userCenter
+    : (activeCenters[0]?.id || '');
+}
+
+function renderPlatformCentersTable() {
+  const tbody = document.getElementById('platform-centers-body');
+  if (!tbody) return;
+  if (!platformCentersCache.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:1.25rem;">Todavía no hay centros registrados.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = platformCentersCache.map((center) => {
+    const enabledCount = Object.values(center.modules || {}).filter(Boolean).length;
+    return `<tr>
+      <td><strong>${escapeHtml(center.brand_name || center.display_name)}</strong><br><small>${escapeHtml(center.system_name || 'KolyTech')}</small></td>
+      <td><code>${escapeHtml(center.slug)}</code></td>
+      <td><span class="status-badge ${center.status === 'active' ? 'status-realizada' : 'status-confirmada'}">${center.status === 'active' ? 'Activo' : center.status === 'suspended' ? 'Suspendido' : 'Pendiente'}</span></td>
+      <td>${enabledCount} de 8 opciones</td>
+      <td><button type="button" class="btn btn-secondary" data-platform-edit-center="${escapeHtml(center.id)}">Configurar</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderPlatformSpecialtiesTable() {
+  const tbody = document.getElementById('platform-specialties-body');
+  if (!tbody) return;
+  const groupLabels = { clinica: 'Clínica', quirurgica: 'Quirúrgica', 'apoyo-diagnostico': 'Apoyo diagnóstico', 'salud-publica': 'Salud pública', subespecialidad: 'Subespecialidad', otra: 'Otra' };
+  if (!platformSpecialtiesCache.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:1.25rem;">No hay especialidades en el catálogo.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = platformSpecialtiesCache.map((specialty) => `<tr>
+    <td><strong>${escapeHtml(specialty.name)}</strong><br><code>${escapeHtml(specialty.code)}</code></td>
+    <td>${escapeHtml(groupLabels[specialty.specialty_group] || specialty.specialty_group)}</td>
+    <td>${escapeHtml(specialty.source_label || '')}</td>
+    <td>${specialty.active ? 'Activa' : 'Deshabilitada'}</td>
+    <td style="white-space:nowrap;"><button type="button" class="btn btn-secondary" data-platform-edit-specialty="${escapeHtml(specialty.code)}">Editar</button> <button type="button" class="btn btn-secondary" data-platform-toggle-specialty="${escapeHtml(specialty.code)}">${specialty.active ? 'Desactivar' : 'Activar'}</button></td>
+  </tr>`).join('');
+}
+
+function openPlatformCenterForm(center = null) {
+  const form = document.getElementById('platform-center-form');
+  if (!form) return;
+  form.reset();
+  document.getElementById('platform-center-form-title').textContent = center ? 'Configurar centro' : 'Nuevo centro';
+  document.getElementById('platform-center-id').value = center?.id || '';
+  document.getElementById('platform-center-name').value = center?.display_name || '';
+  document.getElementById('platform-center-brand').value = center?.brand_name || '';
+  document.getElementById('platform-center-slug').value = center?.slug || '';
+  document.getElementById('platform-system-name').value = center?.system_name || 'KolyTech';
+  document.getElementById('platform-center-status').value = center?.status || 'pending';
+  document.getElementById('platform-center-logo').value = center?.logo_url || '';
+  document.getElementById('platform-primary-color').value = center?.brand_primary_color || '#3D5A73';
+  document.getElementById('platform-accent-color').value = center?.brand_accent_color || '#00A896';
+  document.querySelectorAll('[data-platform-module]').forEach((input) => {
+    input.checked = center?.modules?.[input.dataset.platformModule] === true;
+  });
+  document.getElementById('platform-center-editor').style.display = 'block';
+  document.getElementById('platform-center-editor').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function savePlatformCenterForm(event) {
+  event.preventDefault();
+  const modules = Object.fromEntries([...document.querySelectorAll('[data-platform-module]')].map((input) => [input.dataset.platformModule, input.checked]));
+  const center = {
+    id: document.getElementById('platform-center-id').value || null,
+    displayName: document.getElementById('platform-center-name').value.trim(),
+    brandName: document.getElementById('platform-center-brand').value.trim(),
+    slug: document.getElementById('platform-center-slug').value.trim().toLowerCase(),
+    systemName: document.getElementById('platform-system-name').value.trim(),
+    status: document.getElementById('platform-center-status').value,
+    logoUrl: document.getElementById('platform-center-logo').value.trim(),
+    primaryColor: document.getElementById('platform-primary-color').value,
+    accentColor: document.getElementById('platform-accent-color').value,
+    modules
+  };
+  try {
+    await callPlatformAdmin('save_center', { center });
+    document.getElementById('platform-center-editor').style.display = 'none';
+    await loadPlatformAdminData();
+    alert('Centro y permisos actualizados.');
+  } catch (error) {
+    alert(error.message || 'No se pudo guardar la configuración del centro.');
+  }
+}
+
+async function savePlatformSpecialtyForm(event) {
+  event.preventDefault();
+  const editingCode = document.getElementById('platform-specialty-edit-code').value;
+  const specialty = {
+    code: editingCode || document.getElementById('platform-specialty-code').value.trim().toLowerCase(),
+    name: document.getElementById('platform-specialty-name').value.trim(),
+    group: document.getElementById('platform-specialty-group').value,
+    active: true
+  };
+  try {
+    await callPlatformAdmin('save_specialty', { specialty });
+    document.getElementById('platform-specialty-form').reset();
+    document.getElementById('platform-specialty-edit-code').value = '';
+    document.getElementById('platform-specialty-code').readOnly = false;
+    document.querySelector('#platform-specialty-form button[type="submit"]').textContent = 'Añadir especialidad';
+    const { specialties } = await callPlatformAdmin('list_specialties');
+    platformSpecialtiesCache = specialties || [];
+    renderPlatformSpecialtiesTable();
+  } catch (error) {
+    alert(error.message || 'No se pudo guardar la especialidad.');
+  }
+}
+
+async function handlePlatformSpecialtyAction(event) {
+  const editButton = event.target.closest('[data-platform-edit-specialty]');
+  const toggleButton = event.target.closest('[data-platform-toggle-specialty]');
+  if (!editButton && !toggleButton) return;
+  const code = (editButton || toggleButton).dataset.platformEditSpecialty || (editButton || toggleButton).dataset.platformToggleSpecialty;
+  const item = platformSpecialtiesCache.find((specialty) => specialty.code === code);
+  if (!item) return;
+  if (editButton) {
+    document.getElementById('platform-specialty-edit-code').value = item.code;
+    document.getElementById('platform-specialty-code').value = item.code;
+    document.getElementById('platform-specialty-code').readOnly = true;
+    document.getElementById('platform-specialty-name').value = item.name;
+    document.getElementById('platform-specialty-group').value = item.specialty_group;
+    document.querySelector('#platform-specialty-form button[type="submit"]').textContent = 'Guardar cambios';
+    document.getElementById('platform-specialty-form').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+  try {
+    await callPlatformAdmin('save_specialty', { specialty: { code: item.code, name: item.name, group: item.specialty_group, active: !item.active } });
+    const { specialties } = await callPlatformAdmin('list_specialties');
+    platformSpecialtiesCache = specialties || [];
+    renderPlatformSpecialtiesTable();
+  } catch (error) {
+    alert(error.message || 'No se pudo cambiar el estado de la especialidad.');
+  }
+}
+
+function refreshPlatformCenterSelect(selectedId = '') {
+  const select = document.getElementById('user-center');
+  if (!select) return;
+  const activeCenters = platformCentersCache.filter((center) => center.status === 'active');
+  select.innerHTML = '<option value="">Selecciona un centro activo</option>' + activeCenters
+    .map((center) => `<option value="${escapeHtml(center.id)}">${escapeHtml(center.brand_name || center.display_name)}</option>`).join('');
+  if (selectedId) select.value = selectedId;
+}
+
+async function loadMedicalSpecialtiesForUser(selected = '') {
+  if (!supabaseClient) return;
+  const { data, error } = await supabaseClient.from('medical_specialties')
+    .select('code, name, specialty_group').eq('active', true).order('name').limit(500);
+  if (error) {
+    console.warn('No se pudo cargar el catálogo de especialidades.');
+    return;
+  }
+  userSpecialtiesCache = data || [];
+  populateMedicalSpecialtyOptions(selected);
+}
+
+function populateMedicalSpecialtyOptions(selected = '') {
+  const select = document.getElementById('user-specialty');
+  if (!select) return;
+  const remembered = selected || select.value;
+  select.innerHTML = '<option value="">Selecciona especialidad</option>' + userSpecialtiesCache
+    .map((item) => `<option value="${escapeHtml(item.name)}">${escapeHtml(item.name)}</option>`).join('');
+  if (remembered && !userSpecialtiesCache.some((item) => item.name === remembered)) {
+    select.insertAdjacentHTML('beforeend', `<option value="${escapeHtml(remembered)}">${escapeHtml(remembered)} (histórica)</option>`);
+  }
+  if (remembered) select.value = remembered;
+}
+
 function renderSuggestionsTable() {
   const tbody = document.getElementById('suggestions-table-body');
   if (!tbody) return;
@@ -2745,7 +3518,8 @@ function renderSuggestionsTable() {
 
 function initUserManagementForm() {
   const form = document.getElementById('admin-user-form');
-  if (!form) return;
+  if (!form || form.dataset.initialized === 'true') return;
+  form.dataset.initialized = 'true';
 
   const roleSelect = document.getElementById('user-role');
   const usernameInput = document.getElementById('user-username');
@@ -2755,6 +3529,15 @@ function initUserManagementForm() {
   const priceGroup = document.getElementById('user-price-group');
   const etiquetaGroup = document.getElementById('user-etiqueta-group');
   const etiquetaInput = document.getElementById('user-etiqueta');
+  const centerGroup = document.getElementById('user-center-group');
+  const centerSelect = document.getElementById('user-center');
+  if (getCurrentUser()?.isPlatformAdmin === true) {
+    roleSelect.innerHTML = '<option value="Administrador">Administrador del centro</option>';
+    roleSelect.value = 'Administrador';
+    if (centerGroup) centerGroup.style.display = 'block';
+    refreshPlatformCenterSelect();
+  }
+  loadMedicalSpecialtiesForUser();
 
   function updateVisibility() {
     const role = roleSelect.value;
@@ -2765,6 +3548,8 @@ function initUserManagementForm() {
       specGroup.style.display = 'block';
       etiquetaGroup.style.display = 'block';
       if (priceGroup) priceGroup.style.display = 'block';
+      document.getElementById('user-specialty').required = role === 'Médico';
+      populateMedicalSpecialtyOptions();
       if (!etiquetaInput.value || !editId) {
         etiquetaInput.value = generateSpecialistId(username, editId);
       }
@@ -2773,6 +3558,7 @@ function initUserManagementForm() {
       etiquetaGroup.style.display = 'none';
       if (priceGroup) priceGroup.style.display = 'none';
       document.getElementById('user-specialty').value = '';
+      document.getElementById('user-specialty').required = false;
       if (priceGroup) document.getElementById('user-price').value = '';
       etiquetaInput.value = '';
     }
@@ -2804,6 +3590,7 @@ function initUserManagementForm() {
     const editId = document.getElementById('user-edit-id').value;
     const specialty = document.getElementById('user-specialty').value.trim();
     const specialistId = etiquetaInput.value.trim();
+    const specialtySelected = document.getElementById('user-specialty').value.trim();
     const priceVal = priceGroup ? Number.parseFloat(document.getElementById('user-price').value) : 100;
 
     const existingUser = editId ? DB_Users.getUsers().find((u) => u.id === editId) : null;
@@ -2825,30 +3612,38 @@ function initUserManagementForm() {
       role,
       accountPending: accountPending || !existingUser
     };
+    if (getCurrentUser()?.isPlatformAdmin === true) {
+      const selectedCenterId = centerSelect?.value || existingUser?.centerId || '';
+      if (!selectedCenterId) {
+        alert('Selecciona un centro activo para esta cuenta.');
+        return;
+      }
+      newUser.centerId = selectedCenterId;
+    }
 
     if (isSpecialistRole(role)) {
       const specId = specialistId || generateSpecialistId(username, editId);
       newUser.specialistId = specId;
-      newUser.specialty = specialty || role;
+      newUser.specialty = specialtySelected || specialty || role;
 
       // Registrar o actualizar en SPECIALISTS
       const specIndex = SPECIALISTS.findIndex(s => s.id === specId);
       const specName = specId === 'pedraza' ? 'Especialista en Medicina Regenerativa' : fullname;
       if (specIndex !== -1) {
         SPECIALISTS[specIndex].name = specName;
-        SPECIALISTS[specIndex].specialty = specialty || role;
+        SPECIALISTS[specIndex].specialty = specialtySelected || specialty || role;
       } else {
         SPECIALISTS.push({
           id: specId,
           name: specName,
-          specialty: specialty || role,
+          specialty: specialtySelected || specialty || role,
           workDays: [1, 2, 3, 4, 5, 6],
           workStart: '09:00',
           workEnd: '17:00',
           slotDuration: 30
         });
       }
-      safeLocalStorage.setItem('kolymedical_specialists', JSON.stringify(SPECIALISTS));
+      safeLocalStorage.setItem(centerStorageKey('kolymedical_specialists'), JSON.stringify(SPECIALISTS));
 
       // Registrar o actualizar en SERVICES
       let serviceId = `service_${specId}`;
@@ -2864,19 +3659,19 @@ function initUserManagementForm() {
       const servicePrice = isNaN(priceVal) ? 100 : priceVal;
       newUser.consultationPrice = servicePrice;
       if (serviceIndex !== -1) {
-        SERVICES[serviceIndex].name = `Consulta — ${fullname} (${specialty || role})`;
+        SERVICES[serviceIndex].name = `Consulta — ${fullname} (${specialtySelected || specialty || role})`;
         SERVICES[serviceIndex].price = servicePrice;
         SERVICES[serviceIndex].specialistId = specId;
       } else {
         SERVICES.push({
           id: serviceId,
-          name: `Consulta — ${fullname} (${specialty || role})`,
+          name: `Consulta — ${fullname} (${specialtySelected || specialty || role})`,
           price: servicePrice,
           specialistId: specId,
           duration: 30
         });
       }
-      safeLocalStorage.setItem('kolymedical_services', JSON.stringify(SERVICES));
+      safeLocalStorage.setItem(centerStorageKey('kolymedical_services'), JSON.stringify(SERVICES));
     } else {
       // Si se editó y se cambió de rol especialista a no especialista, remover de los recursos
       if (editId) {
@@ -2884,8 +3679,8 @@ function initUserManagementForm() {
         if (oldUser && oldUser.specialistId) {
           SPECIALISTS = SPECIALISTS.filter(s => s.id !== oldUser.specialistId);
           SERVICES = SERVICES.filter(s => s.specialistId !== oldUser.specialistId);
-          safeLocalStorage.setItem('kolymedical_specialists', JSON.stringify(SPECIALISTS));
-          safeLocalStorage.setItem('kolymedical_services', JSON.stringify(SERVICES));
+          safeLocalStorage.setItem(centerStorageKey('kolymedical_specialists'), JSON.stringify(SPECIALISTS));
+          safeLocalStorage.setItem(centerStorageKey('kolymedical_services'), JSON.stringify(SERVICES));
         }
       }
     }
@@ -2894,8 +3689,8 @@ function initUserManagementForm() {
     if (!saveResult) {
       SPECIALISTS = specialistsBefore;
       SERVICES = servicesBefore;
-      safeLocalStorage.setItem('kolymedical_specialists', JSON.stringify(SPECIALISTS));
-      safeLocalStorage.setItem('kolymedical_services', JSON.stringify(SERVICES));
+      safeLocalStorage.setItem(centerStorageKey('kolymedical_specialists'), JSON.stringify(SPECIALISTS));
+      safeLocalStorage.setItem(centerStorageKey('kolymedical_services'), JSON.stringify(SERVICES));
       alert('No se pudo guardar la cuenta. Verifica los datos o la sesión administrativa.');
       return;
     }
@@ -2956,6 +3751,12 @@ function editUserAccount(user) {
   emailInput.required = !user.accountPending;
   document.getElementById('user-fullname').value = user.fullname;
   document.getElementById('user-role').value = user.role;
+  const centerSelect = document.getElementById('user-center');
+  if (getCurrentUser()?.isPlatformAdmin === true && centerSelect) {
+    refreshPlatformCenterSelect(user.centerId || '');
+    centerSelect.value = user.centerId || '';
+    centerSelect.disabled = true;
+  }
 
   const specGroup = document.getElementById('user-specialty-group');
   const priceGroup = document.getElementById('user-price-group');
@@ -2966,7 +3767,9 @@ function editUserAccount(user) {
     specGroup.style.display = 'block';
     etiquetaGroup.style.display = 'block';
     if (priceGroup) priceGroup.style.display = 'block';
-    document.getElementById('user-specialty').value = spec ? spec.specialty : '';
+    populateMedicalSpecialtyOptions(user.specialty || spec?.specialty || '');
+    document.getElementById('user-specialty').value = user.specialty || (spec ? spec.specialty : '');
+    document.getElementById('user-specialty').required = user.role === 'Médico';
     document.getElementById('user-etiqueta').value = user.specialistId || '';
     
     // Rellenar precio
@@ -2982,6 +3785,7 @@ function editUserAccount(user) {
     etiquetaGroup.style.display = 'none';
     if (priceGroup) priceGroup.style.display = 'none';
     document.getElementById('user-specialty').value = '';
+    document.getElementById('user-specialty').required = false;
     document.getElementById('user-etiqueta').value = '';
     if (priceGroup) document.getElementById('user-price').value = '';
   }
@@ -3005,6 +3809,13 @@ function resetUserForm() {
     document.getElementById('user-price-group').style.display = 'none';
   }
   document.getElementById('user-etiqueta-group').style.display = 'none';
+  const centerSelect = document.getElementById('user-center');
+  if (centerSelect) {
+    centerSelect.disabled = false;
+    centerSelect.value = '';
+  }
+  if (getCurrentUser()?.isPlatformAdmin === true) refreshPlatformCenterSelect();
+  document.getElementById('user-specialty').required = false;
   document.getElementById('btn-cancel-user-edit').style.display = 'none';
 }
 
@@ -3758,13 +4569,41 @@ function showAppointmentDetail(apt) {
           <p style="margin:0;"><strong>Especialista:</strong> <br>${escapeHtml(doctor ? doctor.name : 'N/A')}</p>
           <p style="margin:0; grid-column: span 2;"><strong>Fecha y Hora:</strong> <br>${escapeHtml(currentApt.date)} a las ${escapeHtml(currentApt.time)}</p>
           ${currentApt.modality === 'Virtual' ? `
-          <p style="margin:0; grid-column: span 2;">
-            <strong>Enlace de Reunión (Virtual):</strong> <br>
-            ${safeMeetingUrl(currentApt.meetingLink)
-              ? `<a href="${escapeHtml(safeMeetingUrl(currentApt.meetingLink))}" target="_blank" rel="noopener noreferrer" class="btn btn-accent" style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; padding: 0.4rem 0.8rem; margin-top: 0.25rem;"><i data-lucide="video" class="icon-inline"></i> Unirse a Reunión</a>`
-              : '<em>No asignado / Generando...</em>'
-            }
-          </p>
+          <div style="grid-column: span 2; background: ${safeMeetingUrl(currentApt.meetingLink) ? 'rgba(0, 168, 150, 0.06)' : 'rgba(239, 68, 68, 0.05)'}; border: 1px ${safeMeetingUrl(currentApt.meetingLink) ? 'solid rgba(0, 168, 150, 0.25)' : 'dashed rgba(239, 68, 68, 0.35)'}; border-radius: var(--border-radius-sm); padding: 0.75rem; margin-top: 0.25rem;">
+            <strong style="color: var(--color-primary-dark); display: block; margin-bottom: 0.35rem; font-size: 0.85rem;">Enlace de Videollamada (Virtual):</strong>
+            ${safeMeetingUrl(currentApt.meetingLink) ? `
+              <div style="display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin-bottom: 0.35rem;">
+                <a href="${escapeHtml(safeMeetingUrl(currentApt.meetingLink))}" target="_blank" rel="noopener noreferrer" class="btn btn-accent align-icon-text" style="font-size: 0.8rem; padding: 0.35rem 0.75rem;">
+                  <i data-lucide="video" class="icon-inline"></i> Unirse a Reunión
+                </a>
+                <button type="button" class="btn btn-secondary align-icon-text" id="detail-copy-link-btn" style="font-size: 0.75rem; padding: 0.35rem 0.6rem;">
+                  <i data-lucide="copy" class="icon-inline"></i> Copiar
+                </button>
+                ${isEditAllowed ? `
+                <button type="button" class="btn btn-secondary align-icon-text" id="detail-set-custom-link-btn" style="font-size: 0.75rem; padding: 0.35rem 0.6rem;">
+                  <i data-lucide="edit-3" class="icon-inline"></i> Cambiar
+                </button>
+                ` : ''}
+              </div>
+              <div style="font-size: 0.72rem; color: var(--color-text-muted); word-break: break-all;">
+                ${escapeHtml(safeMeetingUrl(currentApt.meetingLink))}
+              </div>
+            ` : `
+              <span style="color: var(--color-danger); font-size: 0.8rem; display: block; margin-bottom: 0.45rem;">
+                ⚠️ No se ha asignado enlace para esta consulta virtual.
+              </span>
+              ${isEditAllowed ? `
+              <div style="display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center;">
+                <button type="button" class="btn btn-accent align-icon-text" id="detail-gen-meet-btn" style="font-size: 0.78rem; padding: 0.35rem 0.65rem;">
+                  <i data-lucide="video" class="icon-inline"></i> Generar Sala Virtual
+                </button>
+                <button type="button" class="btn btn-secondary align-icon-text" id="detail-set-custom-link-btn" style="font-size: 0.78rem; padding: 0.35rem 0.65rem;">
+                  <i data-lucide="link" class="icon-inline"></i> Pegar Enlace (Meet / Zoom)
+                </button>
+              </div>
+              ` : '<em style="font-size:0.8rem; color:var(--color-text-muted);">Sin enlace asignado.</em>'}
+            `}
+          </div>
           ` : ''}
         </div>
 
@@ -3805,6 +4644,65 @@ function showAppointmentDetail(apt) {
     if (window.lucide) window.lucide.createIcons();
 
     // Event listeners
+    const copyLinkBtn = document.getElementById('detail-copy-link-btn');
+    if (copyLinkBtn) {
+      copyLinkBtn.addEventListener('click', () => {
+        const linkToCopy = safeMeetingUrl(currentApt.meetingLink);
+        if (linkToCopy) {
+          navigator.clipboard.writeText(linkToCopy).then(() => {
+            copyLinkBtn.innerHTML = '<i data-lucide="check" class="icon-inline"></i> ¡Copiado!';
+            if (window.lucide) window.lucide.createIcons();
+            setTimeout(() => {
+              copyLinkBtn.innerHTML = '<i data-lucide="copy" class="icon-inline"></i> Copiar';
+              if (window.lucide) window.lucide.createIcons();
+            }, 2000);
+          });
+        }
+      });
+    }
+
+    const genMeetBtn = document.getElementById('detail-gen-meet-btn');
+    if (genMeetBtn) {
+      genMeetBtn.addEventListener('click', async () => {
+        const roomCode = `KolyMedical-${currentApt.id.substring(0, 8)}-${Date.now().toString().slice(-4)}`;
+        const autoLink = `https://meet.jit.si/${roomCode}`;
+        genMeetBtn.disabled = true;
+        genMeetBtn.textContent = 'Generando...';
+        await DB.updateAppointmentDetails(currentApt.id, {
+          ...currentApt,
+          meetingLink: autoLink
+        });
+        currentApt.meetingLink = autoLink;
+        updateStats();
+        renderCalendarWidget();
+        renderAppointmentsTable();
+        renderReadOnlyView();
+      });
+    }
+
+    const setCustomLinkBtn = document.getElementById('detail-set-custom-link-btn');
+    if (setCustomLinkBtn) {
+      setCustomLinkBtn.addEventListener('click', async () => {
+        const inputUrl = prompt('Ingresa el enlace de la reunión (Google Meet, Zoom, MS Teams, Jitsi):', currentApt.meetingLink || 'https://meet.google.com/');
+        if (inputUrl !== null && inputUrl.trim()) {
+          const validUrl = safeMeetingUrl(inputUrl.trim());
+          if (!validUrl) {
+            alert('Por favor ingresa una URL válida y segura de Google Meet, Zoom, Teams o Jitsi Meet.');
+            return;
+          }
+          await DB.updateAppointmentDetails(currentApt.id, {
+            ...currentApt,
+            meetingLink: validUrl
+          });
+          currentApt.meetingLink = validUrl;
+          updateStats();
+          renderCalendarWidget();
+          renderAppointmentsTable();
+          renderReadOnlyView();
+        }
+      });
+    }
+
     const openRecordBtn = document.getElementById('detail-open-record-btn');
     if (openRecordBtn) {
       openRecordBtn.addEventListener('click', async () => {
@@ -3889,8 +4787,13 @@ function showAppointmentDetail(apt) {
             <input type="text" id="detail-apt-time" class="form-control" value="${escapeHtml(currentApt.time)}" style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
           </div>
           <div style="grid-column: span 2;">
-            <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Enlace de Reunión (Virtual):</label>
-            <input type="url" id="detail-apt-meetlink" class="form-control" value="${escapeHtml(safeMeetingUrl(currentApt.meetingLink))}" placeholder="https://meet.google.com/..." style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.2rem;">
+              <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem; margin:0;">Enlace de Reunión (Virtual):</label>
+              <button type="button" class="btn btn-secondary align-icon-text" id="detail-edit-gen-link-btn" style="padding:0.15rem 0.4rem; font-size:0.72rem; height:auto;">
+                <i data-lucide="video" class="icon-inline" style="width:12px; height:12px;"></i> Generar sala
+              </button>
+            </div>
+            <input type="url" id="detail-apt-meetlink" class="form-control" value="${escapeHtml(safeMeetingUrl(currentApt.meetingLink))}" placeholder="https://meet.google.com/... o https://meet.jit.si/..." style="font-size:0.85rem; padding:0.25rem 0.5rem; height:32px;">
           </div>
           <div style="grid-column: span 2;">
             <label style="font-weight:600; color:var(--color-primary-dark); font-size:0.8rem;">Motivo de Consulta:</label>
@@ -3909,6 +4812,14 @@ function showAppointmentDetail(apt) {
 
     if (window.lucide) window.lucide.createIcons();
 
+    const editGenLinkBtn = document.getElementById('detail-edit-gen-link-btn');
+    if (editGenLinkBtn) {
+      editGenLinkBtn.addEventListener('click', () => {
+        const roomCode = `KolyMedical-${currentApt.id.substring(0, 8)}-${Date.now().toString().slice(-4)}`;
+        document.getElementById('detail-apt-meetlink').value = `https://meet.jit.si/${roomCode}`;
+      });
+    }
+
     document.getElementById('detail-edit-cancel-btn').addEventListener('click', () => {
       renderReadOnlyView();
     });
@@ -3924,7 +4835,8 @@ function showAppointmentDetail(apt) {
       const specialistId = document.getElementById('detail-apt-doctor').value;
       const date = document.getElementById('detail-apt-date').value;
       const time = document.getElementById('detail-apt-time').value.trim();
-      const meetingLink = document.getElementById('detail-apt-meetlink').value.trim();
+      const rawMeetingLink = document.getElementById('detail-apt-meetlink').value.trim();
+      const meetingLink = modality === 'Virtual' ? (safeMeetingUrl(rawMeetingLink) || rawMeetingLink) : '';
       const motivoConsulta = document.getElementById('detail-apt-motivo').value.trim();
 
       await DB.updateAppointmentDetails(currentApt.id, {
@@ -4066,7 +4978,7 @@ function renderAppointmentsTable() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>
-        <strong>${escapeHtml(apt.patientName)}</strong><br>
+        <strong class="btn-patient-detail" data-id="${apt.id}" style="cursor:pointer; color:var(--color-primary); text-decoration:underline; text-underline-offset:2px;" title="Ver detalle de la cita">${escapeHtml(apt.patientName)}</strong><br>
         <span style="font-size:0.75rem; color:var(--color-text-muted);">
           ${escapeHtml(apt.patientAge)} años | DNI: ${escapeHtml(apt.patientDni || '—')}<br>
           Seg: ${escapeHtml(apt.trackedBy || 'Sin asignar')}
@@ -4081,7 +4993,11 @@ function renderAppointmentsTable() {
       <td>${escapeHtml(apt.date)}<br><span style="font-weight:600; color:var(--color-primary-dark);">${escapeHtml(apt.time)}</span></td>
       <td>
         <span class="status-badge status-${apt.modality === 'Virtual' ? 'confirmada' : 'realizada'}">${apt.modality}</span>
-        ${apt.modality === 'Virtual' && safeMeetingUrl(apt.meetingLink) ? `<br><a href="${escapeHtml(safeMeetingUrl(apt.meetingLink))}" target="_blank" rel="noopener noreferrer" style="color:var(--color-accent); font-size:0.7rem; font-weight:600; display:inline-flex; align-items:center; gap:0.2rem; margin-top:2px;"><i data-lucide="video" style="width:11px; height:11px;"></i> Reunión</a>` : ''}
+        ${apt.modality === 'Virtual' ? (
+          safeMeetingUrl(apt.meetingLink)
+            ? `<br><a href="${escapeHtml(safeMeetingUrl(apt.meetingLink))}" target="_blank" rel="noopener noreferrer" style="color:var(--color-accent); font-size:0.7rem; font-weight:600; display:inline-flex; align-items:center; gap:0.2rem; margin-top:2px;"><i data-lucide="video" style="width:11px; height:11px;"></i> Reunión</a>`
+            : `<br><button class="btn btn-secondary btn-assign-meet align-icon-text" data-id="${apt.id}" style="padding:0.1rem 0.35rem; font-size:0.68rem; margin-top:3px; color:var(--color-accent); border-color:var(--color-accent); cursor:pointer;"><i data-lucide="video" style="width:10px; height:10px; top:0;"></i> + Asignar link</button>`
+        ) : ''}
       </td>
       <td>
         <select class="form-control status-select" data-id="${apt.id}" style="padding: 0.3rem 0.5rem; font-size:0.85rem; width:130px;">
@@ -4092,6 +5008,16 @@ function renderAppointmentsTable() {
         </select>
       </td>
     `;
+
+    // Abrir modal de detalle al hacer clic en el nombre o botón de asignar enlace
+    const patientDetailEl = tr.querySelector('.btn-patient-detail');
+    if (patientDetailEl) {
+      patientDetailEl.addEventListener('click', () => showAppointmentDetail(apt));
+    }
+    const assignMeetBtn = tr.querySelector('.btn-assign-meet');
+    if (assignMeetBtn) {
+      assignMeetBtn.addEventListener('click', () => showAppointmentDetail(apt));
+    }
 
     // Cambiar estado directo
     tr.querySelector('.status-select').addEventListener('change', (e) => {
@@ -4174,7 +5100,11 @@ function renderUpcomingConsultations() {
       <td>${escapeHtml(getServiceName(apt))}</td>
       <td>
         <strong>${apt.modality}</strong>
-        ${apt.modality === 'Virtual' && safeMeetingUrl(apt.meetingLink) ? `<br><a href="${escapeHtml(safeMeetingUrl(apt.meetingLink))}" target="_blank" rel="noopener noreferrer" style="color:var(--color-accent); font-size:0.72rem; font-weight:600; display:inline-flex; align-items:center; gap:0.25rem;"><i data-lucide="video" style="width:12px; height:12px;"></i> Unirse</a>` : ''}
+        ${apt.modality === 'Virtual' ? (
+          safeMeetingUrl(apt.meetingLink)
+            ? `<br><a href="${escapeHtml(safeMeetingUrl(apt.meetingLink))}" target="_blank" rel="noopener noreferrer" style="color:var(--color-accent); font-size:0.72rem; font-weight:600; display:inline-flex; align-items:center; gap:0.25rem;"><i data-lucide="video" style="width:12px; height:12px;"></i> Unirse a Reunión</a>`
+            : `<br><span style="font-size:0.72rem; color:var(--color-text-muted);"><em>Sin enlace asignado</em></span>`
+        ) : ''}
         ${apt.motivoConsulta ? `<br><span style="font-size:0.72rem; color:var(--color-text-muted); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; max-width:180px;" title="${escapeHtml(apt.motivoConsulta)}">${escapeHtml(apt.motivoConsulta)}</span>` : ''}
       </td>
       <td>${isToday ? '<span style="color:var(--color-accent); font-weight:700;">Hoy</span>' : escapeHtml(apt.date)}<br><span style="font-weight:600; color:var(--color-primary-dark);">${escapeHtml(apt.time)}</span></td>
@@ -4684,7 +5614,8 @@ function initAdminBookingForm() {
       adminRenderedServiceNames.add(normalizedName);
       const opt = document.createElement('option');
       opt.value = s.id;
-      opt.textContent = `${s.name} — S/ ${s.price}`;
+      const currency = s.currency === 'USD' ? 'USD' : 'PEN';
+      opt.textContent = `${s.name} — ${new Intl.NumberFormat('es-PE', { style: 'currency', currency }).format(Number(s.price) || 0)}`;
       selectService.appendChild(opt);
     }
   });
@@ -4813,7 +5744,7 @@ function initAdminBookingForm() {
       });
       extraSlot.style.backgroundColor = 'var(--color-accent)';
       extraSlot.style.color = '#fff';
-      document.getElementById('admin-booking-time').value = 'Por coordinar (Sujeto a disponibilidad de agenda)';
+      document.getElementById('admin-booking-time').value = 'Por coordinar';
     });
     timeGrid.appendChild(extraSlot);
   }
@@ -4899,6 +5830,16 @@ function initAdminBookingForm() {
     });
   }
 
+  const btnAutoMeetlink = document.getElementById('btn-admin-auto-meetlink');
+  if (btnAutoMeetlink) {
+    btnAutoMeetlink.addEventListener('click', () => {
+      const randomCode = Math.random().toString(36).substring(2, 8);
+      const autoLink = `https://meet.jit.si/KolyMedical-${randomCode}-${Date.now().toString().slice(-4)}`;
+      const meetInput = document.getElementById('admin-booking-meetlink');
+      if (meetInput) meetInput.value = autoLink;
+    });
+  }
+
   // Manejar el cambio de tipo de registro (Consulta vs Procedimiento)
   const radioConsulta = document.querySelector('input[name="admin-booking-type"][value="consulta"]');
   const radioProcedimiento = document.querySelector('input[name="admin-booking-type"][value="procedimiento"]');
@@ -4913,6 +5854,18 @@ function initAdminBookingForm() {
     };
     radioConsulta.addEventListener('change', handleTypeChange);
     radioProcedimiento.addEventListener('change', handleTypeChange);
+    selectService?.addEventListener('change', () => {
+      const service = SERVICES.find((item) => item.id === selectService.value);
+      if (service?.isCatalogStudy) {
+        radioProcedimiento.checked = true;
+        if (durationSelect) durationSelect.value = String(service.durationHours || 1);
+        durationGroup.style.display = 'block';
+      } else if (service) {
+        radioConsulta.checked = true;
+        durationGroup.style.display = 'none';
+      }
+      generateAdminTimeSlots();
+    });
   }
   if (durationSelect) {
     durationSelect.addEventListener('change', generateAdminTimeSlots);
@@ -4931,7 +5884,8 @@ function initAdminBookingForm() {
     const modality = document.getElementById('admin-booking-modality').value;
     const tracker = document.getElementById('admin-booking-tracker').value;
     const motivoConsulta = (document.getElementById('admin-booking-motivo').value || '').trim();
-    const meetingLink = (document.getElementById('admin-booking-meetlink').value || '').trim();
+    const rawMeetingLink = (document.getElementById('admin-booking-meetlink').value || '').trim();
+    const meetingLink = modality === 'Virtual' ? (rawMeetingLink || `https://meet.jit.si/KolyMedical-${Math.random().toString(36).substring(2, 8)}-${Date.now().toString().slice(-4)}`) : '';
 
     const bookingType = document.querySelector('input[name="admin-booking-type"]:checked') ? document.querySelector('input[name="admin-booking-type"]:checked').value : 'consulta';
     const isProcedure = bookingType === 'procedimiento';
@@ -4958,7 +5912,7 @@ function initAdminBookingForm() {
       time,
       modality,
       motivoConsulta,
-      meetingLink: modality === 'Virtual' ? meetingLink : '',
+      meetingLink,
       status: 'confirmada', // Por defecto confirmada ya que la agendó el personal
       trackedBy: tracker,
       isProcedure,
