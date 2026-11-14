@@ -22,6 +22,8 @@
 !sitemap.xml
 !vercel.json
 !googlef4b543b4f27b2445.html
+!JackN/
+!JackN/**
 
 # Vercel's Git build can evaluate ignore patterns from the repository root
 # even when the project's Root Directory is kolymedical-web. In that case,
@@ -50,3 +52,5 @@
 !/kolymedical-web/sitemap.xml
 !/kolymedical-web/vercel.json
 !/kolymedical-web/googlef4b543b4f27b2445.html
+!/kolymedical-web/JackN/
+!/kolymedical-web/JackN/**
