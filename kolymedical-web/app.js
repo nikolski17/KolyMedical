@@ -16,7 +16,7 @@ const INITIAL_SPECIALISTS = [
 
 let SERVICES = [];
 const INITIAL_SERVICES = [
-  { id: 'med_reg', name: 'Consulta — Medicina Regenerativa', price: 100, specialistId: 'pedraza', duration: 60 },
+  { id: 'med_reg', name: 'Consulta — Medicina Regenerativa', price: 150, specialistId: 'pedraza', duration: 60 },
   { id: 'nutricion', name: 'Consulta — Nutrición Clínica', price: 150, specialistId: 'licamelia', duration: 30 },
   { id: 'gastro', name: 'Consulta — Gastroenterología', price: 100, specialistId: 'morales', duration: 60 },
   { id: 'otorrino', name: 'Consulta — Otorrinolaringología', price: 100, specialistId: 'montes', duration: 60 },
