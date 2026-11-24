@@ -18,6 +18,9 @@
 !catalog-imaging.mjs
 !imc-calculator.mjs
 !billing-module.mjs
+!booking-pushup.mjs
+!analytics-module.mjs
+!profile-module.mjs
 !security-utils.mjs
 !robots.txt
 !sitemap.xml
@@ -49,6 +52,9 @@
 !/kolymedical-web/catalog-imaging.mjs
 !/kolymedical-web/imc-calculator.mjs
 !/kolymedical-web/billing-module.mjs
+!/kolymedical-web/booking-pushup.mjs
+!/kolymedical-web/analytics-module.mjs
+!/kolymedical-web/profile-module.mjs
 !/kolymedical-web/security-utils.mjs
 !/kolymedical-web/robots.txt
 !/kolymedical-web/sitemap.xml

@@ -84,7 +84,7 @@
       ]
     },
     {
-      "source": "/(index.html|boletin.html|app.js|bulletin.js|meta-pixel.js|styles.css|security-utils.mjs|quote-utils.mjs|quotation-module.mjs|catalog-import.mjs|catalog-imaging.mjs|imc-calculator.mjs|billing-module.mjs)",
+      "source": "/(index.html|boletin.html|app.js|bulletin.js|meta-pixel.js|styles.css|security-utils.mjs|quote-utils.mjs|quotation-module.mjs|catalog-import.mjs|catalog-imaging.mjs|imc-calculator.mjs|billing-module.mjs|booking-pushup.mjs|analytics-module.mjs|profile-module.mjs)",
       "headers": [
         {
           "key": "Cache-Control",

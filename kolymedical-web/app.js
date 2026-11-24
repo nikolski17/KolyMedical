@@ -2589,6 +2589,8 @@ function renderDashboard() {
         renderCie10Module();
       } else if (viewName === 'billing') {
         renderBillingView();
+      } else if (viewName === 'analytics') {
+        renderAnalyticsView();
       }
     });
   });
@@ -2674,11 +2676,19 @@ function applyCenterModuleVisibility() {
 // -----------------------------------------------------
 // 👤 VISTA: MI PERFIL (Cambiar Contraseña)
 // -----------------------------------------------------
-function renderProfileView() {
-  const currentUser = getCurrentUser();
-  if (currentUser) {
-    document.getElementById('profile-username').value = currentUser.username;
-    document.getElementById('profile-new-password').value = '';
+async function renderProfileView() {
+  try {
+    const { initProfileModule } = await import('./profile-module.mjs?v=20261124d');
+    initProfileModule('view-profile', supabaseClient || window.supabaseClient);
+  } catch (err) {
+    console.warn('Profile module fallback:', err);
+    const currentUser = getCurrentUser();
+    if (currentUser) {
+      const uEl = document.getElementById('profile-username');
+      if (uEl) uEl.value = currentUser.username;
+      const pEl = document.getElementById('profile-new-password');
+      if (pEl) pEl.value = '';
+    }
   }
 }
 
@@ -6136,7 +6146,8 @@ function initMedicalQuickSearch() {
       { id: 'cie10', name: 'Catálogo de Diagnósticos Médicos CIE-10', icon: 'book-open', type: 'Módulo' },
       { id: 'quotes', name: 'Cotizador y Generador de Presupuestos', icon: 'calculator', type: 'Módulo' },
       { id: 'catalog', name: 'Catálogo de Estudios y Precios', icon: 'database', type: 'Módulo' },
-      { id: 'billing', name: 'Facturación Electrónica SUNAT (Boletas y Facturas)', icon: 'credit-card', type: 'Módulo' }
+      { id: 'billing', name: 'Facturación Electrónica SUNAT (Boletas y Facturas)', icon: 'credit-card', type: 'Módulo' },
+      { id: 'analytics', name: 'Métricas & Dashboard Clínico (Gráficas)', icon: 'bar-chart-2', type: 'Módulo' }
     ];
 
     // 2. Acciones Rápidas
@@ -7720,5 +7731,22 @@ async function renderBillingView() {
   } catch (err) {
     console.error('Error al inicializar facturación electrónica:', err);
     showMedicalToast('No se pudo inicializar el módulo de facturación: ' + err.message, 'error');
+  }
+}
+
+
+// ==========================================================================
+// 📊 MÓDULO: MÉTRICAS & DASHBOARD CLÍNICO (CHART.JS)
+// ==========================================================================
+let analyticsModuleInitialized = false;
+
+async function renderAnalyticsView() {
+  try {
+    const { initAnalyticsDashboard } = await import('./analytics-module.mjs?v=20261124d');
+    initAnalyticsDashboard('view-analytics', supabaseClient || window.supabaseClient);
+    analyticsModuleInitialized = true;
+  } catch (err) {
+    console.error('Error al inicializar dashboard de métricas:', err);
+    showMedicalToast('No se pudo inicializar el dashboard analítico: ' + err.message, 'error');
   }
 }
