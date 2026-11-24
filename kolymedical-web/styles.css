@@ -3835,3 +3835,78 @@ html.theme-transition *::after {
   opacity: 1;
   transform: translateY(0);
 }
+
+
+/* Notificaciones Dropdown Dark Theme */
+#notifications-menu {
+  background: #11192c !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #f8fafc !important;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6) !important;
+  z-index: 99999 !important;
+}
+
+#notifications-menu > div:first-child {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #00d2c4 !important;
+}
+
+#notifications-list .notification-item {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  color: #f8fafc !important;
+}
+
+#notifications-list .notification-item:hover {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+#notifications-list strong {
+  color: #00d2c4 !important;
+}
+
+#notifications-list p {
+  color: #94a3b8 !important;
+}
+
+
+/* Erradicar fondos blancos en .admin-card para todo el modo oscuro */
+body.dark-theme .admin-card,
+.admin-layout.dark-theme .admin-card,
+.dark-theme .admin-card,
+.admin-body.dark-theme .admin-card,
+.admin-card {
+  background: #11192c !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #f8fafc !important;
+}
+
+body.dark-theme .admin-card h2,
+body.dark-theme .admin-card h3,
+body.dark-theme .admin-card h4,
+.admin-layout.dark-theme .admin-card h2,
+.admin-layout.dark-theme .admin-card h3,
+.admin-layout.dark-theme .admin-card h4 {
+  color: #f8fafc !important;
+}
+
+body.dark-theme .admin-card p,
+.admin-layout.dark-theme .admin-card p {
+  color: #94a3b8 !important;
+}
+
+body.dark-theme .admin-card label,
+.admin-layout.dark-theme .admin-card label {
+  color: #cbd5e1 !important;
+}
+
+body.dark-theme .form-control,
+.admin-layout.dark-theme .form-control {
+  background-color: #0b111e !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #f8fafc !important;
+}
+
+body.dark-theme #availability-form label,
+.admin-layout.dark-theme #availability-form label {
+  color: #cbd5e1 !important;
+}

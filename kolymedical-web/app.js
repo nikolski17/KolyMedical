@@ -4013,19 +4013,27 @@ function initNotificationsHandler() {
   const clearBtn = document.getElementById('btn-clear-notifications');
 
   if (toggleBtn && menu) {
+    if (toggleBtn.__notificationsBound) return;
+    toggleBtn.__notificationsBound = true;
+
     toggleBtn.addEventListener('click', (e) => {
+      e.preventDefault();
       e.stopPropagation();
-      menu.style.display = (menu.style.display === 'none' || !menu.style.display) ? 'block' : 'none';
+      const current = menu.style.display;
+      menu.style.display = (current === 'none' || !current) ? 'block' : 'none';
     });
 
     document.addEventListener('click', (e) => {
-      if (menu && !menu.contains(e.target) && e.target !== toggleBtn && !toggleBtn.contains(e.target)) {
-        menu.style.display = 'none';
+      if (menu && menu.style.display === 'block') {
+        if (!menu.contains(e.target) && !toggleBtn.contains(e.target)) {
+          menu.style.display = 'none';
+        }
       }
     });
   }
 
-  if (clearBtn) {
+  if (clearBtn && !clearBtn.__clearBound) {
+    clearBtn.__clearBound = true;
     clearBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const badge = document.getElementById('notifications-badge');

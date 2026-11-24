@@ -1,4 +1,4 @@
-// billing-module.mjs
+// billing-module.mjs — Facturación Electrónica SUNAT, Cotizador y Sistema de Ticketera / PDF / WhatsApp
 const STORAGE_CONFIG_KEY = 'koly_billing_config_v1';
 const STORAGE_INVOICES_KEY = 'koly_invoices_v1';
 const STORAGE_QUOTES_KEY = 'koly_quotes_v1';
@@ -9,7 +9,211 @@ function showToast(msg) {
   el.textContent = msg;
   document.body.appendChild(el);
   requestAnimationFrame(() => el.classList.add('show'));
-  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 220); }, 3200);
+  setTimeout(() => {
+    el.classList.remove('show');
+    setTimeout(() => el.remove(), 220);
+  }, 3200);
+}
+
+// Inyectar estilos para impresión en ticketera térmica (80mm / 58mm)
+function ensureTicketeraPrintStyles() {
+  if (document.getElementById('koly-ticketera-print-css')) return;
+  const style = document.createElement('style');
+  style.id = 'koly-ticketera-print-css';
+  style.textContent = `
+    @media print {
+      body * {
+        visibility: hidden !important;
+      }
+      #koly-ticket-modal, #koly-ticket-modal * {
+        visibility: visible !important;
+      }
+      #koly-ticket-modal {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        background: transparent !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        display: block !important;
+      }
+      #koly-ticket-print-area {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 78mm !important;
+        max-width: 80mm !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 2mm 3mm !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+        font-family: 'Courier New', Courier, monospace !important;
+        font-size: 11px !important;
+        line-height: 1.25 !important;
+      }
+      .ticket-no-print {
+        display: none !important;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+export function showTicketModal(inv, config = {}) {
+  ensureTicketeraPrintStyles();
+  let modal = document.getElementById('koly-ticket-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'koly-ticket-modal';
+    modal.style.cssText = `
+      position:fixed; inset:0; z-index:999999; background:rgba(0,0,0,0.85); backdrop-filter:blur(6px);
+      display:flex; align-items:center; justify-content:center; padding:16px; overflow-y:auto;
+    `;
+    document.body.appendChild(modal);
+  }
+
+  const docFullCode = `${inv.series || 'B001'}-${String(inv.correlative || 1).padStart(6, '0')}`;
+  const docTitle = inv.doc_type === 'FACTURA' ? 'FACTURA ELECTRÓNICA' : 'BOLETA DE VENTA ELECTRÓNICA';
+  const issueDate = inv.created_at ? new Date(inv.created_at).toLocaleString('es-PE') : new Date().toLocaleString('es-PE');
+  const items = Array.isArray(inv.items) && inv.items.length ? inv.items : [{ description: 'Consulta / Servicio Médico', quantity: 1, total: inv.total || 0 }];
+  const rucEmpresa = config.ruc || '20608552191';
+  const razonEmpresa = config.razon_social || 'KOLYMEDICAL S.A.C.';
+  const direccionEmpresa = config.direccion_fiscal || 'Av. Javier Prado Este / Lima - Perú';
+
+  modal.innerHTML = `
+    <div style="background:#11192c; border:1px solid rgba(255,255,255,0.15); border-radius:16px; padding:20px; width:100%; max-width:440px; box-shadow:0 25px 60px rgba(0,0,0,0.7); color:#f8fafc; font-family:system-ui, -apple-system, sans-serif;">
+      
+      <div class="ticket-no-print" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:10px;">
+        <span style="font-size:0.9rem; font-weight:700; color:#00d2c4;">Vista Previa de Ticketera (80mm)</span>
+        <button type="button" id="btn-close-ticket-modal" style="background:none; border:none; color:#94a3b8; font-size:1.5rem; cursor:pointer; line-height:1;">&times;</button>
+      </div>
+
+      <!-- ÁREA IMPRIMIBLE DEL TICKET (FORMATO TICKET FÍSICO 80MM) -->
+      <div id="koly-ticket-print-area" style="background:#ffffff; color:#000000; padding:18px 14px; border-radius:8px; font-family:'Courier New', Courier, monospace; font-size:11px; line-height:1.3; box-shadow:0 4px 14px rgba(0,0,0,0.25);">
+        
+        <div style="text-align:center; margin-bottom:10px;">
+          <strong style="font-size:13px; letter-spacing:1px; display:block;">${razonEmpresa.toUpperCase()}</strong>
+          <div>R.U.C.: ${rucEmpresa}</div>
+          <div style="font-size:10px;">${direccionEmpresa}</div>
+          <div style="font-size:10px;">TELÉFONO: (01) 987-654-321</div>
+        </div>
+
+        <div style="border-top:1px dashed #000; border-bottom:1px dashed #000; padding:6px 0; margin:8px 0; text-align:center;">
+          <strong style="font-size:12px; display:block;">${docTitle}</strong>
+          <strong style="font-size:13px;">${docFullCode}</strong>
+        </div>
+
+        <div style="margin-bottom:8px; font-size:10.5px;">
+          <div><strong>FECHA EMISIÓN:</strong> ${issueDate}</div>
+          <div><strong>CLIENTE:</strong> ${(inv.client_name || 'CLIENTE VARIOS').toUpperCase()}</div>
+          <div><strong>${inv.client_doc_type || 'DOC'}:</strong> ${inv.client_doc_number || '—'}</div>
+          <div><strong>MONEDA:</strong> SOLES (S/)</div>
+        </div>
+
+        <div style="border-top:1px solid #000; border-bottom:1px solid #000; padding:4px 0; margin-bottom:6px; display:flex; justify-content:space-between; font-weight:700; font-size:10px;">
+          <span>DESCRIPCIÓN</span>
+          <span>IMPORTE</span>
+        </div>
+
+        <div style="margin-bottom:8px;">
+          ${items.map(it => `
+            <div style="display:flex; justify-content:space-between; gap:6px; margin-bottom:3px; font-size:10.5px;">
+              <span style="flex:1;">${it.quantity || 1}x ${it.description || 'Atención Médica'}</span>
+              <strong style="white-space:nowrap;">S/ ${Number(it.total || 0).toFixed(2)}</strong>
+            </div>
+          `).join('')}
+        </div>
+
+        <div style="border-top:1px dashed #000; padding-top:6px; margin-top:6px; font-size:11px;">
+          <div style="display:flex; justify-content:space-between;">
+            <span>OP. GRAVADA:</span>
+            <span>S/ ${Number(inv.subtotal || 0).toFixed(2)}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span>I.G.V. (18%):</span>
+            <span>S/ ${Number(inv.igv || 0).toFixed(2)}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:800; border-top:1px solid #000; margin-top:4px; padding-top:4px;">
+            <span>TOTAL A PAGAR:</span>
+            <span>S/ ${Number(inv.total || 0).toFixed(2)}</span>
+          </div>
+        </div>
+
+        <div style="border-top:1px dashed #000; margin-top:10px; padding-top:8px; text-align:center; font-size:9.5px;">
+          <div>ESTADO: <strong>${(inv.sunat_status || 'BETA').toUpperCase()}</strong></div>
+          <div style="margin-top:3px;">Representación impresa de la ${docTitle.toLowerCase()} emitida por KolyTech Platform.</div>
+          <div style="margin-top:4px; font-weight:700;">¡Gracias por su preferencia!</div>
+        </div>
+      </div>
+
+      <!-- BOTONES DE ACCIÓN (NO IMPRIMIBLES) -->
+      <div class="ticket-no-print" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:16px;">
+        <button type="button" id="btn-print-pos-ticket" style="padding:10px; border-radius:8px; border:none; background:#10b981; color:#0b111e; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+          Imprimir Ticketera
+        </button>
+
+        <button type="button" id="btn-download-pdf-ticket" style="padding:10px; border-radius:8px; border:none; background:#00d2c4; color:#0b111e; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Descargar PDF
+        </button>
+
+        <button type="button" id="btn-send-wa-ticket" style="grid-column:1/-1; padding:10px; border-radius:8px; border:1px solid rgba(37,211,102,0.4); background:#128c7e; color:#ffffff; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.099.824z"/></svg>
+          Enviar Comprobante por WhatsApp
+        </button>
+      </div>
+
+    </div>
+  `;
+
+  modal.style.display = 'flex';
+
+  modal.querySelector('#btn-close-ticket-modal').onclick = () => { modal.style.display = 'none'; };
+  modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
+
+  // Acción 1: Imprimir en Ticketera
+  modal.querySelector('#btn-print-pos-ticket').onclick = () => {
+    window.print();
+  };
+
+  // Acción 2: Descargar PDF
+  modal.querySelector('#btn-download-pdf-ticket').onclick = () => {
+    if (inv.pdf_url) {
+      window.open(inv.pdf_url, '_blank');
+    } else {
+      // Si no hay enlace externo de Nubefact, lanzar ventana de impresión con opción de Guardar como PDF
+      window.print();
+    }
+  };
+
+  // Acción 3: Enviar por WhatsApp al paciente
+  modal.querySelector('#btn-send-wa-ticket').onclick = () => {
+    let phone = inv.client_phone || (inv.client_doc_number && inv.client_doc_number.length === 9 ? inv.client_doc_number : '');
+    if (!phone) {
+      phone = prompt('Ingresa el número de WhatsApp del paciente (ej. 987654321):', '');
+    }
+    if (!phone) return;
+    const cleanPhone = phone.replace(/\D/g, '');
+    const fullPhone = cleanPhone.startsWith('51') ? cleanPhone : `51${cleanPhone}`;
+    const waText = encodeURIComponent(
+      `*${razonEmpresa} — Comprobante Electrónico*\n\n` +
+      `Estimado(a) *${inv.client_name || 'Paciente'}*,\n` +
+      `Se ha emitido su *${docTitle}* con éxito:\n\n` +
+      `📄 *Comprobante:* ${docFullCode}\n` +
+      `📅 *Fecha:* ${issueDate}\n` +
+      `💰 *Monto Total:* S/ ${Number(inv.total || 0).toFixed(2)}\n` +
+      `📋 *Concepto:* ${items.map(i => i.description).join(', ')}\n` +
+      `✅ *Estado:* ${inv.sunat_status || 'REGISTRADO'}\n\n` +
+      (inv.pdf_url ? `Descargue su comprobante oficial aquí:\n${inv.pdf_url}\n\n` : '') +
+      `_Gracias por atender su salud con nosotros._`
+    );
+    window.open(`https://wa.me/${fullPhone}?text=${waText}`, '_blank');
+  };
 }
 
 export async function initBillingModule(optionsOrContainerId = 'view-billing', maybeSupabase = null, maybeUser = null) {
@@ -34,6 +238,7 @@ export async function initBillingModule(optionsOrContainerId = 'view-billing', m
   let config = JSON.parse(localStorage.getItem(STORAGE_CONFIG_KEY) || 'null') || {
     ruc: '',
     razon_social: 'KOLYMEDICAL',
+    direccion_fiscal: 'Av. Javier Prado Este / Lima - Perú',
     provider: 'PSE_API',
     environment: 'BETA',
     serie_boleta: 'B001',
@@ -101,9 +306,16 @@ export async function initBillingModule(optionsOrContainerId = 'view-billing', m
             </select>
           </label>
         </div>
-        <div style="display:flex; justify-content:space-between; align-items:center; padding-top:12px; border-top:1px solid rgba(255,255,255,0.08);">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding-top:12px; border-top:1px solid rgba(255,255,255,0.08); flex-wrap:wrap; gap:10px;">
           <div id="bill-totals" style="font-size:0.95rem; color:#cbd5e1;">Total: <strong style="color:#10b981;">S/ 0.00</strong></div>
           <button type="button" id="btn-emit-doc" style="padding:10px 20px; border-radius:8px; border:none; background:#10b981; color:#0b111e; font-weight:700; cursor:pointer;">Registrar / Emitir</button>
+        </div>
+        <div id="bill-post-emit-actions" style="display:none; padding:12px; border-radius:10px; background:rgba(0,210,196,0.08); border:1px solid rgba(0,210,196,0.25); align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+          <div style="color:#10b981; font-weight:600; font-size:0.9rem;" id="bill-post-emit-msg">Comprobante emitido con éxito.</div>
+          <div style="display:flex; gap:8px;">
+            <button type="button" id="btn-quick-open-ticket" style="padding:7px 14px; border-radius:6px; border:none; background:#10b981; color:#0b111e; font-weight:700; cursor:pointer;">Ver Ticketera</button>
+            <button type="button" id="btn-quick-open-wa" style="padding:7px 14px; border-radius:6px; border:none; background:#128c7e; color:#fff; font-weight:700; cursor:pointer;">WhatsApp</button>
+          </div>
         </div>
       </section>
 
@@ -128,7 +340,7 @@ export async function initBillingModule(optionsOrContainerId = 'view-billing', m
 
       <!-- TAB 3: HISTORIAL -->
       <section data-bill-panel="historial" style="display:none; background:#11192c; border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:20px;">
-        <div id="billing-history-list" style="display:grid; gap:10px;"></div>
+        <div id="billing-history-list" style="display:grid; gap:12px;"></div>
       </section>
 
       <!-- TAB 4: CONFIGURACION SUNAT -->
@@ -139,6 +351,9 @@ export async function initBillingModule(optionsOrContainerId = 'view-billing', m
           </label>
           <label style="font-size:0.82rem; color:#94a3b8;">Razón Social
             <input id="cfg-razon" value="${config.razon_social}" style="width:100%; margin-top:4px; padding:10px; border-radius:8px; background:#0b111e; color:#fff; border:1px solid rgba(255,255,255,0.12);">
+          </label>
+          <label style="font-size:0.82rem; color:#94a3b8;">Dirección Fiscal
+            <input id="cfg-dir" value="${config.direccion_fiscal || ''}" style="width:100%; margin-top:4px; padding:10px; border-radius:8px; background:#0b111e; color:#fff; border:1px solid rgba(255,255,255,0.12);">
           </label>
           <label style="font-size:0.82rem; color:#94a3b8;">Ambiente
             <select id="cfg-env" style="width:100%; margin-top:4px; padding:10px; border-radius:8px; background:#0b111e; color:#fff; border:1px solid rgba(255,255,255,0.12);">
@@ -270,6 +485,8 @@ export async function initBillingModule(optionsOrContainerId = 'view-billing', m
   }
 
   // Emitir comprobante
+  let lastEmittedInvoice = null;
+
   container.querySelector('#btn-emit-doc').addEventListener('click', async () => {
     const docType = container.querySelector('#bill-type').value;
     const docNum = container.querySelector('#bill-client-doc').value.trim();
@@ -313,7 +530,25 @@ export async function initBillingModule(optionsOrContainerId = 'view-billing', m
         console.warn('[KolyTech] Local fallback for invoice:', err);
       }
     }
+
+    lastEmittedInvoice = payload;
     showToast(`Comprobante ${series}-${String(correlative).padStart(6, '0')} emitido (${payload.sunat_status}).`);
+
+    // Mostrar barra rápida con acceso directo a Ticketera y WhatsApp
+    const postEmitBox = container.querySelector('#bill-post-emit-actions');
+    if (postEmitBox) {
+      postEmitBox.style.display = 'flex';
+      container.querySelector('#bill-post-emit-msg').textContent = `✓ ${docType} ${series}-${String(correlative).padStart(6, '0')} emitida con éxito.`;
+      
+      container.querySelector('#btn-quick-open-ticket').onclick = () => {
+        showTicketModal(lastEmittedInvoice, config);
+      };
+      container.querySelector('#btn-quick-open-wa').onclick = () => {
+        showTicketModal(lastEmittedInvoice, config);
+        const waBtn = document.getElementById('btn-send-wa-ticket');
+        if (waBtn) waBtn.click();
+      };
+    }
   });
 
   // Guardar configuración
@@ -322,6 +557,7 @@ export async function initBillingModule(optionsOrContainerId = 'view-billing', m
       ...config,
       ruc: container.querySelector('#cfg-ruc').value.trim(),
       razon_social: container.querySelector('#cfg-razon').value.trim(),
+      direccion_fiscal: container.querySelector('#cfg-dir')?.value.trim() || config.direccion_fiscal,
       environment: container.querySelector('#cfg-env').value,
       serie_boleta: container.querySelector('#cfg-serie-b').value.trim().toUpperCase(),
       serie_factura: container.querySelector('#cfg-serie-f').value.trim().toUpperCase()
@@ -341,15 +577,71 @@ export async function initBillingModule(optionsOrContainerId = 'view-billing', m
   function renderHistory() {
     const list = JSON.parse(localStorage.getItem(STORAGE_INVOICES_KEY) || '[]');
     const box = container.querySelector('#billing-history-list');
-    box.innerHTML = list.length
-      ? list.map(i => `
-          <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-radius:10px; background:#0b111e; border:1px solid rgba(255,255,255,0.08);">
-            <div>
-              <strong>${i.series}-${String(i.correlative).padStart(6, '0')}</strong> · ${i.client_name}
-              <div style="font-size:0.8rem; color:#94a3b8;">${i.doc_type} · Estado: ${i.sunat_status}</div>
-            </div>
-            <strong style="color:#10b981;">S/ ${Number(i.total).toFixed(2)}</strong>
-          </div>`).join('')
-      : '<span style="color:#64748b;">Todavía no hay comprobantes registrados.</span>';
+    
+    if (!list.length) {
+      box.innerHTML = '<span style="color:#64748b;">Todavía no hay comprobantes registrados.</span>';
+      return;
+    }
+
+    box.innerHTML = list.map((i, idx) => `
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding:14px; border-radius:12px; background:#0b111e; border:1px solid rgba(255,255,255,0.08);">
+        <div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <strong style="color:#00d2c4; font-size:1.05rem;">${i.series}-${String(i.correlative).padStart(6, '0')}</strong>
+            <span style="font-size:0.75rem; padding:2px 8px; border-radius:12px; background:rgba(0,210,196,0.12); color:#00d2c4; font-weight:700;">${i.doc_type}</span>
+            <span style="font-size:0.75rem; padding:2px 8px; border-radius:12px; background:${i.sunat_status === 'ACEPTADO' ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)'}; color:${i.sunat_status === 'ACEPTADO' ? '#10b981' : '#f59e0b'}; font-weight:600;">${i.sunat_status || 'BETA'}</span>
+          </div>
+          <div style="font-size:0.92rem; color:#f8fafc; margin-top:4px;"><strong>${i.client_name}</strong> · ${i.client_doc_type || 'DOC'}: ${i.client_doc_number}</div>
+          <div style="font-size:0.78rem; color:#94a3b8; margin-top:2px;">
+            ${(i.items && i.items[0]?.description) || 'Consulta / Servicio'} · ${i.created_at ? new Date(i.created_at).toLocaleString('es-PE') : 'Hoy'}
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <div style="font-size:1.15rem; font-weight:800; color:#10b981; margin-right:6px;">S/ ${Number(i.total).toFixed(2)}</div>
+          
+          <button type="button" class="btn-history-ticket" data-idx="${idx}" style="padding:6px 12px; border-radius:6px; border:1px solid rgba(0,210,196,0.3); background:#11192c; color:#00d2c4; font-size:0.8rem; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:5px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+            Ticketera
+          </button>
+
+          <button type="button" class="btn-history-pdf" data-idx="${idx}" style="padding:6px 12px; border-radius:6px; border:1px solid rgba(56,189,248,0.3); background:#11192c; color:#38bdf8; font-size:0.8rem; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:5px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            PDF
+          </button>
+
+          <button type="button" class="btn-history-wa" data-idx="${idx}" style="padding:6px 12px; border-radius:6px; border:1px solid rgba(37,211,102,0.3); background:rgba(37,211,102,0.1); color:#25D366; font-size:0.8rem; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:5px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.099.824z"/></svg>
+            WhatsApp
+          </button>
+        </div>
+      </div>
+    `).join('');
+
+    // Eventos de botones en cada fila del historial
+    box.querySelectorAll('.btn-history-ticket').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const inv = list[Number(btn.dataset.idx)];
+        showTicketModal(inv, config);
+      });
+    });
+
+    box.querySelectorAll('.btn-history-pdf').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const inv = list[Number(btn.dataset.idx)];
+        showTicketModal(inv, config);
+        const pdfBtn = document.getElementById('btn-download-pdf-ticket');
+        if (pdfBtn) pdfBtn.click();
+      });
+    });
+
+    box.querySelectorAll('.btn-history-wa').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const inv = list[Number(btn.dataset.idx)];
+        showTicketModal(inv, config);
+        const waBtn = document.getElementById('btn-send-wa-ticket');
+        if (waBtn) waBtn.click();
+      });
+    });
   }
 }

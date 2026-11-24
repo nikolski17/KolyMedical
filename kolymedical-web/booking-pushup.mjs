@@ -1,4 +1,4 @@
-// booking-pushup.mjs
+// booking-pushup.mjs — Bottom Sheet de Agendamiento Desacoplado
 const APPOINTMENTS_KEY = 'koly_appointments_offline_v1';
 
 function showToast(message) {
@@ -91,17 +91,17 @@ export function initPushupBooking(supabaseClient = null, onSaved = null) {
   };
 
   document.querySelectorAll('#btn-trigger-pushup-booking').forEach(btn => {
-    btn.addEventListener('click', open);
+    btn.onclick = open;
   });
-  backdrop.querySelector('#btn-close-pushup-booking').addEventListener('click', close);
-  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+  backdrop.querySelector('#btn-close-pushup-booking').onclick = close;
+  backdrop.onclick = (e) => { if (e.target === backdrop) close(); };
 
-  form.addEventListener('submit', async (e) => {
+  form.onsubmit = async (e) => {
     e.preventDefault();
     const data = Object.fromEntries(new FormData(form).entries());
     const appointment = {
       ...data,
-      status: 'CONFIRMADA',
+      status: 'confirmada',
       created_at: new Date().toISOString()
     };
 
@@ -110,13 +110,45 @@ export function initPushupBooking(supabaseClient = null, onSaved = null) {
     localStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(cached));
 
     if (supabaseClient) {
-      const { error } = await supabaseClient.from('koly_appointments').insert(appointment);
-      if (error) console.warn('[KolyTech] Guardado offline en LocalStorage:', error.message);
+      try {
+        const dbApt = {
+          patient_name: appointment.patient_name,
+          patient_dni: appointment.patient_dni || null,
+          patient_phone: appointment.patient_phone || null,
+          date: appointment.date,
+          time: appointment.time,
+          modality: appointment.modality || 'Presencial',
+          motivo_consulta: appointment.motive || appointment.service || 'Consulta',
+          status: 'confirmada',
+          tracked_by: appointment.lead_source || 'Recepción'
+        };
+        const { error } = await supabaseClient.from('appointments').insert([dbApt]);
+        if (error) console.warn('[KolyTech] Appointments Supabase sync:', error.message);
+      } catch (err) {
+        console.warn('[KolyTech] Offline local storage active for booking:', err);
+      }
+    }
+
+    if (typeof window !== 'undefined' && Array.isArray(window.localAppointmentsCache)) {
+      window.localAppointmentsCache.unshift({
+        id: 'apt-' + Date.now(),
+        patientName: appointment.patient_name,
+        patientDni: appointment.patient_dni,
+        patientPhone: appointment.patient_phone,
+        date: appointment.date,
+        time: appointment.time,
+        modality: appointment.modality,
+        motivoConsulta: appointment.motive,
+        status: 'confirmada',
+        trackedBy: appointment.lead_source
+      });
+      if (typeof window.renderAppointmentsTable === 'function') window.renderAppointmentsTable();
+      if (typeof window.renderCalendarWidget === 'function') window.renderCalendarWidget();
     }
 
     form.reset();
     close();
     showToast(`Cita agendada: ${buildCalendarTitle(appointment)}`);
     if (typeof onSaved === 'function') onSaved(appointment);
-  });
+  };
 }

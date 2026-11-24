@@ -81,7 +81,7 @@
   </section>
 
   <!-- B. SECCIÓN DE DASHBOARD COMPLETO (SOLO ACCESIBLE CON LOGIN) -->
-  <main class="admin-layout" id="dashboard-section" style="display: none;">
+  <main class="admin-layout dark-theme" id="dashboard-section" style="display: none;">
     <!-- B.1 Sidebar Lateral -->
     <aside class="admin-sidebar">
       <div>
@@ -1345,29 +1345,7 @@
     integrity="sha384-weMABwrltA6jWR8DDe9Jp5blk+tZQh7ugpCsF3JwSA53WZM9/14PjS5LAJNHNjAI" crossorigin="anonymous"></script>
   <script type="module" src="security-utils.mjs?v=20260924b1"></script>
   <script src="app.js?v=20260929-kolytech-access1"></script>
-  <script type="module">
-    import { initImcCalculator, openImcCalculator } from './imc-calculator.mjs?v=20261124d';
-    import { initPushupBooking } from './booking-pushup.mjs?v=20261124d';
-    import { initBillingModule } from './billing-module.mjs?v=20261124d';
-    import { initAnalyticsDashboard } from './analytics-module.mjs?v=20261124d';
-    import { initProfileModule } from './profile-module.mjs?v=20261124d';
-
-    const bootModules = () => {
-      initImcCalculator('#btn-imc-calculator');
-      const sb = window.supabaseClient || (window.supabase && window.supabase.createClient ? window.supabaseClient : null);
-      const user = (typeof window.getCurrentUser === 'function') ? window.getCurrentUser() : { role: 'Administrador' };
-      initPushupBooking(sb, () => typeof window.loadAppointments === 'function' && window.loadAppointments());
-      initBillingModule('view-billing', sb, user);
-      initAnalyticsDashboard('view-analytics', sb);
-      initProfileModule('view-profile', sb);
-    };
-
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', bootModules);
-    } else {
-      bootModules();
-    }
-  </script>
+  <script type="module" src="admin-boot.mjs?v=20261124e"></script>
   <script>
     // Enlazar la tabla detallada de la vista de listado al buscador
     const searchEl = document.getElementById('admin-search');

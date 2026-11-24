@@ -1,4 +1,4 @@
-// analytics-module.mjs
+// analytics-module.mjs — Métricas & Dashboard Clínico con Gráficas Mosoq Wasy
 let weeklyChartInstance = null;
 let specialtyChartInstance = null;
 
@@ -7,30 +7,36 @@ export async function initAnalyticsDashboard(containerId = 'view-analytics', sup
   if (!container) return;
 
   let appointments = JSON.parse(localStorage.getItem('koly_appointments_offline_v1') || '[]');
+  if (typeof window !== 'undefined' && Array.isArray(window.localAppointmentsCache) && window.localAppointmentsCache.length) {
+    appointments = window.localAppointmentsCache;
+  }
   let invoices = JSON.parse(localStorage.getItem('koly_invoices_v1') || '[]');
 
   if (supabaseClient) {
     try {
       const [appRes, invRes] = await Promise.all([
-        supabaseClient.from('koly_appointments').select('status, service, date, patient_dni'),
-        supabaseClient.from('koly_invoices').select('total, created_at')
+        supabaseClient.from('appointments').select('*').limit(300),
+        supabaseClient.from('koly_invoices').select('total, created_at').limit(300)
       ]);
-      if (appRes.data?.length) appointments = appRes.data;
-      if (invRes.data?.length) invoices = invRes.data;
+      if (appRes && appRes.data && appRes.data.length) appointments = appRes.data;
+      if (invRes && invRes.data && invRes.data.length) invoices = invRes.data;
     } catch (err) {
       console.warn('[KolyTech] Local fallback for analytics:', err);
     }
   }
 
   const totalCitas = appointments.length;
-  const confirmadas = appointments.filter(a => a.status === 'CONFIRMADA').length;
-  const canceladas = appointments.filter(a => a.status === 'CANCELADA').length;
+  const confirmadas = appointments.filter(a => {
+    const st = String(a.status || '').toUpperCase();
+    return st === 'CONFIRMADA' || st === 'REALIZADA';
+  }).length;
+  const canceladas = appointments.filter(a => String(a.status || '').toUpperCase() === 'CANCELADA').length;
   const tasaAsistencia = totalCitas ? Math.round((confirmadas / totalCitas) * 100) : 0;
   const recaudacion = invoices.reduce((acc, i) => acc + Number(i.total || 0), 0);
 
-  // Pacientes nuevos vs recurrentes por DNI
+  // Pacientes nuevos vs recurrentes por DNI o teléfono
   const dniCounts = appointments.reduce((map, a) => {
-    const key = a.patient_dni || 'sin-dni';
+    const key = a.patient_dni || a.patientDni || a.patient_phone || a.patientPhone || a.patient_name || a.patientName || 'sin-id';
     map[key] = (map[key] || 0) + 1;
     return map;
   }, {});
@@ -59,7 +65,7 @@ export async function initAnalyticsDashboard(containerId = 'view-analytics', sup
         <div style="background:#11192c; border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:18px;">
           <div style="color:#94a3b8; font-size:0.8rem;">Nuevos vs Recurrentes</div>
           <div style="font-size:1.8rem; font-weight:700; color:#f59e0b;">${nuevos} / ${recurrentes}</div>
-          <div style="font-size:0.75rem; color:#94a3b8; margin-top:4px;">Basado en DNI único</div>
+          <div style="font-size:0.75rem; color:#94a3b8; margin-top:4px;">Basado en identificación</div>
         </div>
       </div>
 
