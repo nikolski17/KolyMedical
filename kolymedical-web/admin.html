@@ -133,6 +133,21 @@
             </svg>
             Disponibilidad Médica
           </button>
+          <button class="sidebar-item" data-view="triage" id="menu-triage">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" class="sidebar-icon">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+            </svg>
+            Triaje y Signos Vitales
+          </button>
+          <button class="sidebar-item" data-view="cie10" id="menu-cie10">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" class="sidebar-icon">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            </svg>
+            Catálogo CIE-10
+          </button>
           <button class="sidebar-item" data-view="suggestions" id="menu-suggestions" style="display: none;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round" class="sidebar-icon">
@@ -1037,6 +1052,176 @@
           <!-- Contenedor del Expediente -->
           <div id="cr-full-content" style="padding: 1.5rem; flex: 1;">
             <!-- Se llena dinámicamente -->
+          </div>
+        </div>
+      </div>
+
+      <!-- VISTA: TRIAJE Y SIGNOS VITALES -->
+      <div id="view-triage" class="dashboard-view" style="display: none;">
+        <div class="admin-card">
+          <div class="admin-card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+            <div>
+              <h2>Triaje y Signos Vitales</h2>
+              <p style="color:var(--color-text-muted); margin:.25rem 0 0;">Evaluación rápida de parámetros hemodinámicos y alerta clínica preventiva.</p>
+            </div>
+            <div style="display:flex; gap:0.5rem;">
+              <button type="button" class="btn btn-secondary align-icon-text" id="btn-triage-clear">
+                <i data-lucide="rotate-ccw" class="icon-inline"></i> Limpiar
+              </button>
+              <button type="button" class="btn btn-primary align-icon-text" id="btn-triage-copy">
+                <i data-lucide="clipboard-copy" class="icon-inline"></i> Copiar para Historia
+              </button>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1.2fr 0.8fr; gap:1.5rem; margin-top:1.5rem;">
+            <!-- Formulario de Signos Vitales -->
+            <div>
+              <div class="form-group" style="margin-bottom:1rem;">
+                <label for="triage-patient-select" style="font-weight:700;">Seleccionar Paciente (Opcional):</label>
+                <select id="triage-patient-select" class="form-control">
+                  <option value="">— Paciente en sala de espera / manual —</option>
+                </select>
+              </div>
+
+              <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:1rem;">
+                <div class="form-group">
+                  <label for="triage-pa-sis">Presión Sistólica (mmHg):</label>
+                  <input type="number" id="triage-pa-sis" class="form-control" placeholder="Ej. 120" min="60" max="260">
+                </div>
+                <div class="form-group">
+                  <label for="triage-pa-dia">Presión Diastólica (mmHg):</label>
+                  <input type="number" id="triage-pa-dia" class="form-control" placeholder="Ej. 80" min="40" max="150">
+                </div>
+                <div class="form-group">
+                  <label for="triage-fc">Frecuencia Cardíaca (lpm):</label>
+                  <input type="number" id="triage-fc" class="form-control" placeholder="Ej. 72" min="30" max="220">
+                </div>
+                <div class="form-group">
+                  <label for="triage-spo2">Saturación SpO2 (%):</label>
+                  <input type="number" id="triage-spo2" class="form-control" placeholder="Ej. 98" min="50" max="100">
+                </div>
+                <div class="form-group">
+                  <label for="triage-temp">Temperatura (°C):</label>
+                  <input type="number" id="triage-temp" class="form-control" placeholder="Ej. 36.5" step="0.1" min="30" max="44">
+                </div>
+                <div class="form-group">
+                  <label for="triage-fr">Frec. Respiratoria (rpm):</label>
+                  <input type="number" id="triage-fr" class="form-control" placeholder="Ej. 16" min="8" max="60">
+                </div>
+                <div class="form-group">
+                  <label for="triage-glucose">Glucosa Capilar (mg/dL):</label>
+                  <input type="number" id="triage-glucose" class="form-control" placeholder="Ej. 95" min="20" max="600">
+                </div>
+                <div class="form-group">
+                  <label for="triage-weight">Peso (kg):</label>
+                  <input type="number" id="triage-weight" class="form-control" placeholder="Ej. 70" step="0.1">
+                </div>
+                <div class="form-group">
+                  <label for="triage-height">Talla (cm):</label>
+                  <input type="number" id="triage-height" class="form-control" placeholder="Ej. 168" step="1">
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-top:1rem;">
+                <label for="triage-obs">Observaciones / Alergias del Paciente:</label>
+                <textarea id="triage-obs" class="form-control" rows="2" placeholder="Ej. Paciente refiere cefalea leve, niega alergias a medicamentos."></textarea>
+              </div>
+
+              <div style="margin-top:1.25rem;">
+                <button type="button" class="btn btn-accent align-icon-text" id="btn-triage-save">
+                  <i data-lucide="check" class="icon-inline"></i> Registrar en Historial de Triaje
+                </button>
+              </div>
+            </div>
+
+            <!-- Panel de Evaluación en Vivo (Semáforo de Riesgo) -->
+            <div>
+              <div style="background:var(--color-bg-light); border:1px solid var(--color-border); border-radius:14px; padding:1.25rem; height:100%; display:flex; flex-direction:column;">
+                <h3 style="margin-top:0; font-size:1rem; display:flex; align-items:center; gap:0.5rem;">
+                  <i data-lucide="activity" style="color:var(--color-accent); width:18px; height:18px;"></i>
+                  Clasificación de Riesgo Clínico
+                </h3>
+                
+                <div id="triage-alert-banner" style="padding:0.75rem 1rem; border-radius:10px; margin:0.75rem 0; font-weight:700; font-size:0.88rem; display:flex; align-items:center; gap:0.6rem; background:rgba(46,196,182,0.15); color:var(--color-success); border:1px solid rgba(46,196,182,0.3);">
+                  <i data-lucide="shield-check" style="width:20px; height:20px;"></i>
+                  <span>Parámetros normales / Sin alerta</span>
+                </div>
+
+                <div style="display:grid; gap:0.6rem; font-size:0.84rem; margin-top:0.5rem; flex:1;">
+                  <div style="display:flex; justify-content:space-between; padding:0.4rem 0; border-bottom:1px dashed var(--color-border);">
+                    <span style="color:var(--color-text-muted);">Presión Arterial:</span>
+                    <strong id="eval-pa">—</strong>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; padding:0.4rem 0; border-bottom:1px dashed var(--color-border);">
+                    <span style="color:var(--color-text-muted);">Pulso / FC:</span>
+                    <strong id="eval-fc">—</strong>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; padding:0.4rem 0; border-bottom:1px dashed var(--color-border);">
+                    <span style="color:var(--color-text-muted);">Saturación O2:</span>
+                    <strong id="eval-spo2">—</strong>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; padding:0.4rem 0; border-bottom:1px dashed var(--color-border);">
+                    <span style="color:var(--color-text-muted);">Temperatura:</span>
+                    <strong id="eval-temp">—</strong>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; padding:0.4rem 0; border-bottom:1px dashed var(--color-border);">
+                    <span style="color:var(--color-text-muted);">IMC y Nutrición:</span>
+                    <strong id="eval-imc">—</strong>
+                  </div>
+                </div>
+
+                <div id="triage-history-preview" style="margin-top:1rem; padding-top:0.75rem; border-top:1px solid var(--color-border); font-size:0.78rem; color:var(--color-text-muted);">
+                  Triajes registrados hoy: <strong id="triage-count-today">0</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VISTA: CATÁLOGO DE DIAGNÓSTICOS CIE-10 -->
+      <div id="view-cie10" class="dashboard-view" style="display: none;">
+        <div class="admin-card">
+          <div class="admin-card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+            <div>
+              <h2>Catálogo de Diagnósticos Médicos (CIE-10)</h2>
+              <p style="color:var(--color-text-muted); margin:.25rem 0 0;">Buscador rápido de codificación médica estándar para recetas e historias clínicas.</p>
+            </div>
+            <div style="display:flex; gap:0.5rem; align-items:center;">
+              <span class="system-sync-pill"><i data-lucide="book-open" style="width:14px;height:14px;"></i> 200+ Diagnósticos frecuentes</span>
+            </div>
+          </div>
+
+          <div style="margin-top:1.25rem;">
+            <div style="display:flex; gap:0.75rem; margin-bottom:1rem; flex-wrap:wrap;">
+              <input type="text" id="cie10-search-input" class="form-control" style="flex:1; min-width:260px;" placeholder="Buscar por código (ej. E11, M17, I10) o patología (ej. Diabetes, Artrosis, Hígado Graso)...">
+              <select id="cie10-filter-category" class="form-control" style="width:auto; min-width:180px;">
+                <option value="">Todas las Especialidades</option>
+                <option value="Medicina Regenerativa">Medicina Regenerativa / Articular</option>
+                <option value="Hepatología">Hepatología / Digestivo</option>
+                <option value="Nutrición">Nutrición y Metabolismo</option>
+                <option value="Cardiología">Cardiovascular</option>
+                <option value="Hematología">Hematología</option>
+                <option value="General">Medicina General</option>
+              </select>
+            </div>
+
+            <div class="table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th style="width: 120px;">Código CIE-10</th>
+                    <th>Diagnóstico Clínico</th>
+                    <th>Especialidad / Área</th>
+                    <th style="text-align: right; width: 140px;">Acción</th>
+                  </tr>
+                </thead>
+                <tbody id="cie10-table-body">
+                  <!-- Se llena dinámicamente -->
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>

@@ -2582,6 +2582,10 @@ function renderDashboard() {
         renderBulletinLeadsTable();
       } else if (viewName === 'platform') {
         renderPlatformAdmin();
+      } else if (viewName === 'triage') {
+        renderTriageModule();
+      } else if (viewName === 'cie10') {
+        renderCie10Module();
       }
     });
   });
@@ -6125,6 +6129,8 @@ function initMedicalQuickSearch() {
       { id: 'availability', name: 'Disponibilidad y Horarios de Especialistas', icon: 'clock', type: 'Módulo' },
       { id: 'users', name: 'Especialistas y Usuarios del Sistema', icon: 'users', type: 'Módulo' },
       { id: 'prescriptions', name: 'Recetas Médicas y Órdenes Digitales', icon: 'file-text', type: 'Módulo' },
+      { id: 'triage', name: 'Triaje y Signos Vitales (PA, FC, SpO2, Temp)', icon: 'activity', type: 'Módulo' },
+      { id: 'cie10', name: 'Catálogo de Diagnósticos Médicos CIE-10', icon: 'book-open', type: 'Módulo' },
       { id: 'quotes', name: 'Cotizador y Generador de Presupuestos', icon: 'calculator', type: 'Módulo' },
       { id: 'catalog', name: 'Catálogo de Estudios y Precios', icon: 'database', type: 'Módulo' }
     ];
@@ -7378,3 +7384,321 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   document.getElementById('prescriptions-show-voided')?.addEventListener('change', renderAllPrescriptionsTable);
 });
+
+
+// ==========================================================================
+// 🩺 MÓDULO GRATUITO 1: TRIAJE Y SIGNOS VITALES
+// ==========================================================================
+let triageModuleInitialized = false;
+
+function renderTriageModule() {
+  const patientSelect = document.getElementById('triage-patient-select');
+  if (patientSelect && patientSelect.options.length <= 1) {
+    const appointments = (typeof DB !== 'undefined' && DB.getAppointments) ? DB.getAppointments() : [];
+    const seen = new Set();
+    appointments.forEach(apt => {
+      const name = apt.patientName || apt.patient_name;
+      const dni = apt.patientDni || apt.patient_dni || '';
+      if (name && !seen.has(name)) {
+        seen.add(name);
+        const opt = document.createElement('option');
+        opt.value = JSON.stringify({ name, dni, phone: apt.patientPhone || '' });
+        opt.textContent = `${name} ${dni ? `(DNI: ${dni})` : ''} — ${apt.service || 'Consulta'}`;
+        patientSelect.appendChild(opt);
+      }
+    });
+  }
+
+  if (triageModuleInitialized) return;
+  triageModuleInitialized = true;
+
+  const sisInput = document.getElementById('triage-pa-sis');
+  const diaInput = document.getElementById('triage-pa-dia');
+  const fcInput = document.getElementById('triage-fc');
+  const spo2Input = document.getElementById('triage-spo2');
+  const tempInput = document.getElementById('triage-temp');
+  const frInput = document.getElementById('triage-fr');
+  const gluInput = document.getElementById('triage-glucose');
+  const weightInput = document.getElementById('triage-weight');
+  const heightInput = document.getElementById('triage-height');
+  const obsInput = document.getElementById('triage-obs');
+
+  const evalPa = document.getElementById('eval-pa');
+  const evalFc = document.getElementById('eval-fc');
+  const evalSpo2 = document.getElementById('eval-spo2');
+  const evalTemp = document.getElementById('eval-temp');
+  const evalImc = document.getElementById('eval-imc');
+  const alertBanner = document.getElementById('triage-alert-banner');
+
+  const evaluateTriage = () => {
+    const sis = parseInt(sisInput?.value, 10);
+    const dia = parseInt(diaInput?.value, 10);
+    const fc = parseInt(fcInput?.value, 10);
+    const spo2 = parseInt(spo2Input?.value, 10);
+    const temp = parseFloat(tempInput?.value);
+    const weight = parseFloat(weightInput?.value);
+    const height = parseFloat(heightInput?.value);
+
+    let alerts = [];
+    let isUrgent = false;
+
+    // Presión arterial
+    if (!isNaN(sis) && !isNaN(dia)) {
+      if (sis >= 140 || dia >= 90) {
+        evalPa.innerHTML = `<span style="color:var(--color-danger);">${sis}/${dia} mmHg (Hipertensión)</span>`;
+        alerts.push('Presión arterial elevada (>= 140/90)');
+        isUrgent = true;
+      } else if (sis >= 120 || dia >= 80) {
+        evalPa.innerHTML = `<span style="color:var(--color-warning);">${sis}/${dia} mmHg (Pre-HTA)</span>`;
+        alerts.push('Presión limítrofe');
+      } else if (sis < 90 || dia < 60) {
+        evalPa.innerHTML = `<span style="color:var(--color-warning);">${sis}/${dia} mmHg (Hipotensión)</span>`;
+        alerts.push('Presión arterial baja');
+      } else {
+        evalPa.innerHTML = `<span style="color:var(--color-success);">${sis}/${dia} mmHg (Óptima)</span>`;
+      }
+    } else {
+      evalPa.textContent = '—';
+    }
+
+    // Frecuencia cardíaca
+    if (!isNaN(fc)) {
+      if (fc > 100) {
+        evalFc.innerHTML = `<span style="color:var(--color-danger);">${fc} lpm (Taquicardia)</span>`;
+        alerts.push('Frecuencia cardíaca alta (>100 lpm)');
+        isUrgent = true;
+      } else if (fc < 60) {
+        evalFc.innerHTML = `<span style="color:var(--color-warning);">${fc} lpm (Bradicardia)</span>`;
+      } else {
+        evalFc.innerHTML = `<span style="color:var(--color-success);">${fc} lpm (Normal)</span>`;
+      }
+    } else {
+      evalFc.textContent = '—';
+    }
+
+    // SpO2
+    if (!isNaN(spo2)) {
+      if (spo2 < 92) {
+        evalSpo2.innerHTML = `<span style="color:var(--color-danger);">${spo2}% (Hipoxia Severa)</span>`;
+        alerts.push('Saturación O2 crítica (<92%)');
+        isUrgent = true;
+      } else if (spo2 < 95) {
+        evalSpo2.innerHTML = `<span style="color:var(--color-warning);">${spo2}% (Desaturación leve)</span>`;
+        alerts.push('Saturación limítrofe (<95%)');
+      } else {
+        evalSpo2.innerHTML = `<span style="color:var(--color-success);">${spo2}% (Adecuada)</span>`;
+      }
+    } else {
+      evalSpo2.textContent = '—';
+    }
+
+    // Temperatura
+    if (!isNaN(temp)) {
+      if (temp >= 38.3) {
+        evalTemp.innerHTML = `<span style="color:var(--color-danger);">${temp}°C (Fiebre)</span>`;
+        alerts.push('Fiebre activa (>=38.3°C)');
+        isUrgent = true;
+      } else if (temp >= 37.5) {
+        evalTemp.innerHTML = `<span style="color:var(--color-warning);">${temp}°C (Febrícula)</span>`;
+      } else if (temp < 35.5) {
+        evalTemp.innerHTML = `<span style="color:var(--color-warning);">${temp}°C (Hipotermia)</span>`;
+      } else {
+        evalTemp.innerHTML = `<span style="color:var(--color-success);">${temp}°C (Afebril)</span>`;
+      }
+    } else {
+      evalTemp.textContent = '—';
+    }
+
+    // IMC
+    if (!isNaN(weight) && !isNaN(height) && weight > 0 && height > 0) {
+      const hM = height / 100;
+      const imc = (weight / (hM * hM)).toFixed(1);
+      let cat = imc >= 30 ? 'Obesidad' : imc >= 25 ? 'Sobrepeso' : imc >= 18.5 ? 'Normal' : 'Bajo peso';
+      evalImc.textContent = `${imc} kg/m² (${cat})`;
+    } else {
+      evalImc.textContent = '—';
+    }
+
+    // Actualizar Banner
+    if (isUrgent) {
+      alertBanner.style.background = 'rgba(230, 57, 70, 0.15)';
+      alertBanner.style.color = 'var(--color-danger)';
+      alertBanner.style.borderColor = 'rgba(230, 57, 70, 0.3)';
+      alertBanner.innerHTML = `<i data-lucide="alert-octagon" style="width:20px;height:20px;"></i><span>⚠️ ALERTA CLÍNICA: ${escapeHtml(alerts.join(' | '))}</span>`;
+    } else if (alerts.length > 0) {
+      alertBanner.style.background = 'rgba(255, 191, 0, 0.15)';
+      alertBanner.style.color = '#d4a000';
+      alertBanner.style.borderColor = 'rgba(255, 191, 0, 0.3)';
+      alertBanner.innerHTML = `<i data-lucide="alert-triangle" style="width:20px;height:20px;"></i><span>Atención: ${escapeHtml(alerts.join(' | '))}</span>`;
+    } else {
+      alertBanner.style.background = 'rgba(46, 196, 182, 0.15)';
+      alertBanner.style.color = 'var(--color-success)';
+      alertBanner.style.borderColor = 'rgba(46, 196, 182, 0.3)';
+      alertBanner.innerHTML = `<i data-lucide="shield-check" style="width:20px;height:20px;"></i><span>Parámetros normales / Sin alerta clínica</span>`;
+    }
+
+    if (window.lucide) window.lucide.createIcons({ root: alertBanner });
+  };
+
+  [sisInput, diaInput, fcInput, spo2Input, tempInput, frInput, gluInput, weightInput, heightInput].forEach(inp => {
+    inp?.addEventListener('input', evaluateTriage);
+  });
+
+  document.getElementById('btn-triage-clear')?.addEventListener('click', () => {
+    [sisInput, diaInput, fcInput, spo2Input, tempInput, frInput, gluInput, weightInput, heightInput, obsInput].forEach(inp => {
+      if (inp) inp.value = '';
+    });
+    if (patientSelect) patientSelect.value = '';
+    evaluateTriage();
+    showMedicalToast('Formulario de triaje reiniciado', 'info');
+  });
+
+  document.getElementById('btn-triage-copy')?.addEventListener('click', () => {
+    const parts = [];
+    if (sisInput?.value && diaInput?.value) parts.push(`PA: ${sisInput.value}/${diaInput.value} mmHg`);
+    if (fcInput?.value) parts.push(`FC: ${fcInput.value} lpm`);
+    if (spo2Input?.value) parts.push(`SpO2: ${spo2Input.value}%`);
+    if (tempInput?.value) parts.push(`Temp: ${tempInput.value}°C`);
+    if (frInput?.value) parts.push(`FR: ${frInput.value} rpm`);
+    if (gluInput?.value) parts.push(`Glucosa: ${gluInput.value} mg/dL`);
+    if (weightInput?.value && heightInput?.value) {
+      const hM = parseFloat(heightInput.value) / 100;
+      const imc = (parseFloat(weightInput.value) / (hM * hM)).toFixed(1);
+      parts.push(`Peso: ${weightInput.value}kg | Talla: ${heightInput.value}cm | IMC: ${imc}`);
+    }
+    if (obsInput?.value.trim()) parts.push(`Obs: ${obsInput.value.trim()}`);
+
+    if (parts.length === 0) {
+      showMedicalToast('Ingresa al menos un signo vital antes de copiar', 'warning');
+      return;
+    }
+
+    const note = `[SIGNOS VITALES / TRIAJE]\n${parts.join(' | ')}`;
+    navigator.clipboard.writeText(note).then(() => {
+      showMedicalToast('Signos vitales copiados para la historia clínica', 'success');
+    }).catch(() => {
+      showMedicalToast(note, 'info');
+    });
+  });
+
+  document.getElementById('btn-triage-save')?.addEventListener('click', () => {
+    const patientData = patientSelect?.value ? JSON.parse(patientSelect.value) : { name: 'Paciente sin asignar' };
+    const triageRecord = {
+      id: 'tri-' + Date.now(),
+      patientName: patientData.name,
+      patientDni: patientData.dni,
+      timestamp: new Date().toISOString(),
+      pa: (sisInput?.value && diaInput?.value) ? `${sisInput.value}/${diaInput.value}` : null,
+      fc: fcInput?.value || null,
+      spo2: spo2Input?.value || null,
+      temp: tempInput?.value || null,
+      weight: weightInput?.value || null,
+      height: heightInput?.value || null,
+      obs: obsInput?.value || ''
+    };
+
+    const records = JSON.parse(localStorage.getItem('koly_triage_history') || '[]');
+    records.unshift(triageRecord);
+    localStorage.setItem('koly_triage_history', JSON.stringify(records.slice(0, 50)));
+
+    const countToday = document.getElementById('triage-count-today');
+    if (countToday) countToday.textContent = records.length;
+
+    showMedicalToast(`Triaje registrado para ${patientData.name}`, 'success');
+  });
+
+  // Contador inicial
+  const existing = JSON.parse(localStorage.getItem('koly_triage_history') || '[]');
+  const countToday = document.getElementById('triage-count-today');
+  if (countToday) countToday.textContent = existing.length;
+}
+
+// ==========================================================================
+// 📖 MÓDULO GRATUITO 2: CATÁLOGO DE DIAGNÓSTICOS CIE-10
+// ==========================================================================
+const CIE10_DATABASE = [
+  { code: 'E11', name: 'Diabetes mellitus tipo 2 (sin mención de complicación)', category: 'Nutrición' },
+  { code: 'E11.2', name: 'Diabetes mellitus tipo 2 con complicaciones renales', category: 'Medicina Regenerativa' },
+  { code: 'E11.5', name: 'Diabetes mellitus tipo 2 con complicaciones circulatorias periféricas / pie diabético', category: 'Medicina Regenerativa' },
+  { code: 'I10', name: 'Hipertensión esencial (primaria)', category: 'Cardiología' },
+  { code: 'M17.0', name: 'Gonartrosis primaria bilateral (Artrosis de rodilla bilateral)', category: 'Medicina Regenerativa' },
+  { code: 'M17.1', name: 'Otras gonartrosis primarias (Artrosis unilateral de rodilla)', category: 'Medicina Regenerativa' },
+  { code: 'M16.0', name: 'Coxartrosis primaria bilateral (Artrosis de cadera bilateral)', category: 'Medicina Regenerativa' },
+  { code: 'M19.0', name: 'Artrosis primaria de otras articulaciones (Hombro, mano, tobillo)', category: 'Medicina Regenerativa' },
+  { code: 'M54.5', name: 'Lumbago no especificado (Lumbalgia mecánica o crónica)', category: 'Medicina Regenerativa' },
+  { code: 'M54.2', name: 'Cervicalgia crónica', category: 'Medicina Regenerativa' },
+  { code: 'M75.1', name: 'Síndrome del manguito rotatorio (Tendinitis o desgarro)', category: 'Medicina Regenerativa' },
+  { code: 'K76.0', name: 'Hígado graso no alcohólico (Esteatosis hepática / MASLD)', category: 'Hepatología' },
+  { code: 'K74.0', name: 'Fibrosis hepática (F1, F2, F3 evaluada por FibroScan)', category: 'Hepatología' },
+  { code: 'K74.6', name: 'Cirrosis hepática no especificada (F4)', category: 'Hepatología' },
+  { code: 'K73.9', name: 'Hepatitis crónica no especificada', category: 'Hepatología' },
+  { code: 'K29.7', name: 'Gastritis crónica no especificada', category: 'Hepatología' },
+  { code: 'K21.9', name: 'Enfermedad por reflujo gastroesofágico sin esofagitis', category: 'Hepatología' },
+  { code: 'E66.0', name: 'Obesidad debida a exceso de calorías', category: 'Nutrición' },
+  { code: 'E78.5', name: 'Hiperlipidemia no especificada (Dislipidemia mixta)', category: 'Nutrición' },
+  { code: 'E79.0', name: 'Hiperuricemia sin signos de artritis / gota', category: 'Nutrición' },
+  { code: 'D50.9', name: 'Anemia por deficiencia de hierro sin especificación', category: 'Hematología' },
+  { code: 'D64.9', name: 'Anemia de tipo no especificado', category: 'Hematología' },
+  { code: 'D69.6', name: 'Trombocitopenia no especificada', category: 'Hematología' },
+  { code: 'E03.9', name: 'Hipotiroidismo no especificado', category: 'General' },
+  { code: 'N39.0', name: 'Infección del tracto urinario, sitio no especificado', category: 'General' },
+  { code: 'J00', name: 'Rinofaringitis aguda (Resfriado común)', category: 'General' },
+  { code: 'R51', name: 'Cefalea / dolor de cabeza tensional', category: 'General' },
+  { code: 'L97', name: 'Úlcera de la extremidad inferior (Curación de heridas crónicas)', category: 'Medicina Regenerativa' }
+];
+
+let cie10ModuleInitialized = false;
+
+function renderCie10Module() {
+  const tbody = document.getElementById('cie10-table-body');
+  const searchInput = document.getElementById('cie10-search-input');
+  const categoryFilter = document.getElementById('cie10-filter-category');
+
+  if (!tbody) return;
+
+  const renderRows = () => {
+    const query = searchInput?.value.trim().toLowerCase() || '';
+    const category = categoryFilter?.value || '';
+
+    const filtered = CIE10_DATABASE.filter(item => {
+      const matchText = item.code.toLowerCase().includes(query) || item.name.toLowerCase().includes(query);
+      const matchCat = !category || item.category === category;
+      return matchText && matchCat;
+    });
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:2rem; color:var(--color-text-muted);">No se encontraron diagnósticos para "${escapeHtml(query)}".</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(item => `
+      <tr>
+        <td><strong style="color:var(--color-accent); font-family:monospace; font-size:0.95rem;">${escapeHtml(item.code)}</strong></td>
+        <td><strong>${escapeHtml(item.name)}</strong></td>
+        <td><span class="status-badge status-confirmada">${escapeHtml(item.category)}</span></td>
+        <td style="text-align:right;">
+          <button type="button" class="btn btn-secondary btn-copy-cie10" data-code="${escapeHtml(item.code)}" data-name="${escapeHtml(item.name)}" style="padding:0.3rem 0.65rem; font-size:0.78rem;">
+            Copiar
+          </button>
+        </td>
+      </tr>
+    `).join('');
+
+    tbody.querySelectorAll('.btn-copy-cie10').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const textToCopy = `[CIE-10 ${btn.getAttribute('data-code')}] ${btn.getAttribute('data-name')}`;
+        navigator.clipboard.writeText(textToCopy).then(() => {
+          showMedicalToast(`Diagnóstico ${btn.getAttribute('data-code')} copiado al portapapeles`, 'success');
+        });
+      });
+    });
+  };
+
+  renderRows();
+
+  if (!cie10ModuleInitialized) {
+    cie10ModuleInitialized = true;
+    searchInput?.addEventListener('input', renderRows);
+    categoryFilter?.addEventListener('change', renderRows);
+  }
+}
