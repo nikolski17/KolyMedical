@@ -5,7 +5,6 @@
 !admin.html
 !boletin.html
 !boletines/**
-!kolytechdemo.html
 !app.js
 !styles.css
 !bulletin.js
@@ -16,8 +15,6 @@
 !quotation-module.mjs
 !quote-utils.mjs
 !security-utils.mjs
-!kolytechdemo.js
-!kolytechdemo.css
 !robots.txt
 !sitemap.xml
 !vercel.json
@@ -35,7 +32,6 @@
 !/kolymedical-web/boletin.html
 !/kolymedical-web/boletines/
 !/kolymedical-web/boletines/**
-!/kolymedical-web/kolytechdemo.html
 !/kolymedical-web/app.js
 !/kolymedical-web/styles.css
 !/kolymedical-web/bulletin.js
@@ -46,8 +42,6 @@
 !/kolymedical-web/quotation-module.mjs
 !/kolymedical-web/quote-utils.mjs
 !/kolymedical-web/security-utils.mjs
-!/kolymedical-web/kolytechdemo.js
-!/kolymedical-web/kolytechdemo.css
 !/kolymedical-web/robots.txt
 !/kolymedical-web/sitemap.xml
 !/kolymedical-web/vercel.json
