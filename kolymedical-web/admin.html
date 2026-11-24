@@ -192,24 +192,27 @@
       </div>
 
       <div>
-        <!-- Botón para alternar Tema Claro/Oscuro -->
-        <button class="btn btn-secondary" id="btn-theme-toggle"
-          style="color: white; border-color: rgba(255, 255, 255, 0.2); width: 100%; gap: 0.5rem; display: flex; align-items: center; justify-content: center; margin-bottom: 0.75rem; transition: var(--transition-fast);">
-          <svg id="theme-toggle-icon-sun" style="display: none;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="5"></circle>
-            <line x1="12" y1="1" x2="12" y2="3"></line>
-            <line x1="12" y1="21" x2="12" y2="23"></line>
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-            <line x1="1" y1="12" x2="3" y2="12"></line>
-            <line x1="21" y1="12" x2="23" y2="12"></line>
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-          </svg>
-          <svg id="theme-toggle-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-          </svg>
-          <span id="theme-toggle-text">Modo Oscuro</span>
+        <!-- Switch Moderno para alternar Tema Claro/Oscuro -->
+        <button class="theme-switch-btn" id="btn-theme-toggle" type="button" title="Alternar Modo Oscuro (Shift + D)">
+          <div class="theme-switch-track">
+            <span id="theme-toggle-text">Modo Oscuro</span>
+          </div>
+          <div class="theme-switch-thumb">
+            <svg id="theme-toggle-icon-sun" style="display: none;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+            <svg id="theme-toggle-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          </div>
         </button>
 
         <button class="btn btn-secondary" id="btn-logout"
@@ -233,21 +236,44 @@
           <h1>Panel de Control</h1>
           <p>KolyTech — Agenda, pacientes y operación de centros médicos</p>
         </div>
-        <!-- 🔔 Bandeja de Notificaciones (para Administrador y Comercial) -->
-        <div id="notifications-dropdown-container" style="position: relative; display: inline-block;">
-          <button id="btn-notifications-toggle" class="btn btn-secondary align-icon-text" style="position: relative; padding: 0.5rem 0.9rem; font-size: 0.85rem; border-color: var(--color-border);">
-            <i data-lucide="bell" class="icon-inline" style="width: 16px; height: 16px;"></i>
-            <span>Notificaciones</span>
-            <span id="notifications-badge" style="background: var(--color-accent); color: white; border-radius: 10px; padding: 0.1rem 0.45rem; font-size: 0.75rem; font-weight: 700; display: none; margin-left: 0.3rem;">0</span>
+        <!-- Barra de Búsqueda Rápida y Acciones Clínicas -->
+        <div class="admin-header-actions">
+          <button id="btn-quick-search" class="quick-search-trigger" type="button" title="Búsqueda Universal (Ctrl + K)">
+            <i data-lucide="search" style="width: 15px; height: 15px;"></i>
+            <span>Buscar paciente o módulo...</span>
+            <kbd>Ctrl K</kbd>
           </button>
-          <!-- Menu flotante con la lista de notificaciones -->
-          <div id="notifications-menu" style="display: none; position: absolute; right: 0; top: 120%; width: 340px; max-height: 380px; overflow-y: auto; background: var(--color-bg-light); border: 1px solid var(--color-border); border-radius: var(--border-radius-md); box-shadow: 0 10px 30px rgba(0,0,0,0.25); z-index: 2500; padding: 0.5rem 0;">
-            <div style="padding: 0.6rem 1rem; border-bottom: 1px solid var(--color-border); font-weight: 700; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center;">
-              <span>Solicitudes y Citas Web</span>
-              <button id="btn-clear-notifications" style="background: none; border: none; font-size: 0.75rem; color: var(--color-accent); cursor: pointer; font-weight: 600;">Marcar Leídas</button>
-            </div>
-            <div id="notifications-list" style="display: flex; flex-direction: column;">
-              <p style="padding: 1rem; text-align: center; color: var(--color-text-muted); font-size: 0.8rem; margin: 0;">No hay notificaciones nuevas.</p>
+          
+          <button id="btn-quick-calc-trigger" class="btn-header-action" type="button" title="Calculadora Clínica Rápida (IMC y Nutrición)">
+            <i data-lucide="calculator" style="width: 15px; height: 15px;"></i>
+            <span>Calculadora IMC</span>
+          </button>
+
+          <span class="system-sync-pill" id="sync-status-indicator" title="Conexión en tiempo real con la nube activa">
+            <span class="sync-dot live"></span>
+            <span>En línea</span>
+          </span>
+
+          <button id="btn-refresh-data" class="btn-header-action" type="button" title="Actualizar datos al instante">
+            <i data-lucide="refresh-cw" id="icon-refresh-spin" style="width: 14px; height: 14px;"></i>
+          </button>
+
+          <!-- 🔔 Bandeja de Notificaciones (para Administrador y Comercial) -->
+          <div id="notifications-dropdown-container" style="position: relative; display: inline-block;">
+            <button id="btn-notifications-toggle" class="btn btn-secondary align-icon-text" style="position: relative; padding: 0.5rem 0.9rem; font-size: 0.85rem; border-color: var(--color-border);">
+              <i data-lucide="bell" class="icon-inline" style="width: 16px; height: 16px;"></i>
+              <span>Notificaciones</span>
+              <span id="notifications-badge" style="background: var(--color-accent); color: white; border-radius: 10px; padding: 0.1rem 0.45rem; font-size: 0.75rem; font-weight: 700; display: none; margin-left: 0.3rem;">0</span>
+            </button>
+            <!-- Menu flotante con la lista de notificaciones -->
+            <div id="notifications-menu" style="display: none; position: absolute; right: 0; top: 120%; width: 340px; max-height: 380px; overflow-y: auto; background: var(--color-bg-light); border: 1px solid var(--color-border); border-radius: var(--border-radius-md); box-shadow: 0 10px 30px rgba(0,0,0,0.25); z-index: 2500; padding: 0.5rem 0;">
+              <div style="padding: 0.6rem 1rem; border-bottom: 1px solid var(--color-border); font-weight: 700; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center;">
+                <span>Solicitudes y Citas Web</span>
+                <button id="btn-clear-notifications" style="background: none; border: none; font-size: 0.75rem; color: var(--color-accent); cursor: pointer; font-weight: 600;">Marcar Leídas</button>
+              </div>
+              <div id="notifications-list" style="display: flex; flex-direction: column;">
+                <p style="padding: 1rem; text-align: center; color: var(--color-text-muted); font-size: 0.8rem; margin: 0;">No hay notificaciones nuevas.</p>
+              </div>
             </div>
           </div>
         </div>
@@ -1017,6 +1043,76 @@
 
     </section>
   </main>
+
+  <!-- ===================================================================== -->
+  <!-- SISTEMA DE NOTIFICACIONES TOAST FLOTANTES -->
+  <!-- ===================================================================== -->
+  <div class="toast-notifications-container" id="toast-container" aria-live="polite"></div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL BUSCADOR UNIVERSAL / COMMAND PALETTE (Ctrl + K) -->
+  <!-- ===================================================================== -->
+  <div class="cmd-palette-backdrop" id="cmd-palette-backdrop" role="dialog" aria-modal="true" aria-label="Búsqueda Rápida">
+    <div class="cmd-palette-modal">
+      <div class="cmd-palette-header">
+        <i data-lucide="search" style="width: 20px; height: 20px; color: var(--color-accent); flex-shrink: 0;"></i>
+        <input type="text" id="cmd-palette-input" class="cmd-palette-input" placeholder="Buscar paciente, DNI, módulo o acción rápida..." autocomplete="off">
+        <button type="button" id="cmd-palette-close" style="background: none; border: none; font-size: 1.25rem; color: var(--color-text-muted); cursor: pointer; padding: 0.2rem 0.5rem;">✕</button>
+      </div>
+      <div class="cmd-palette-results" id="cmd-palette-results">
+        <!-- Renderizado dinámico vía app.js -->
+      </div>
+      <div style="padding: 0.6rem 1.25rem; background: var(--color-bg-light); border-top: 1px solid var(--color-border); font-size: 0.74rem; color: var(--color-text-muted); display: flex; justify-content: space-between; align-items: center;">
+        <span>Navega con <b>↑</b> <b>↓</b> y presiona <b>Enter</b> para seleccionar</span>
+        <span><b>ESC</b> para cerrar</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL CALCULADORA CLÍNICA RÁPIDA (IMC & NUTRICIÓN) -->
+  <!-- ===================================================================== -->
+  <div class="modal" id="modal-quick-calc" style="display: none;">
+    <div class="modal-content" style="max-width: 580px; border-radius: 16px; overflow: hidden; padding: 0;">
+      <div style="background: var(--color-primary); color: #fff; padding: 1.1rem 1.4rem; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <i data-lucide="calculator" style="width: 20px; height: 20px;"></i>
+          <h3 style="margin: 0; font-size: 1.15rem; color: #fff;">Calculadora Clínica de IMC y Rango Nutricional</h3>
+        </div>
+        <button type="button" id="btn-close-calc-modal" style="background: none; border: none; color: #fff; font-size: 1.3rem; cursor: pointer;">✕</button>
+      </div>
+      
+      <div class="calc-imc-container">
+        <div>
+          <div class="form-group">
+            <label for="calc-weight" style="font-weight: 600; font-size: 0.85rem;">Peso del Paciente (kg):</label>
+            <input type="number" id="calc-weight" class="form-control" placeholder="Ej. 72.5" step="0.1" min="10" max="350">
+          </div>
+          <div class="form-group">
+            <label for="calc-height" style="font-weight: 600; font-size: 0.85rem;">Estatura / Talla (cm):</label>
+            <input type="number" id="calc-height" class="form-control" placeholder="Ej. 170" step="1" min="50" max="250">
+          </div>
+          <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+            <button type="button" id="btn-run-calc" class="btn btn-primary" style="flex: 1; font-size: 0.85rem;">Calcular</button>
+            <button type="button" id="btn-clear-calc" class="btn btn-secondary" style="font-size: 0.85rem;">Limpiar</button>
+          </div>
+        </div>
+
+        <div class="imc-result-box" id="imc-result-box">
+          <span style="font-size: 0.78rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase;">Índice de Masa Corporal</span>
+          <div class="imc-value-large" id="imc-value-display">—</div>
+          <span class="imc-category-tag" id="imc-category-display">Ingresa peso y talla</span>
+          <p id="imc-ideal-weight-display" style="font-size: 0.76rem; color: var(--color-text-muted); margin: 0.75rem 0 0;"></p>
+        </div>
+      </div>
+
+      <div style="padding: 0.8rem 1.4rem; background: var(--color-bg-light); border-top: 1px solid var(--color-border); display: flex; justify-content: flex-end; gap: 0.5rem;">
+        <button type="button" id="btn-copy-imc-note" class="btn btn-accent" style="font-size: 0.82rem;" disabled>
+          <i data-lucide="copy" style="width: 14px; height: 14px; margin-right: 0.3rem;"></i> Copiar para Nota Clínica
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- Supabase Client CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.4/dist/umd/supabase.js"

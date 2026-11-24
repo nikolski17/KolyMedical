@@ -1289,6 +1289,9 @@ document.addEventListener('DOMContentLoaded', () => {
     initAdminDashboard();
     initAdminThemeToggle();
     initLoginParticles();
+    initMedicalQuickSearch();
+    initClinicalImcCalculator();
+    initLiveSyncIndicator();
   }
 
   // Inicializar iconos de Lucide
@@ -5962,7 +5965,7 @@ if (document.getElementById('public-web')) {
 }
 
 // ==========================================================================
-// 🌗 SISTEMA DE TEMAS (CLARO/OSCURO) Y PARTICULAS PARA EL PANEL MEDICO
+// 🌗 SISTEMA DE TEMAS (CLARO/OSCURO), BUSCADOR RÁPIDO Y HERRAMIENTAS CLÍNICAS
 // ==========================================================================
 let adminParticleAnimationId = null;
 
@@ -5978,28 +5981,444 @@ function initAdminThemeToggle() {
   // Cargar preferencia guardada (por defecto es claro)
   let activeTheme = localStorage.getItem('kolymedical_admin_theme') || 'light';
 
-  const applyTheme = (theme) => {
+  const triggerThemeTransition = () => {
+    document.documentElement.classList.add('theme-transition');
+    window.clearTimeout(window.__themeTransitionTimeout);
+    window.__themeTransitionTimeout = window.setTimeout(() => {
+      document.documentElement.classList.remove('theme-transition');
+    }, 450);
+  };
+
+  const applyTheme = (theme, animate = false) => {
+    if (animate) triggerThemeTransition();
+
     if (theme === 'dark') {
       dashboard.classList.add('dark-theme');
-      if (sunIcon) sunIcon.style.display = 'block';
+      document.body.classList.add('dark-theme');
+      if (sunIcon) {
+        sunIcon.style.display = 'block';
+        sunIcon.style.animation = 'icon-theme-rotate 0.45s ease';
+      }
       if (moonIcon) moonIcon.style.display = 'none';
       if (toggleText) toggleText.textContent = 'Modo Claro';
       startAdminParticles();
     } else {
       dashboard.classList.remove('dark-theme');
+      document.body.classList.remove('dark-theme');
       if (sunIcon) sunIcon.style.display = 'none';
-      if (moonIcon) moonIcon.style.display = 'block';
+      if (moonIcon) {
+        moonIcon.style.display = 'block';
+        moonIcon.style.animation = 'icon-theme-rotate 0.45s ease';
+      }
       if (toggleText) toggleText.textContent = 'Modo Oscuro';
       stopAdminParticles();
     }
   };
 
-  applyTheme(activeTheme);
+  applyTheme(activeTheme, false);
 
   toggleBtn.addEventListener('click', () => {
     activeTheme = activeTheme === 'light' ? 'dark' : 'light';
     localStorage.setItem('kolymedical_admin_theme', activeTheme);
-    applyTheme(activeTheme);
+    applyTheme(activeTheme, true);
+    showMedicalToast(`Tema ${activeTheme === 'dark' ? 'Oscuro' : 'Claro'} activado`, 'info', 2200);
+  });
+
+  // Atajo de teclado: Shift + D para alternar tema
+  document.addEventListener('keydown', (e) => {
+    if (e.shiftKey && (e.key === 'D' || e.key === 'd') && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
+      e.preventDefault();
+      toggleBtn.click();
+    }
+  });
+}
+
+// 🔔 SISTEMA DE NOTIFICACIONES TOAST FLOTANTES
+function showMedicalToast(message, type = 'success', duration = 3200) {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  toast.className = `medical-toast toast-${type}`;
+  
+  let iconName = 'check-circle';
+  if (type === 'warning') iconName = 'alert-triangle';
+  if (type === 'error') iconName = 'alert-circle';
+  if (type === 'info') iconName = 'info';
+
+  toast.innerHTML = `
+    <i data-lucide="${iconName}" style="width: 18px; height: 18px; flex-shrink: 0; color: inherit;"></i>
+    <span style="flex: 1; line-height: 1.4;">${escapeHtml(message)}</span>
+    <button type="button" style="background: none; border: none; font-size: 1.1rem; color: var(--color-text-muted); cursor: pointer; padding: 0 0.3rem;">✕</button>
+  `;
+
+  const closeBtn = toast.querySelector('button');
+  const dismiss = () => {
+    toast.style.animation = 'toast-exit 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards';
+    setTimeout(() => toast.remove(), 300);
+  };
+
+  closeBtn.addEventListener('click', dismiss);
+  container.appendChild(toast);
+
+  if (window.lucide) window.lucide.createIcons({ root: toast });
+
+  setTimeout(dismiss, duration);
+}
+
+// 🔍 BUSCADOR UNIVERSAL / COMMAND PALETTE (Ctrl + K)
+function initMedicalQuickSearch() {
+  const triggerBtn = document.getElementById('btn-quick-search');
+  const backdrop = document.getElementById('cmd-palette-backdrop');
+  const input = document.getElementById('cmd-palette-input');
+  const resultsContainer = document.getElementById('cmd-palette-results');
+  const closeBtn = document.getElementById('cmd-palette-close');
+
+  if (!backdrop || !input || !resultsContainer) return;
+
+  let selectedIndex = 0;
+  let currentItems = [];
+
+  const openPalette = () => {
+    backdrop.classList.add('open');
+    input.value = '';
+    input.focus();
+    renderSearchResults('');
+  };
+
+  const closePalette = () => {
+    backdrop.classList.remove('open');
+    input.blur();
+  };
+
+  triggerBtn?.addEventListener('click', openPalette);
+  closeBtn?.addEventListener('click', closePalette);
+
+  backdrop.addEventListener('click', (e) => {
+    if (e.target === backdrop) closePalette();
+  });
+
+  // Atajo global Ctrl + K o Cmd + K
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+      e.preventDefault();
+      if (backdrop.classList.contains('open')) {
+        closePalette();
+      } else {
+        openPalette();
+      }
+    } else if (e.key === 'Escape' && backdrop.classList.contains('open')) {
+      closePalette();
+    }
+  });
+
+  const renderSearchResults = (query) => {
+    const q = query.trim().toLowerCase();
+    resultsContainer.innerHTML = '';
+    currentItems = [];
+
+    // 1. Módulos y Navegación
+    const modules = [
+      { id: 'dashboard', name: 'Panel de Control / Resumen General', icon: 'layout-dashboard', type: 'Módulo' },
+      { id: 'calendar', name: 'Agenda Calendario / Cronograma de Citas', icon: 'calendar', type: 'Módulo' },
+      { id: 'list', name: 'Listado General de Citas y Pacientes', icon: 'list', type: 'Módulo' },
+      { id: 'availability', name: 'Disponibilidad y Horarios de Especialistas', icon: 'clock', type: 'Módulo' },
+      { id: 'users', name: 'Especialistas y Usuarios del Sistema', icon: 'users', type: 'Módulo' },
+      { id: 'prescriptions', name: 'Recetas Médicas y Órdenes Digitales', icon: 'file-text', type: 'Módulo' },
+      { id: 'quotes', name: 'Cotizador y Generador de Presupuestos', icon: 'calculator', type: 'Módulo' },
+      { id: 'catalog', name: 'Catálogo de Estudios y Precios', icon: 'database', type: 'Módulo' }
+    ];
+
+    // 2. Acciones Rápidas
+    const actions = [
+      { name: 'Nueva Cita Médica (Abrir formulario)', icon: 'plus-circle', action: () => document.querySelector('.btn-primary.open-booking-modal, #btn-new-appointment, button[data-view="calendar"]')?.click(), type: 'Acción' },
+      { name: 'Alternar Modo Claro / Modo Oscuro', icon: 'moon', action: () => document.getElementById('btn-theme-toggle')?.click(), type: 'Acción' },
+      { name: 'Abrir Calculadora Clínica de IMC', icon: 'calculator', action: () => document.getElementById('btn-quick-calc-trigger')?.click(), type: 'Herramienta' },
+      { name: 'Sincronizar y Refrescar Datos en Vivo', icon: 'refresh-cw', action: () => document.getElementById('btn-refresh-data')?.click(), type: 'Acción' }
+    ];
+
+    // 3. Pacientes y Citas en caché
+    const appointments = (typeof DB !== 'undefined' && DB.getAppointments) ? DB.getAppointments() : [];
+    const patientMatches = [];
+    const seenPatients = new Set();
+
+    appointments.forEach(apt => {
+      const pName = apt.patientName || apt.patient_name || '';
+      const pDni = apt.patientDni || apt.patient_dni || '';
+      const key = `${pName}_${pDni}`;
+      if (!seenPatients.has(key) && (pName.toLowerCase().includes(q) || pDni.includes(q))) {
+        seenPatients.add(key);
+        patientMatches.push({
+          name: pName,
+          dni: pDni,
+          phone: apt.patientPhone || apt.patient_phone || '',
+          service: apt.service || 'Consulta',
+          icon: 'user',
+          type: 'Paciente',
+          action: () => {
+            const listBtn = document.querySelector('.sidebar-item[data-view="list"]');
+            if (listBtn) listBtn.click();
+            const searchEl = document.getElementById('admin-search');
+            if (searchEl) {
+              searchEl.value = pName;
+              searchEl.dispatchEvent(new Event('input'));
+            }
+          }
+        });
+      }
+    });
+
+    // Filtrar módulos y acciones
+    const filteredModules = modules.filter(m => m.name.toLowerCase().includes(q));
+    const filteredActions = actions.filter(a => a.name.toLowerCase().includes(q));
+
+    let html = '';
+    let itemIdx = 0;
+
+    if (patientMatches.length > 0) {
+      html += `<div class="cmd-group-title">Pacientes encontrados (${patientMatches.length})</div>`;
+      patientMatches.slice(0, 5).forEach(p => {
+        currentItems.push(p);
+        html += `
+          <div class="cmd-item ${itemIdx === 0 ? 'selected' : ''}" data-idx="${itemIdx++}">
+            <div style="display:flex; align-items:center; gap:0.6rem;">
+              <i data-lucide="user" style="width:16px;height:16px;color:var(--color-accent);"></i>
+              <div>
+                <strong>${escapeHtml(p.name)}</strong>
+                <div class="cmd-item-desc">DNI: ${escapeHtml(p.dni || 'Sin registrar')} • Tel: ${escapeHtml(p.phone || '—')}</div>
+              </div>
+            </div>
+            <span class="cmd-item-badge">Ver Paciente</span>
+          </div>`;
+      });
+    }
+
+    if (filteredModules.length > 0) {
+      html += `<div class="cmd-group-title">Navegación de Módulos</div>`;
+      filteredModules.forEach(m => {
+        currentItems.push({
+          ...m,
+          action: () => {
+            const btn = document.querySelector(`.sidebar-item[data-view="${m.id}"]`);
+            if (btn) btn.click();
+          }
+        });
+        html += `
+          <div class="cmd-item ${itemIdx === 0 ? 'selected' : ''}" data-idx="${itemIdx++}">
+            <div style="display:flex; align-items:center; gap:0.6rem;">
+              <i data-lucide="${m.icon}" style="width:16px;height:16px;color:var(--color-primary-light);"></i>
+              <span>${escapeHtml(m.name)}</span>
+            </div>
+            <span class="cmd-item-badge">Módulo</span>
+          </div>`;
+      });
+    }
+
+    if (filteredActions.length > 0) {
+      html += `<div class="cmd-group-title">Acciones del Sistema</div>`;
+      filteredActions.forEach(a => {
+        currentItems.push(a);
+        html += `
+          <div class="cmd-item ${itemIdx === 0 ? 'selected' : ''}" data-idx="${itemIdx++}">
+            <div style="display:flex; align-items:center; gap:0.6rem;">
+              <i data-lucide="${a.icon}" style="width:16px;height:16px;color:var(--color-warning);"></i>
+              <span>${escapeHtml(a.name)}</span>
+            </div>
+            <span class="cmd-item-badge">Acción</span>
+          </div>`;
+      });
+    }
+
+    if (currentItems.length === 0) {
+      html = `<div style="padding: 2.5rem 1rem; text-align: center; color: var(--color-text-muted); font-size: 0.9rem;">No se encontraron resultados para "<strong>${escapeHtml(query)}</strong>".</div>`;
+    }
+
+    resultsContainer.innerHTML = html;
+    selectedIndex = 0;
+    if (window.lucide) window.lucide.createIcons({ root: resultsContainer });
+
+    // Clic en items
+    resultsContainer.querySelectorAll('.cmd-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const idx = parseInt(el.getAttribute('data-idx'), 10);
+        executeItem(idx);
+      });
+    });
+  };
+
+  const executeItem = (idx) => {
+    const item = currentItems[idx];
+    if (item && item.action) {
+      closePalette();
+      item.action();
+    }
+  };
+
+  input.addEventListener('input', (e) => {
+    renderSearchResults(e.target.value);
+  });
+
+  input.addEventListener('keydown', (e) => {
+    const items = resultsContainer.querySelectorAll('.cmd-item');
+    if (!items.length) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      items[selectedIndex]?.classList.remove('selected');
+      selectedIndex = (selectedIndex + 1) % items.length;
+      items[selectedIndex]?.classList.add('selected');
+      items[selectedIndex]?.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      items[selectedIndex]?.classList.remove('selected');
+      selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+      items[selectedIndex]?.classList.add('selected');
+      items[selectedIndex]?.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      executeItem(selectedIndex);
+    }
+  });
+}
+
+// 🧮 CALCULADORA CLÍNICA RÁPIDA (IMC & NUTRICIÓN)
+function initClinicalImcCalculator() {
+  const trigger = document.getElementById('btn-quick-calc-trigger');
+  const modal = document.getElementById('modal-quick-calc');
+  const closeBtn = document.getElementById('btn-close-calc-modal');
+  const weightInput = document.getElementById('calc-weight');
+  const heightInput = document.getElementById('calc-height');
+  const runBtn = document.getElementById('btn-run-calc');
+  const clearBtn = document.getElementById('btn-clear-calc');
+  const imcDisplay = document.getElementById('imc-value-display');
+  const categoryDisplay = document.getElementById('imc-category-display');
+  const idealWeightDisplay = document.getElementById('imc-ideal-weight-display');
+  const copyBtn = document.getElementById('btn-copy-imc-note');
+
+  if (!modal || !weightInput || !heightInput) return;
+
+  trigger?.addEventListener('click', () => {
+    modal.style.display = 'flex';
+    weightInput.focus();
+  });
+
+  const closeModal = () => {
+    modal.style.display = 'none';
+  };
+
+  closeBtn?.addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  let lastCalculationText = '';
+
+  const calculateIMC = () => {
+    const weight = parseFloat(weightInput.value);
+    const heightCm = parseFloat(heightInput.value);
+
+    if (isNaN(weight) || isNaN(heightCm) || weight <= 0 || heightCm <= 0) {
+      imcDisplay.textContent = '—';
+      categoryDisplay.textContent = 'Ingresa peso y talla';
+      categoryDisplay.className = 'imc-category-tag';
+      idealWeightDisplay.textContent = '';
+      if (copyBtn) copyBtn.disabled = true;
+      return;
+    }
+
+    const heightM = heightCm / 100;
+    const imc = weight / (heightM * heightM);
+    const imcFormatted = imc.toFixed(1);
+    imcDisplay.textContent = imcFormatted;
+
+    let category = '';
+    let tagClass = '';
+
+    if (imc < 18.5) {
+      category = 'Bajo peso';
+      tagClass = 'imc-underweight';
+    } else if (imc < 25) {
+      category = 'Peso normal (Saludable)';
+      tagClass = 'imc-normal';
+    } else if (imc < 30) {
+      category = 'Sobrepeso (Pre-obesidad)';
+      tagClass = 'imc-overweight';
+    } else if (imc < 35) {
+      category = 'Obesidad Grado I (Moderada)';
+      tagClass = 'imc-obese';
+    } else if (imc < 40) {
+      category = 'Obesidad Grado II (Severa)';
+      tagClass = 'imc-obese';
+    } else {
+      category = 'Obesidad Grado III (Mórbida)';
+      tagClass = 'imc-obese';
+    }
+
+    categoryDisplay.textContent = category;
+    categoryDisplay.className = `imc-category-tag ${tagClass}`;
+
+    // Peso ideal según OMS (IMC 18.5 - 24.9)
+    const minIdeal = (18.5 * heightM * heightM).toFixed(1);
+    const maxIdeal = (24.9 * heightM * heightM).toFixed(1);
+    idealWeightDisplay.textContent = `Rango de peso saludable sugerido: ${minIdeal} kg – ${maxIdeal} kg`;
+
+    lastCalculationText = `[Evaluación Nutricional] Peso: ${weight} kg | Talla: ${heightCm} cm | IMC: ${imcFormatted} kg/m² (${category}). Rango saludable sugerido: ${minIdeal}-${maxIdeal} kg.`;
+    if (copyBtn) copyBtn.disabled = false;
+  };
+
+  weightInput.addEventListener('input', calculateIMC);
+  heightInput.addEventListener('input', calculateIMC);
+  runBtn?.addEventListener('click', calculateIMC);
+
+  clearBtn?.addEventListener('click', () => {
+    weightInput.value = '';
+    heightInput.value = '';
+    calculateIMC();
+    weightInput.focus();
+  });
+
+  copyBtn?.addEventListener('click', () => {
+    if (!lastCalculationText) return;
+    navigator.clipboard.writeText(lastCalculationText).then(() => {
+      showMedicalToast('Cálculo de IMC copiado al portapapeles', 'success');
+      closeModal();
+    }).catch(() => {
+      showMedicalToast(lastCalculationText, 'info');
+    });
+  });
+}
+
+// 🔄 INDICADOR DE SINCRONIZACIÓN EN VIVO Y REFRESCO
+function initLiveSyncIndicator() {
+  const refreshBtn = document.getElementById('btn-refresh-data');
+  const spinIcon = document.getElementById('icon-refresh-spin');
+
+  if (!refreshBtn) return;
+
+  refreshBtn.addEventListener('click', async () => {
+    if (spinIcon) spinIcon.style.animation = 'spin-once 0.7s cubic-bezier(0.4, 0, 0.2, 1)';
+    refreshBtn.disabled = true;
+
+    try {
+      if (typeof DB !== 'undefined' && DB.syncAppointments) {
+        await DB.syncAppointments(() => {
+          if (typeof renderAdminDashboard === 'function') renderAdminDashboard();
+          if (typeof renderDetailedTable === 'function') renderDetailedTable();
+        });
+      } else {
+        if (typeof renderAdminDashboard === 'function') renderAdminDashboard();
+        if (typeof renderDetailedTable === 'function') renderDetailedTable();
+      }
+      showMedicalToast('Datos médicos sincronizados correctamente con la nube', 'success', 2600);
+    } catch (err) {
+      console.warn('Sync refresh error:', err);
+      showMedicalToast('Datos actualizados desde la memoria local', 'info', 2200);
+    } finally {
+      setTimeout(() => {
+        if (spinIcon) spinIcon.style.animation = 'none';
+        refreshBtn.disabled = false;
+      }, 700);
+    }
   });
 }
 
