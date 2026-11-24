@@ -8,7 +8,7 @@ create table if not exists koly_billing_config (
   ruc varchar(11) not null,
   razon_social text not null,
   direccion_fiscal text,
-  provider text default 'PSE_API', -- 'PSE_API' | 'SUNAT_DIRECTO' | 'SOLO_INTERNO'
+  provider text default 'SOLO_INTERNO', -- 'SOLO_INTERNO' | 'PSE_API' | 'SUNAT_DIRECTO'
   environment text default 'BETA', -- 'BETA' | 'PRODUCCION'
   serie_boleta varchar(4) default 'B001',
   correlativo_boleta int default 1,
@@ -31,7 +31,7 @@ create table if not exists koly_invoices (
   subtotal numeric(10,2) not null,
   igv numeric(10,2) not null,
   total numeric(10,2) not null,
-  sunat_status text default 'PENDIENTE', -- 'PENDIENTE' | 'ACEPTADO' | 'RECHAZADO' | 'BETA'
+  sunat_status text default 'BETA', -- 'PENDIENTE' | 'ACEPTADO' | 'RECHAZADO' | 'BETA'
   pdf_url text,
   xml_url text,
   cdr_url text,
@@ -39,19 +39,30 @@ create table if not exists koly_invoices (
   created_at timestamptz default now()
 );
 
--- Habilitar RLS (Row Level Security) según políticas de KolyTech
+-- Habilitar RLS (Row Level Security)
 alter table koly_billing_config enable row level security;
 alter table koly_invoices enable row level security;
 
--- Políticas de acceso para usuarios autenticados y servicio de API
-create policy "Allow read billing config for authenticated users"
+-- Eliminar políticas previas si existían
+drop policy if exists "Allow read billing config for authenticated users" on koly_billing_config;
+drop policy if exists "Allow modify billing config for authenticated users" on koly_billing_config;
+drop policy if exists "Allow all on invoices for authenticated users" on koly_invoices;
+drop policy if exists "Allow public read billing config" on koly_billing_config;
+drop policy if exists "Allow public modify billing config" on koly_billing_config;
+drop policy if exists "Allow public all on invoices" on koly_invoices;
+
+-- Permitir lectura y escritura tanto para anon (cliente web) como para usuarios autenticados
+create policy "Allow public read billing config"
   on koly_billing_config for select
+  to anon, authenticated
   using (true);
 
-create policy "Allow modify billing config for authenticated users"
+create policy "Allow public modify billing config"
   on koly_billing_config for all
+  to anon, authenticated
   using (true);
 
-create policy "Allow all on invoices for authenticated users"
+create policy "Allow public all on invoices"
   on koly_invoices for all
+  to anon, authenticated
   using (true);

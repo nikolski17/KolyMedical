@@ -18,9 +18,25 @@
     gtag('js', new Date());
     gtag('config', 'G-ZYKLQW97R1');
   </script>
+  <style>
+    html, body {
+      background-color: #07090b !important;
+      color: #ffffff;
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+    }
+    .admin-layout {
+      min-height: 100vh;
+      background-color: #07090b;
+    }
+    .admin-sidebar {
+      min-height: 100vh;
+    }
+  </style>
 </head>
 
-<body>
+<body class="admin-body dark-theme">
 
   <!-- A. SECCIÓN DE INGRESO (LOGIN CARD) -->
   <section class="login-container" id="login-section" style="position: relative; overflow: hidden;">
@@ -1319,14 +1335,20 @@
   <script type="module" src="security-utils.mjs?v=20260924b1"></script>
   <script src="app.js?v=20260929-kolytech-access1"></script>
   <script type="module">
-    import { initImcCalculator } from './imc-calculator.mjs?v=20261124';
-    import { initBillingModule } from './billing-module.mjs?v=20261124';
+    import { initImcCalculator, openImcCalculator } from './imc-calculator.mjs?v=20261124c';
+    import { initBillingModule } from './billing-module.mjs?v=20261124c';
 
-    document.addEventListener('DOMContentLoaded', () => {
+    const bootModules = () => {
       initImcCalculator('#btn-imc-calculator');
       const sb = window.supabaseClient || (window.supabase && window.supabase.createClient ? window.supabaseClient : null);
       initBillingModule('view-billing', sb);
-    });
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', bootModules);
+    } else {
+      bootModules();
+    }
   </script>
   <script>
     // Enlazar la tabla detallada de la vista de listado al buscador

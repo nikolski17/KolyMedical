@@ -6143,7 +6143,7 @@ function initMedicalQuickSearch() {
     const actions = [
       { name: 'Nueva Cita Médica (Abrir formulario)', icon: 'plus-circle', action: () => document.querySelector('.btn-primary.open-booking-modal, #btn-new-appointment, button[data-view="calendar"]')?.click(), type: 'Acción' },
       { name: 'Alternar Modo Claro / Modo Oscuro', icon: 'moon', action: () => document.getElementById('btn-theme-toggle')?.click(), type: 'Acción' },
-      { name: 'Abrir Calculadora Clínica de IMC', icon: 'calculator', action: () => (document.getElementById('btn-imc-calculator') || document.getElementById('btn-quick-calc-trigger'))?.click(), type: 'Herramienta' },
+      { name: 'Abrir Calculadora Clínica de IMC', icon: 'calculator', action: () => { if (window.openImcCalculator) { window.openImcCalculator(); } else { document.getElementById('btn-imc-calculator')?.click(); } }, type: 'Herramienta' },
       { name: 'Sincronizar y Refrescar Datos en Vivo', icon: 'refresh-cw', action: () => document.getElementById('btn-refresh-data')?.click(), type: 'Acción' }
     ];
 
