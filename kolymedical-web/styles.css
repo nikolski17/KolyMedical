@@ -3913,7 +3913,8 @@ body.dark-theme #availability-form label,
 
 
 /* ==========================================================================
-   SOLUCIÓN DEFINITIVA DE DOBLE SCROLLBAR, CONGELAMIENTO Y MODO OSCURO
+/* ==========================================================================
+   SOLUCIÓN DEFINITIVA DE DOBLE SCROLLBAR, CONGELAMIENTO Y MODO CLARO / OSCURO COHESIVO
    ========================================================================== */
 html,
 body.admin-body {
@@ -3922,8 +3923,6 @@ body.admin-body {
   margin: 0 !important;
   padding: 0 !important;
   overflow: hidden !important;
-  background-color: #07090b !important;
-  color: #f8fafc !important;
 }
 
 body.admin-body .admin-layout {
@@ -3932,7 +3931,6 @@ body.admin-body .admin-layout {
   overflow: hidden !important;
   display: grid;
   grid-template-columns: 260px 1fr;
-  background-color: #07090b !important;
 }
 
 body.admin-body .admin-sidebar {
@@ -3949,9 +3947,8 @@ body.admin-body .admin-main {
   overflow-y: auto !important;
   overflow-x: hidden !important;
   box-sizing: border-box;
-  padding: 2rem 2.5rem 5rem 2.5rem !important; /* Espacio inferior amplio para scroll sin cortes */
+  padding: 2rem 2.5rem 5rem 2.5rem !important;
   scroll-behavior: smooth;
-  background-color: #07090b !important;
 }
 
 /* Scrollbar estilizado moderno Mosoq Wasy */
@@ -3971,4 +3968,106 @@ body.admin-body .admin-sidebar::-webkit-scrollbar-thumb {
 body.admin-body .admin-main::-webkit-scrollbar-thumb:hover,
 body.admin-body .admin-sidebar::-webkit-scrollbar-thumb:hover {
   background: #00d2c4;
+}
+
+/* Modo Oscuro (Mosoq Wasy Standard) */
+body.admin-body.dark-theme,
+html.dark-theme,
+.admin-layout.dark-theme {
+  background-color: #07090b !important;
+  color: #f8fafc !important;
+}
+
+body.admin-body.dark-theme .admin-main {
+  background-color: #07090b !important;
+  color: #f8fafc !important;
+}
+
+body.admin-body.dark-theme .admin-sidebar {
+  background-color: #0b111e !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Modo Claro Cohesivo Médico */
+body.admin-body:not(.dark-theme),
+.admin-layout:not(.dark-theme) {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+body.admin-body:not(.dark-theme) .admin-main {
+  background-color: #f8fafc !important;
+  background-image: none !important;
+  color: #0f172a !important;
+}
+
+body.admin-body:not(.dark-theme) .admin-sidebar {
+  background-color: #0f172a !important;
+  border-right: 1px solid #e2e8f0 !important;
+}
+
+body.admin-body:not(.dark-theme) .admin-card,
+body.admin-body:not(.dark-theme) .stat-card {
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
+  color: #0f172a !important;
+}
+
+body.admin-body:not(.dark-theme) .admin-title h1,
+body.admin-body:not(.dark-theme) .admin-card-header h2,
+body.admin-body:not(.dark-theme) h2,
+body.admin-body:not(.dark-theme) h3 {
+  color: #0f172a !important;
+}
+
+body.admin-body:not(.dark-theme) .admin-title p,
+body.admin-body:not(.dark-theme) .admin-card p,
+body.admin-body:not(.dark-theme) .stat-info h3 {
+  color: #64748b !important;
+}
+
+body.admin-body:not(.dark-theme) .form-control,
+body.admin-body:not(.dark-theme) input,
+body.admin-body:not(.dark-theme) select,
+body.admin-body:not(.dark-theme) textarea {
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+body.admin-body:not(.dark-theme) .admin-table th {
+  background-color: #f8fafc !important;
+  color: #475569 !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+}
+
+body.admin-body:not(.dark-theme) .admin-table td {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+body.admin-body:not(.dark-theme) .quick-search-trigger {
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #475569 !important;
+}
+
+body.admin-body:not(.dark-theme) .quick-search-trigger kbd {
+  background-color: #f1f5f9 !important;
+  color: #64748b !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+body.admin-body:not(.dark-theme) .btn-header-action {
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+body.admin-body:not(.dark-theme) .system-sync-pill {
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
 }

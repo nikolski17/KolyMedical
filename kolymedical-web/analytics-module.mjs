@@ -1,7 +1,14 @@
-// analytics-module.mjs — Métricas & Dashboard Clínico con Gráficas Modernas (Panze / Coursie / TeamHub)
+// analytics-module.mjs — Métricas & Dashboard Clínico con Gráficas Modernas (Panze / Coursie / TeamHub) y Renovación Mensual
 let revenueChartInstance = null;
 let specialtyChartInstance = null;
 let weeklyChartInstance = null;
+let selectedMonthIndex = new Date().getMonth();
+let selectedYearVal = new Date().getFullYear();
+
+const MONTH_NAMES = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+];
 
 function ensureChartJs() {
   return new Promise((resolve) => {
@@ -25,44 +32,62 @@ export async function initAnalyticsDashboard(containerId = 'view-analytics', sup
   if (!container) return;
 
   // Cargar datos con resiliencia total y tolerancia a fallos
-  let appointments = JSON.parse(localStorage.getItem('koly_appointments_offline_v1') || '[]');
+  let allAppointments = JSON.parse(localStorage.getItem('koly_appointments_offline_v1') || '[]');
   if (typeof window !== 'undefined' && Array.isArray(window.localAppointmentsCache) && window.localAppointmentsCache.length) {
-    appointments = window.localAppointmentsCache;
+    allAppointments = window.localAppointmentsCache;
   }
-  let invoices = JSON.parse(localStorage.getItem('koly_invoices_v1') || '[]');
+  let allInvoices = JSON.parse(localStorage.getItem('koly_invoices_v1') || '[]');
 
   if (supabaseClient) {
     try {
       const appRes = await supabaseClient.from('appointments').select('*').limit(300);
-      if (appRes && appRes.data && appRes.data.length) appointments = appRes.data;
+      if (appRes && appRes.data && appRes.data.length) allAppointments = appRes.data;
     } catch (err) {
-      console.warn('[KolyTech Analytics] Fallback local para appointments:', err.message);
+      console.warn('[Analytics] Fallback local para appointments:', err.message);
     }
 
     try {
-      const invRes = await supabaseClient.from('koly_invoices').select('total, created_at').limit(300);
-      if (invRes && invRes.data && invRes.data.length) invoices = invRes.data;
+      const invRes = await supabaseClient.from('koly_invoices').select('total, created_at, sunat_status').limit(300);
+      if (invRes && invRes.data && invRes.data.length) allInvoices = invRes.data;
     } catch (err) {
-      console.warn('[KolyTech Analytics] Fallback local para invoices:', err.message);
+      console.warn('[Analytics] Fallback local para invoices:', err.message);
     }
   }
 
-  // Cálculos estadísticos
-  const totalCitas = appointments.length || 11;
-  const confirmadas = appointments.filter(a => {
+  // Filtrar citas del mes seleccionado
+  const monthAppointments = allAppointments.filter(a => {
+    if (!a.date) return true;
+    const d = new Date(a.date);
+    if (isNaN(d.getTime())) return true;
+    return d.getMonth() === selectedMonthIndex && d.getFullYear() === selectedYearVal;
+  });
+
+  // Filtrar comprobantes del mes seleccionado (excluyendo comprobantes anulados)
+  const monthInvoices = allInvoices.filter(i => {
+    if (i.sunat_status === 'ANULADA') return false; // Excluir anuladas
+    if (!i.created_at) return true;
+    const d = new Date(i.created_at);
+    if (isNaN(d.getTime())) return true;
+    return d.getMonth() === selectedMonthIndex && d.getFullYear() === selectedYearVal;
+  });
+
+  // Cálculos estadísticos mensuales
+  const currentMonthName = MONTH_NAMES[selectedMonthIndex];
+  const totalCitas = monthAppointments.length || allAppointments.length || 11;
+  const confirmadas = monthAppointments.filter(a => {
     const st = String(a.status || '').toUpperCase();
     return st === 'CONFIRMADA' || st === 'REALIZADA';
   }).length || 7;
-  const pendientes = appointments.filter(a => {
+  const pendientes = monthAppointments.filter(a => {
     const st = String(a.status || '').toLowerCase();
     return st === 'pendiente' || st === 'por coordinar';
   }).length || 1;
-  const canceladas = appointments.filter(a => String(a.status || '').toUpperCase() === 'CANCELADA').length || 0;
+  const canceladas = monthAppointments.filter(a => String(a.status || '').toUpperCase() === 'CANCELADA').length || 0;
   const tasaAsistencia = totalCitas ? Math.round((confirmadas / totalCitas) * 100) : 88;
-  const recaudacion = invoices.reduce((acc, i) => acc + Number(i.total || 0), 0) || 1500;
+  const recaudacion = monthInvoices.reduce((acc, i) => acc + Number(i.total || 0), 0) || 1500;
 
   // Pacientes nuevos vs recurrentes
-  const dniCounts = appointments.reduce((map, a) => {
+  const dniCounts = monthAppointments.reduce((map, a) => {
     const key = a.patient_dni || a.patientDni || a.patient_phone || a.patientPhone || a.patient_name || a.patientName || 'id';
     map[key] = (map[key] || 0) + 1;
     return map;
@@ -73,23 +98,28 @@ export async function initAnalyticsDashboard(containerId = 'view-analytics', sup
   container.innerHTML = `
     <div style="display:grid; gap:24px; color:#f8fafc; font-family:var(--font-family, sans-serif);">
       
-      <!-- Cabecera del Dashboard -->
+      <!-- Cabecera del Dashboard con Selector Mensual -->
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
         <div>
           <h2 style="margin:0; font-size:1.45rem; font-weight:800; color:#f8fafc; letter-spacing:-0.5px;">Panel de Métricas & Rendimiento Clínico</h2>
-          <p style="margin:4px 0 0; font-size:0.85rem; color:#94a3b8;">Monitoreo en tiempo real de consultas, efectividad médica y recaudación</p>
+          <p style="margin:4px 0 0; font-size:0.85rem; color:#94a3b8;">Estadísticas del mes activo (se renuevan mes a mes automáticamente)</p>
         </div>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-size:0.75rem; padding:5px 12px; border-radius:20px; background:rgba(0,210,196,0.12); color:#00d2c4; font-weight:700; border:1px solid rgba(0,210,196,0.25);">
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <label style="font-size:0.8rem; color:#94a3b8; display:flex; align-items:center; gap:6px;">
+            Mes de Gestión:
+            <select id="analytics-month-selector" style="background:#11192c; border:1px solid rgba(0,210,196,0.3); color:#00d2c4; font-size:0.82rem; font-weight:700; border-radius:10px; padding:6px 14px; cursor:pointer;">
+              ${MONTH_NAMES.map((m, idx) => `
+                <option value="${idx}" ${idx === selectedMonthIndex ? 'selected' : ''}>${m} ${selectedYearVal}</option>
+              `).join('')}
+            </select>
+          </label>
+          <span style="font-size:0.75rem; padding:6px 12px; border-radius:20px; background:rgba(0,210,196,0.12); color:#00d2c4; font-weight:700; border:1px solid rgba(0,210,196,0.25);">
             ● Datos en Vivo
-          </span>
-          <span style="font-size:0.75rem; padding:5px 12px; border-radius:20px; background:rgba(255,255,255,0.05); color:#94a3b8; border:1px solid rgba(255,255,255,0.08);">
-            Mes Actual
           </span>
         </div>
       </div>
 
-      <!-- Fila 1: 4 Tarjetas KPI Estilo Coursie / TeamHub con Badges de Crecimiento -->
+      <!-- Fila 1: 4 Tarjetas KPI Estilo Coursie / TeamHub -->
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px;">
         
         <!-- KPI 1 -->
@@ -102,7 +132,7 @@ export async function initAnalyticsDashboard(containerId = 'view-analytics', sup
               ↑ +14.2%
             </span>
           </div>
-          <div style="font-size:0.8rem; color:#94a3b8; margin-top:14px; font-weight:500;">Citas Totales del Mes</div>
+          <div style="font-size:0.8rem; color:#94a3b8; margin-top:14px; font-weight:500;">Citas de ${currentMonthName}</div>
           <div style="font-size:2rem; font-weight:800; color:#f8fafc; margin-top:2px;">${totalCitas}</div>
           <div style="font-size:0.75rem; color:#00d2c4; margin-top:6px; font-weight:600;">Confirmadas: ${confirmadas} · Espera: ${pendientes}</div>
         </div>
@@ -117,9 +147,9 @@ export async function initAnalyticsDashboard(containerId = 'view-analytics', sup
               ↑ +9.8%
             </span>
           </div>
-          <div style="font-size:0.8rem; color:#94a3b8; margin-top:14px; font-weight:500;">Recaudación Estimada</div>
+          <div style="font-size:0.8rem; color:#94a3b8; margin-top:14px; font-weight:500;">Recaudación ${currentMonthName}</div>
           <div style="font-size:2rem; font-weight:800; color:#10b981; margin-top:2px;">S/ ${Number(recaudacion).toFixed(2)}</div>
-          <div style="font-size:0.75rem; color:#94a3b8; margin-top:6px;">${invoices.length || 1} comprobante(s) emitido(s)</div>
+          <div style="font-size:0.75rem; color:#94a3b8; margin-top:6px;">${monthInvoices.length} boleta(s)/factura(s) vigentes</div>
         </div>
 
         <!-- KPI 3 -->
@@ -132,7 +162,7 @@ export async function initAnalyticsDashboard(containerId = 'view-analytics', sup
               ${tasaAsistencia >= 80 ? 'Óptima' : 'En seguimiento'}
             </span>
           </div>
-          <div style="font-size:0.8rem; color:#94a3b8; margin-top:14px; font-weight:500;">Tasa de Asistencia</div>
+          <div style="font-size:0.8rem; color:#94a3b8; margin-top:14px; font-weight:500;">Tasa de Asistencia en ${currentMonthName}</div>
           <div style="font-size:2rem; font-weight:800; color:#38bdf8; margin-top:2px;">${tasaAsistencia}%</div>
           <div style="font-size:0.75rem; color:#94a3b8; margin-top:6px;">Canceladas: ${canceladas} cita(s)</div>
         </div>
@@ -147,7 +177,7 @@ export async function initAnalyticsDashboard(containerId = 'view-analytics', sup
               ↑ +22% retención
             </span>
           </div>
-          <div style="font-size:0.8rem; color:#94a3b8; margin-top:14px; font-weight:500;">Nuevos vs Recurrentes</div>
+          <div style="font-size:0.8rem; color:#94a3b8; margin-top:14px; font-weight:500;">Nuevos vs Recurrentes (${currentMonthName})</div>
           <div style="font-size:2rem; font-weight:800; color:#a78bfa; margin-top:2px;">${nuevos} <span style="font-size:1.1rem; color:#64748b; font-weight:400;">/</span> ${recurrentes}</div>
           <div style="font-size:0.75rem; color:#94a3b8; margin-top:6px;">Basado en historial clínico</div>
         </div>
@@ -162,7 +192,7 @@ export async function initAnalyticsDashboard(containerId = 'view-analytics', sup
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:10px;">
             <div>
               <h3 style="margin:0; font-size:1.05rem; font-weight:700; color:#f8fafc;">Evolución y Rendimiento Clínico</h3>
-              <p style="margin:3px 0 0; font-size:0.78rem; color:#94a3b8;">Comparativa mensual: Citas atendidas vs Citas agendadas</p>
+              <p style="margin:3px 0 0; font-size:0.78rem; color:#94a3b8;">Histórico del año en curso: Atendidas vs Agendadas</p>
             </div>
             <div style="display:flex; align-items:center; gap:14px; font-size:0.78rem;">
               <span style="display:inline-flex; align-items:center; gap:6px; color:#f8fafc;">
@@ -182,7 +212,7 @@ export async function initAnalyticsDashboard(containerId = 'view-analytics', sup
         <div style="background:#11192c; border:1px solid rgba(255,255,255,0.08); border-radius:18px; padding:22px; box-shadow:0 10px 30px rgba(0,0,0,0.3); display:flex; flex-direction:column; justify-content:space-between;">
           <div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-              <h3 style="margin:0; font-size:1.05rem; font-weight:700; color:#f8fafc;">Especialidades</h3>
+              <h3 style="margin:0; font-size:1.05rem; font-weight:700; color:#f8fafc;">Especialidades en ${currentMonthName}</h3>
               <span style="font-size:0.72rem; color:#00d2c4; font-weight:700;">Top Demanda</span>
             </div>
             <p style="margin:0 0 16px; font-size:0.78rem; color:#94a3b8;">Distribución de consultas por servicio médico</p>
@@ -224,7 +254,7 @@ export async function initAnalyticsDashboard(containerId = 'view-analytics', sup
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
             <div>
               <h3 style="margin:0; font-size:1.05rem; font-weight:700; color:#f8fafc;">Flujo Semanal de Pacientes</h3>
-              <p style="margin:3px 0 0; font-size:0.78rem; color:#94a3b8;">Volumen diario de atención (Lunes a Sábado)</p>
+              <p style="margin:3px 0 0; font-size:0.78rem; color:#94a3b8;">Volumen diario de atención en ${currentMonthName}</p>
             </div>
             <span style="font-size:0.72rem; padding:3px 8px; border-radius:12px; background:rgba(0,210,196,0.12); color:#00d2c4; font-weight:700;">
               Pico: Jueves
@@ -242,7 +272,7 @@ export async function initAnalyticsDashboard(containerId = 'view-analytics', sup
               <h3 style="margin:0; font-size:1.05rem; font-weight:700; color:#f8fafc;">Canales y Rendimiento Operativo</h3>
               <span style="font-size:0.8rem; font-weight:800; color:#10b981;">89.5% Score</span>
             </div>
-            <p style="margin:0 0 16px; font-size:0.78rem; color:#94a3b8;">Desempeño de modalidad y tiempo de respuesta</p>
+            <p style="margin:0 0 16px; font-size:0.78rem; color:#94a3b8;">Desempeño mensual de modalidad y tiempo de respuesta</p>
           </div>
 
           <div style="display:grid; gap:14px;">
@@ -298,6 +328,15 @@ export async function initAnalyticsDashboard(containerId = 'view-analytics', sup
     </div>
   `;
 
+  // Evento para cambiar de mes
+  const monthSelector = container.querySelector('#analytics-month-selector');
+  if (monthSelector) {
+    monthSelector.addEventListener('change', (e) => {
+      selectedMonthIndex = Number(e.target.value);
+      initAnalyticsDashboard(containerId, supabaseClient);
+    });
+  }
+
   // Asegurar carga de Chart.js antes de dibujar
   const ChartClass = await ensureChartJs();
   if (!ChartClass) {
@@ -305,7 +344,7 @@ export async function initAnalyticsDashboard(containerId = 'view-analytics', sup
     return;
   }
 
-  // Destruir instancias previas para evitar memory leaks
+  // Destruir instancias previas
   if (revenueChartInstance) revenueChartInstance.destroy();
   if (specialtyChartInstance) specialtyChartInstance.destroy();
   if (weeklyChartInstance) weeklyChartInstance.destroy();

@@ -6184,7 +6184,7 @@ function initAdminThemeToggle() {
   if (!toggleBtn || !dashboard) return;
 
   // Cargar preferencia guardada (por defecto es claro)
-  let activeTheme = localStorage.getItem('kolymedical_admin_theme') || 'light';
+  let activeTheme = localStorage.getItem('kolymedical_admin_theme') || 'dark';
 
   const triggerThemeTransition = () => {
     document.documentElement.classList.add('theme-transition');
