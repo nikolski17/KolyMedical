@@ -3910,3 +3910,65 @@ body.dark-theme #availability-form label,
 .admin-layout.dark-theme #availability-form label {
   color: #cbd5e1 !important;
 }
+
+
+/* ==========================================================================
+   SOLUCIÓN DEFINITIVA DE DOBLE SCROLLBAR, CONGELAMIENTO Y MODO OSCURO
+   ========================================================================== */
+html,
+body.admin-body {
+  height: 100% !important;
+  max-height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  background-color: #07090b !important;
+  color: #f8fafc !important;
+}
+
+body.admin-body .admin-layout {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  background-color: #07090b !important;
+}
+
+body.admin-body .admin-sidebar {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box;
+}
+
+body.admin-body .admin-main {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box;
+  padding: 2rem 2.5rem 5rem 2.5rem !important; /* Espacio inferior amplio para scroll sin cortes */
+  scroll-behavior: smooth;
+  background-color: #07090b !important;
+}
+
+/* Scrollbar estilizado moderno Mosoq Wasy */
+body.admin-body .admin-main::-webkit-scrollbar,
+body.admin-body .admin-sidebar::-webkit-scrollbar {
+  width: 7px;
+}
+body.admin-body .admin-main::-webkit-scrollbar-track,
+body.admin-body .admin-sidebar::-webkit-scrollbar-track {
+  background: rgba(7, 9, 11, 0.8);
+}
+body.admin-body .admin-main::-webkit-scrollbar-thumb,
+body.admin-body .admin-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+}
+body.admin-body .admin-main::-webkit-scrollbar-thumb:hover,
+body.admin-body .admin-sidebar::-webkit-scrollbar-thumb:hover {
+  background: #00d2c4;
+}

@@ -3932,6 +3932,44 @@ function renderBulletinLeadsTable() {
   });
 }
 
+const NOTIF_READ_KEY = 'koly_notifications_read_v1';
+
+function getReadNotificationIds() {
+  try {
+    return JSON.parse(localStorage.getItem(NOTIF_READ_KEY) || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function markAllNotificationsAsRead() {
+  const read = getReadNotificationIds();
+  let appointments = DB.getAppointments();
+  const pendingApts = appointments.filter(a => a.status === 'pendiente' || a.time === 'Por coordinar' || (a.time && a.time.includes('Por coordinar')));
+  const pendingLeads = (bulletinLeadsCache || []).filter(lead => lead.status === 'new');
+
+  pendingApts.forEach(a => {
+    const id = 'apt_' + (a.id || (a.patientName + '_' + a.date));
+    if (!read.includes(id)) read.push(id);
+  });
+  pendingLeads.forEach(l => {
+    const id = 'lead_' + (l.id || l.phone || l.email);
+    if (!read.includes(id)) read.push(id);
+  });
+
+  try {
+    localStorage.setItem(NOTIF_READ_KEY, JSON.stringify(read));
+  } catch (e) {}
+
+  const badge = document.getElementById('notifications-badge');
+  if (badge) badge.style.display = 'none';
+
+  const list = document.getElementById('notifications-list');
+  if (list) {
+    list.innerHTML = '<p style="padding: 1.5rem 1rem; text-align: center; color: #94a3b8; font-size: 0.85rem; margin: 0;">✓ Notificaciones al día. No hay pendientes sin leer.</p>';
+  }
+}
+
 function renderNotifications() {
   const dropdownContainer = document.getElementById('notifications-dropdown-container');
   if (!dropdownContainer) return;
@@ -3948,11 +3986,23 @@ function renderNotifications() {
     appointments = appointments.filter(a => a.trackedBy === currentUser.trackedBy);
   }
 
-  // Notificaciones: solicitudes pendientes o con hora "Por coordinar"
-  const pendingApts = appointments.filter(a => a.status === 'pendiente' || a.time === 'Por coordinar' || (a.time && a.time.includes('Por coordinar')));
-  const pendingLeads = bulletinLeadsCache.filter(lead => lead.status === 'new');
-  const notificationCount = pendingApts.length + pendingLeads.length;
+  const readIds = getReadNotificationIds();
 
+  // Filtrar notificaciones pendientes que no hayan sido leídas
+  const pendingApts = appointments.filter(a => {
+    const isPending = a.status === 'pendiente' || a.time === 'Por coordinar' || (a.time && a.time.includes('Por coordinar'));
+    if (!isPending) return false;
+    const id = 'apt_' + (a.id || (a.patientName + '_' + a.date));
+    return !readIds.includes(id);
+  });
+
+  const pendingLeads = (bulletinLeadsCache || []).filter(lead => {
+    if (lead.status !== 'new') return false;
+    const id = 'lead_' + (lead.id || lead.phone || lead.email);
+    return !readIds.includes(id);
+  });
+
+  const notificationCount = pendingApts.length + pendingLeads.length;
   const badge = document.getElementById('notifications-badge');
   const list = document.getElementById('notifications-list');
 
@@ -3967,33 +4017,38 @@ function renderNotifications() {
 
   if (list) {
     if (notificationCount === 0) {
-      list.innerHTML = '<p style="padding: 1rem; text-align: center; color: var(--color-text-muted); font-size: 0.8rem; margin: 0;">No hay notificaciones nuevas.</p>';
+      list.innerHTML = '<p style="padding: 1.5rem 1rem; text-align: center; color: #94a3b8; font-size: 0.85rem; margin: 0;">✓ Notificaciones al día. No hay pendientes sin leer.</p>';
     } else {
       list.innerHTML = '';
       pendingLeads.forEach(lead => {
         const item = document.createElement('div');
         item.className = 'notification-item bulletin-lead-notification';
-        item.style.cssText = 'padding:.75rem 1rem;border-bottom:1px solid var(--color-border);cursor:pointer;';
-        item.innerHTML = `<div style="display:flex;justify-content:space-between;gap:.5rem;"><strong>${escapeHtml(`${lead.first_names} ${lead.last_names}`)}</strong><span class="status-badge status-pendiente">MÉDICO</span></div><p style="margin:.35rem 0;font-size:.78rem;color:var(--color-text-muted);">Interés en Workshop · ${escapeHtml(lead.medical_license)}<br>${escapeHtml(lead.phone)}</p><button class="btn btn-accent" style="width:100%;font-size:.72rem;padding:.3rem;">Abrir contacto</button>`;
+        item.style.cssText = 'padding:.75rem 1rem;border-bottom:1px solid rgba(255,255,255,0.08);cursor:pointer;';
+        item.innerHTML = `<div style="display:flex;justify-content:space-between;gap:.5rem;"><strong>${escapeHtml(`${lead.first_names} ${lead.last_names}`)}</strong><span class="status-badge status-pendiente">MÉDICO</span></div><p style="margin:.35rem 0;font-size:.78rem;color:#94a3b8;">Interés en Workshop · ${escapeHtml(lead.medical_license)}<br>${escapeHtml(lead.phone)}</p><button class="btn btn-accent" style="width:100%;font-size:.72rem;padding:.3rem;">Abrir contacto</button>`;
         item.addEventListener('click', () => {
+          const id = 'lead_' + (lead.id || lead.phone || lead.email);
+          const r = getReadNotificationIds();
+          if (!r.includes(id)) { r.push(id); localStorage.setItem(NOTIF_READ_KEY, JSON.stringify(r)); }
           document.getElementById('notifications-menu').style.display = 'none';
           document.getElementById('menu-bulletin-leads')?.click();
+          renderNotifications();
         });
         list.appendChild(item);
       });
+
       pendingApts.forEach(apt => {
         const service = SERVICES.find(s => s.id === apt.serviceId);
         const item = document.createElement('div');
-        item.style.cssText = 'padding: 0.75rem 1rem; border-bottom: 1px solid var(--color-border); cursor: pointer; transition: var(--transition-fast);';
+        item.style.cssText = 'padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.08); cursor: pointer; transition: var(--transition-fast);';
         item.className = 'notification-item';
         item.innerHTML = `
           <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.25rem;">
-            <strong style="font-size:0.85rem; color:var(--color-primary-dark);">${escapeHtml(apt.patientName)}</strong>
+            <strong style="font-size:0.85rem; color:#00d2c4;">${escapeHtml(apt.patientName)}</strong>
             <span class="status-badge status-pendiente" style="font-size:0.65rem; padding:0.1rem 0.35rem;">NUEVA</span>
           </div>
-          <p style="margin:0 0 0.4rem 0; font-size:0.78rem; color:var(--color-text-muted); line-height: 1.3;">
+          <p style="margin:0 0 0.4rem 0; font-size:0.78rem; color:#94a3b8; line-height: 1.3;">
             ${escapeHtml(service ? service.name : 'Consulta')}<br>
-            Teléfono: <strong style="color:var(--color-accent);">${escapeHtml(apt.patientPhone)}</strong><br>
+            Teléfono: <strong style="color:#00d2c4;">${escapeHtml(apt.patientPhone)}</strong><br>
             Fecha: ${escapeHtml(apt.date)} | ${escapeHtml(apt.time)}
           </p>
           <button class="btn btn-accent btn-notify-action" style="padding:0.25rem 0.5rem; font-size:0.72rem; width:100%; text-align:center; height:auto;">
@@ -4001,9 +4056,13 @@ function renderNotifications() {
           </button>
         `;
         item.addEventListener('click', () => {
+          const id = 'apt_' + (apt.id || (apt.patientName + '_' + apt.date));
+          const r = getReadNotificationIds();
+          if (!r.includes(id)) { r.push(id); localStorage.setItem(NOTIF_READ_KEY, JSON.stringify(r)); }
           const menu = document.getElementById('notifications-menu');
           if (menu) menu.style.display = 'none';
           showAppointmentDetail(apt);
+          renderNotifications();
         });
         list.appendChild(item);
       });
@@ -4024,7 +4083,12 @@ function initNotificationsHandler() {
       e.preventDefault();
       e.stopPropagation();
       const current = menu.style.display;
-      menu.style.display = (current === 'none' || !current) ? 'block' : 'none';
+      const isOpening = (current === 'none' || !current);
+      menu.style.display = isOpening ? 'block' : 'none';
+      if (isOpening) {
+        // Al abrir el panel de notificaciones, se limpian del badge y se guardan como leídas
+        markAllNotificationsAsRead();
+      }
     });
 
     document.addEventListener('click', (e) => {
@@ -4040,9 +4104,121 @@ function initNotificationsHandler() {
     clearBtn.__clearBound = true;
     clearBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const badge = document.getElementById('notifications-badge');
-      if (badge) badge.style.display = 'none';
+      markAllNotificationsAsRead();
       if (menu) menu.style.display = 'none';
+    });
+  }
+}
+
+// =========================================================================
+// INTEGRACIÓN DE ÓRDENES MÉDICAS DENTRO DE HISTORIAS CLÍNICAS
+// =========================================================================
+function renderOrdersSubtab() {
+  const tbody = document.getElementById('orders-subtab-table-body');
+  if (!tbody) return;
+
+  const searchEl = document.getElementById('orders-subtab-search');
+  const searchQuery = searchEl ? searchEl.value.toLowerCase().trim() : '';
+  const showVoided = Boolean(document.getElementById('orders-subtab-show-voided')?.checked);
+
+  const prescriptions = (typeof ClinicalDB !== 'undefined' && ClinicalDB.getPrescriptions) ? (ClinicalDB.getPrescriptions() || []) : [];
+  
+  const filtered = prescriptions.filter(p => {
+    if (p.isVoided && !showVoided) return false;
+    const record = ClinicalDB.getRecordById(p.recordId);
+    if (!record) return false;
+
+    const patientName = (record.patientName || '').toLowerCase();
+    const patientDni = (record.dni || '').toLowerCase();
+    const formattedDate = new Date(p.createdAt).toISOString().split('T')[0];
+    const diagnosis = (p.diagnosis || '').toLowerCase();
+
+    return patientName.includes(searchQuery) ||
+           patientDni.includes(searchQuery) ||
+           formattedDate.includes(searchQuery) ||
+           diagnosis.includes(searchQuery);
+  });
+
+  filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#94a3b8; padding:2.5rem 1rem;">No se encontraron órdenes médicas registradas.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = '';
+  filtered.forEach(p => {
+    const record = ClinicalDB.getRecordById(p.recordId);
+    const doctor = (typeof SPECIALISTS !== 'undefined' ? SPECIALISTS : []).find(d => d.id === p.specialistId);
+    const dateStr = p.createdAt ? new Date(p.createdAt).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+    
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${escapeHtml(record ? record.patientName : 'Paciente')}</strong><br><span style="font-size:0.75rem; color:#94a3b8;">${escapeHtml(record?.dni || record?.patientPhone || '—')}</span></td>
+      <td><span style="font-size:0.85rem; color:#00d2c4; font-weight:600;">${escapeHtml(p.diagnosis || 'Orden Médica')}</span></td>
+      <td><span style="font-size:0.85rem; color:#f8fafc;">${escapeHtml(doctor ? doctor.name : 'Especialista')}</span></td>
+      <td><span style="font-size:0.85rem; color:#94a3b8;">${escapeHtml(dateStr)}</span></td>
+      <td><span style="font-size:0.75rem; padding:2px 8px; border-radius:12px; background:${p.isVoided ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)'}; color:${p.isVoided ? '#ef4444' : '#10b981'}; font-weight:700;">${p.isVoided ? 'ANULADA' : 'VIGENTE'}</span></td>
+      <td>
+        <button type="button" class="btn btn-secondary btn-subtab-pdf" style="padding:4px 10px; font-size:0.78rem; border-radius:6px; border:1px solid rgba(0,210,196,0.3); background:#11192c; color:#00d2c4; font-weight:600; cursor:pointer;">
+          📄 Ver / PDF
+        </button>
+      </td>
+    `;
+    const btnPdf = tr.querySelector('.btn-subtab-pdf');
+    if (btnPdf) {
+      btnPdf.addEventListener('click', () => {
+        if (typeof downloadPrescriptionPDF === 'function') downloadPrescriptionPDF(p.id);
+      });
+    }
+    tbody.appendChild(tr);
+  });
+}
+
+function initClinicalRecordsTabs() {
+  const tabRecords = document.getElementById('tab-btn-records');
+  const tabOrders = document.getElementById('tab-btn-orders');
+  const panelRecords = document.getElementById('subview-records-panel');
+  const panelOrders = document.getElementById('subview-orders-panel');
+
+  if (tabRecords && tabOrders && panelRecords && panelOrders) {
+    if (tabRecords.__bound) return;
+    tabRecords.__bound = true;
+
+    tabRecords.addEventListener('click', () => {
+      tabRecords.style.background = 'rgba(0,210,196,0.15)';
+      tabRecords.style.color = '#00d2c4';
+      tabRecords.style.borderColor = 'rgba(0,210,196,0.3)';
+
+      tabOrders.style.background = 'transparent';
+      tabOrders.style.color = '#94a3b8';
+      tabOrders.style.borderColor = 'transparent';
+
+      panelRecords.style.display = 'block';
+      panelOrders.style.display = 'none';
+      if (typeof renderDetailedTable === 'function') renderDetailedTable();
+    });
+
+    tabOrders.addEventListener('click', () => {
+      tabOrders.style.background = 'rgba(0,210,196,0.15)';
+      tabOrders.style.color = '#00d2c4';
+      tabOrders.style.borderColor = 'rgba(0,210,196,0.3)';
+
+      tabRecords.style.background = 'transparent';
+      tabRecords.style.color = '#94a3b8';
+      tabRecords.style.borderColor = 'transparent';
+
+      panelRecords.style.display = 'none';
+      panelOrders.style.display = 'block';
+      renderOrdersSubtab();
+    });
+
+    document.getElementById('orders-subtab-search')?.addEventListener('input', renderOrdersSubtab);
+    document.getElementById('orders-subtab-show-voided')?.addEventListener('change', renderOrdersSubtab);
+    document.getElementById('btn-clear-orders-subtab-search')?.addEventListener('click', () => {
+      const s = document.getElementById('orders-subtab-search');
+      if (s) s.value = '';
+      renderOrdersSubtab();
     });
   }
 }
