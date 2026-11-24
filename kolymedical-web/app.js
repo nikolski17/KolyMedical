@@ -5232,13 +5232,13 @@ function openClinicalRecord(recordId, opts) {
 
   container.innerHTML = `
       <!-- Filiación -->
-      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1rem; background:var(--color-bg-light); padding:1rem; border-radius:var(--border-radius-sm); margin-bottom:1.5rem;">
-        <div><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">DNI / Cédula</label><div id="cr-dni-view" style="font-weight:600;">${escapeHtml(record.dni || '—')}</div></div>
-        <div><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">Edad</label><div style="font-weight:600;">${calcAge(record)} años</div></div>
-        <div><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">Sexo</label><div id="cr-sex-view" style="font-weight:600;">${escapeHtml(record.sex || '—')}</div></div>
-        <div><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">Tipo de sangre</label><div id="cr-blood-view" style="font-weight:600;">${escapeHtml(record.bloodType || '—')}</div></div>
-        <div><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">Teléfono</label><div>${phoneHtml}</div></div>
-        <div style="grid-column:1/-1;"><label style="font-size:0.7rem; color:var(--color-text-muted); text-transform:uppercase;">Alergias</label><div id="cr-allergies-view" style="font-weight:600; color:var(--color-danger);">${escapeHtml(record.allergies || 'Ninguna registrada')}</div></div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:1.25rem; border-radius:var(--border-radius-sm); margin-bottom:1.5rem; color:#f8fafc;">
+        <div><label style="font-size:0.7rem; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px;">DNI / Cédula</label><div id="cr-dni-view" style="font-weight:700; color:#00d2c4; font-size:1.05rem;">${escapeHtml(record.dni || '—')}</div></div>
+        <div><label style="font-size:0.7rem; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px;">Edad</label><div style="font-weight:600; color:#f8fafc;">${calcAge(record)} años</div></div>
+        <div><label style="font-size:0.7rem; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px;">Sexo</label><div id="cr-sex-view" style="font-weight:600; color:#f8fafc;">${escapeHtml(record.sex || '—')}</div></div>
+        <div><label style="font-size:0.7rem; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px;">Tipo de sangre</label><div id="cr-blood-view" style="font-weight:600; color:#f8fafc;">${escapeHtml(record.bloodType || '—')}</div></div>
+        <div><label style="font-size:0.7rem; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px;">Teléfono</label><div>${phoneHtml}</div></div>
+        <div style="grid-column:1/-1;"><label style="font-size:0.7rem; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px;">Alergias</label><div id="cr-allergies-view" style="font-weight:700; color:var(--color-danger);">${escapeHtml(record.allergies || 'Ninguna registrada')}</div></div>
       </div>
 
       ${canEditClinical ? `
