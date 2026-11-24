@@ -173,6 +173,7 @@ async function getQuotationModule() {
   }
   return quotationModulePromise;
 }
+window.getQuotationModule = getQuotationModule;
 
 function getBulletinLeadsModule() {
   if (!bulletinLeadsModulePromise) bulletinLeadsModulePromise = import('./bulletin-leads.mjs?v=20260830b1');
@@ -2458,8 +2459,8 @@ function renderDashboard() {
     if (menuAvailability) menuAvailability.style.display = 'block';
     if (menuSuggestions) menuSuggestions.style.display = 'block';
     if (menuPrescriptions) menuPrescriptions.style.display = 'block';
-    if (menuQuotes) menuQuotes.style.display = 'block';
-    if (menuCostCatalog) menuCostCatalog.style.display = 'block';
+    if (menuQuotes) menuQuotes.style.display = 'none';
+    if (menuCostCatalog) menuCostCatalog.style.display = 'none';
     if (menuBulletinLeads) menuBulletinLeads.style.display = 'block';
   } else if (currentUser && currentUser.specialistId) {
     if (menuUsers) menuUsers.style.display = 'none';
@@ -2579,10 +2580,12 @@ function renderDashboard() {
           alert('No se pudo abrir el módulo de cotizaciones. Inténtalo nuevamente.');
         });
       } else if (viewName === 'cost-catalog') {
-        getQuotationModule().then((module) => module.renderCostCatalog()).catch((error) => {
-          console.error('Catálogo permanente:', error);
-          alert(error?.message || 'No se pudo abrir el catálogo permanente.');
-        });
+        const billingBtn = document.querySelector('.sidebar-item[data-view="billing"]');
+        if (billingBtn) billingBtn.click();
+        setTimeout(() => {
+          const catalogTabBtn = document.querySelector('.bill-tab-btn[data-bill-tab="catalog"]');
+          if (catalogTabBtn) catalogTabBtn.click();
+        }, 60);
       } else if (viewName === 'bulletin-leads') {
         renderBulletinLeadsTable();
       } else if (viewName === 'platform') {

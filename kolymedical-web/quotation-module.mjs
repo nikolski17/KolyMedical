@@ -328,21 +328,30 @@ async function loadAdminCatalog() {
     context.client.from('quotation_catalog').select('*').order('provider_name').order('category').order('name').limit(1000),
     context.client.from('supplier_costs').select('catalog_item_id,supplier_cost,pricing_factor').limit(1000),
   ]);
-  if (itemsResult.error) throw itemsResult.error;
-  if (costsResult.error) throw costsResult.error;
-  const costs = new Map((costsResult.data || []).map((item) => [item.catalog_item_id, item]));
+  if (itemsResult.error) {
+    console.warn('[QuotationModule] itemsResult error:', itemsResult.error);
+    throw itemsResult.error;
+  }
+  if (costsResult.error) {
+    console.warn('[QuotationModule] supplier_costs notice (proceeding):', costsResult.error.message || costsResult.error);
+  }
+  const costs = new Map(((costsResult && !costsResult.error && costsResult.data) || []).map((item) => [item.catalog_item_id, item]));
   catalogWithCosts = (itemsResult.data || []).map((item) => ({ ...item, ...(costs.get(item.id) || {}) }));
-  fillSelect(byId('catalog-admin-provider'), catalogWithCosts.map((item) => item.provider_name), 'Todas las empresas');
-  fillSelect(byId('catalog-admin-category'), catalogWithCosts.map((item) => item.category), 'Todas las categorías');
+  const provEl = byId('catalog-admin-provider');
+  if (provEl) fillSelect(provEl, catalogWithCosts.map((item) => item.provider_name), 'Todas las empresas');
+  const catEl = byId('catalog-admin-category');
+  if (catEl) fillSelect(catEl, catalogWithCosts.map((item) => item.category), 'Todas las categorías');
   renderAdminCatalog();
 }
 
 function renderAdminCatalog() {
   const body = byId('catalog-admin-body'); if (!body) return;
-  const query = text(byId('catalog-admin-search').value).toLocaleLowerCase('es');
-  const provider = byId('catalog-admin-provider').value, category = byId('catalog-admin-category').value;
+  const searchEl = byId('catalog-admin-search');
+  const query = text(searchEl ? searchEl.value : '').toLocaleLowerCase('es');
+  const provider = byId('catalog-admin-provider')?.value || '', category = byId('catalog-admin-category')?.value || '';
   const filtered = sortCatalogItems(catalogWithCosts.filter((item) => `${item.code} ${item.name} ${item.variant} ${item.provider_name} ${item.category}`.toLocaleLowerCase('es').includes(query) && (!provider || item.provider_name === provider) && (!category || item.category === category)), byId('catalog-admin-sort')?.value || 'name');
-  byId('catalog-count-badge').textContent = `${filtered.length} conceptos`;
+  const badge = byId('catalog-count-badge') || byId('catalog-count-badge-billing');
+  if (badge) badge.textContent = `${filtered.length} conceptos`;
   body.replaceChildren();
   filtered.forEach((item) => {
     const row = body.insertRow();

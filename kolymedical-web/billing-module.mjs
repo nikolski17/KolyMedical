@@ -265,6 +265,7 @@ export async function initBillingModule(optionsOrContainerId = 'view-billing', m
   if (!container) return;
 
   const canQuote = ['Administrador', 'Comercial'].includes(currentUser?.role);
+  const isAdmin = currentUser && (currentUser.role === 'Administrador' || currentUser.isPlatformAdmin || !currentUser.role);
 
   let config = JSON.parse(localStorage.getItem(STORAGE_CONFIG_KEY) || 'null') || {
     ruc: '',
@@ -302,6 +303,7 @@ export async function initBillingModule(optionsOrContainerId = 'view-billing', m
         <div style="display:flex; flex-wrap:wrap; gap:8px;">
           <button type="button" data-bill-tab="emitir" class="bill-tab-btn" style="padding:8px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.08); background:#00d2c4; color:#0b111e; font-weight:700; cursor:pointer;">Emitir Comprobante</button>
           ${canQuote ? `<button type="button" data-bill-tab="quotes" class="bill-tab-btn" style="padding:8px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.08); background:#11192c; color:#cbd5e1; cursor:pointer;">Cotizador de Estudios</button>` : ''}
+          ${isAdmin ? `<button type="button" data-bill-tab="catalog" class="bill-tab-btn" style="padding:8px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.08); background:#11192c; color:#cbd5e1; cursor:pointer;">Catálogo de Costos</button>` : ''}
           <button type="button" data-bill-tab="historial" class="bill-tab-btn" style="padding:8px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.08); background:#11192c; color:#cbd5e1; cursor:pointer;">Historial</button>
           <button type="button" data-bill-tab="config" class="bill-tab-btn" style="padding:8px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.08); background:#11192c; color:#cbd5e1; cursor:pointer;">Configurar SUNAT</button>
         </div>
@@ -393,6 +395,19 @@ export async function initBillingModule(optionsOrContainerId = 'view-billing', m
         </div>
       </section>` : ''}
 
+      <!-- TAB CATÁLOGO DE COSTOS Y PRECIOS -->
+      ${isAdmin ? `
+      <section data-bill-panel="catalog" style="background:#11192c; border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:20px; display:none; gap:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+          <div>
+            <h3 style="margin:0; font-size:1.15rem; color:#00d2c4;">Catálogo y Costos Permanentes</h3>
+            <p style="margin:4px 0 0; color:#94a3b8; font-size:0.82rem;">Precios base de estudios clínicos y costos de proveedor para el cotizador y facturador.</p>
+          </div>
+          <span id="catalog-count-badge-billing" class="quote-validity-badge" style="background:rgba(0,210,196,0.12); color:#00d2c4; padding:4px 10px; border-radius:12px; font-weight:700; font-size:0.8rem;">Catálogo sincronizado</span>
+        </div>
+        <div id="billing-catalog-mount-point" style="width:100%;"></div>
+      </section>` : ''}
+
       <!-- TAB 3: HISTORIAL -->
       <section data-bill-panel="historial" style="background:#11192c; border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:20px; display:none; gap:14px;">
         <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -438,7 +453,21 @@ export async function initBillingModule(optionsOrContainerId = 'view-billing', m
       panel.style.display = panel.dataset.billPanel === target ? 'grid' : 'none';
     });
     if (target === 'historial') renderHistory();
+    if (target === 'catalog') mountCatalog();
   };
+
+  function mountCatalog() {
+    const mountPoint = container.querySelector('#billing-catalog-mount-point');
+    const existingLayout = document.querySelector('.catalog-admin-layout');
+    if (mountPoint && existingLayout && !mountPoint.contains(existingLayout)) {
+      mountPoint.appendChild(existingLayout);
+    }
+    if (typeof window.getQuotationModule === 'function') {
+      window.getQuotationModule().then(m => m.renderCostCatalog()).catch(err => {
+        console.warn('[Billing] Catalog render error:', err);
+      });
+    }
+  }
 
   container.querySelectorAll('.bill-tab-btn').forEach(btn => {
     btn.addEventListener('click', () => switchTab(btn.dataset.billTab));
@@ -451,25 +480,21 @@ export async function initBillingModule(optionsOrContainerId = 'view-billing', m
   const promoCustomVal = container.querySelector('#bill-promo-custom-val');
   const promoContainer = container.querySelector('#bill-promo-custom-container');
 
-  promoSelect.addEventListener('change', () => {
-    promoContainer.style.display = promoSelect.value === 'FIXED' ? 'block' : 'none';
-    updateTotals();
-  });
-  if (promoCustomVal) promoCustomVal.addEventListener('input', updateTotals);
-
   function calculateDiscount(gross) {
+    if (!promoSelect) return 0;
     const promo = promoSelect.value;
     if (promo === 'PERCENT_10') return +(gross * 0.10).toFixed(2);
     if (promo === 'PERCENT_15') return +(gross * 0.15).toFixed(2);
     if (promo === 'PERCENT_20') return +(gross * 0.20).toFixed(2);
     if (promo === 'FIXED') {
-      const f = parseFloat(promoCustomVal.value) || 0;
+      const f = promoCustomVal ? (parseFloat(promoCustomVal.value) || 0) : 0;
       return Math.min(gross, f);
     }
     return 0;
   }
 
-  const updateTotals = () => {
+  function updateTotals() {
+    if (!amountInput || !igvSelect) return;
     const gross = parseFloat(amountInput.value) || 0;
     const discount = calculateDiscount(gross);
     const finalTotal = Math.max(0, +(gross - discount).toFixed(2));
@@ -479,11 +504,24 @@ export async function initBillingModule(optionsOrContainerId = 'view-billing', m
 
     let promoHtml = discount > 0 ? `<span style="color:#f59e0b; margin-right:8px;">Descuento: -S/ ${discount.toFixed(2)}</span> | ` : '';
 
-    container.querySelector('#bill-totals').innerHTML =
-      `Bruto: S/ ${gross.toFixed(2)} | ${promoHtml}Subtotal: S/ ${subtotal.toFixed(2)} | IGV: S/ ${igv.toFixed(2)} | <strong style="color:#10b981; font-size:1.1rem;">Total a Pagar: S/ ${finalTotal.toFixed(2)}</strong>`;
-  };
-  amountInput.addEventListener('input', updateTotals);
-  igvSelect.addEventListener('change', updateTotals);
+    const totalsEl = container.querySelector('#bill-totals');
+    if (totalsEl) {
+      totalsEl.innerHTML =
+        `Bruto: S/ ${gross.toFixed(2)} | ${promoHtml}Subtotal: S/ ${subtotal.toFixed(2)} | IGV: S/ ${igv.toFixed(2)} | <strong style="color:#10b981; font-size:1.1rem;">Total a Pagar: S/ ${finalTotal.toFixed(2)}</strong>`;
+    }
+  }
+
+  if (promoSelect) {
+    promoSelect.addEventListener('change', () => {
+      if (promoContainer) {
+        promoContainer.style.display = promoSelect.value === 'FIXED' ? 'block' : 'none';
+      }
+      updateTotals();
+    });
+  }
+  if (promoCustomVal) promoCustomVal.addEventListener('input', updateTotals);
+  if (amountInput) amountInput.addEventListener('input', updateTotals);
+  if (igvSelect) igvSelect.addEventListener('change', updateTotals);
 
   // Lógica del Cotizador (si aplica rol)
   if (canQuote) {

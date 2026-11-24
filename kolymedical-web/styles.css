@@ -4071,3 +4071,58 @@ body.admin-body:not(.dark-theme) .system-sync-pill {
   border: 1px solid #cbd5e1 !important;
   color: #0f172a !important;
 }
+
+/* Sidebar Quote Box permanent removal */
+#sidebar-quote-box {
+  display: none !important;
+}
+
+/* Catálogo y Costos en Modo Oscuro (Mosoq Wasy Standard) */
+.admin-layout.dark-theme .catalog-admin-layout,
+.admin-layout.dark-theme .catalog-toolbar,
+.admin-layout.dark-theme .catalog-table-wrap,
+.admin-layout.dark-theme .catalog-form-card {
+  color: #f8fafc !important;
+}
+
+.admin-layout.dark-theme .catalog-admin-layout .admin-card {
+  background: #11192c !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.admin-layout.dark-theme .catalog-toolbar select,
+.admin-layout.dark-theme .catalog-toolbar input,
+.admin-layout.dark-theme .catalog-form-card input,
+.admin-layout.dark-theme .catalog-form-card select,
+.admin-layout.dark-theme .catalog-form-card textarea {
+  background: #0b111e !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+.admin-layout.dark-theme .catalog-table-wrap table,
+.admin-layout.dark-theme .catalog-table-wrap th,
+.admin-layout.dark-theme .catalog-table-wrap td {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.admin-layout.dark-theme .catalog-table-wrap th {
+  background: #0b111e !important;
+  color: #94a3b8 !important;
+}
+
+.admin-layout.dark-theme .catalog-table-wrap td {
+  background: #11192c !important;
+  color: #f8fafc !important;
+}
+
+.admin-layout.dark-theme .catalog-table-wrap tr:hover td {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+.admin-layout.dark-theme .catalog-import-launch,
+.admin-layout.dark-theme .catalog-import-panel {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #f8fafc !important;
+}
