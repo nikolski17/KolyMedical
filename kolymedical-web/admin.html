@@ -148,6 +148,14 @@
             </svg>
             Catálogo CIE-10
           </button>
+          <button class="sidebar-item" data-view="billing" id="menu-billing">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" class="sidebar-icon">
+              <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+              <line x1="2" y1="10" x2="22" y2="10"></line>
+            </svg>
+            Facturación Electrónica
+          </button>
           <button class="sidebar-item" data-view="suggestions" id="menu-suggestions" style="display: none;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round" class="sidebar-icon">
@@ -259,7 +267,7 @@
             <kbd>Ctrl K</kbd>
           </button>
           
-          <button id="btn-quick-calc-trigger" class="btn-header-action" type="button" title="Calculadora Clínica Rápida (IMC y Nutrición)">
+          <button id="btn-imc-calculator" class="btn-header-action" type="button" title="Calculadora Clínica Rápida (IMC y Nutrición)">
             <i data-lucide="calculator" style="width: 15px; height: 15px;"></i>
             <span>Calculadora IMC</span>
           </button>
@@ -1226,6 +1234,9 @@
         </div>
       </div>
 
+      <!-- VISTA: FACTURACIÓN ELECTRÓNICA (SUNAT) -->
+      <div id="view-billing" class="dashboard-view" style="display: none;"></div>
+
     </section>
   </main>
 
@@ -1307,6 +1318,16 @@
     integrity="sha384-weMABwrltA6jWR8DDe9Jp5blk+tZQh7ugpCsF3JwSA53WZM9/14PjS5LAJNHNjAI" crossorigin="anonymous"></script>
   <script type="module" src="security-utils.mjs?v=20260924b1"></script>
   <script src="app.js?v=20260929-kolytech-access1"></script>
+  <script type="module">
+    import { initImcCalculator } from './imc-calculator.mjs?v=20261124';
+    import { initBillingModule } from './billing-module.mjs?v=20261124';
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initImcCalculator('#btn-imc-calculator');
+      const sb = window.supabaseClient || (window.supabase && window.supabase.createClient ? window.supabaseClient : null);
+      initBillingModule('view-billing', sb);
+    });
+  </script>
   <script>
     // Enlazar la tabla detallada de la vista de listado al buscador
     const searchEl = document.getElementById('admin-search');

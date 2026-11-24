@@ -112,6 +112,7 @@ if (window.supabase) {
         detectSessionInUrl: Boolean(document.getElementById('admin-dashboard') || document.getElementById('login-section'))
       }
     });
+    window.supabaseClient = supabaseClient;
   } catch (err) {
     console.error("Error al inicializar el cliente de Supabase:", err);
   }
@@ -2586,6 +2587,8 @@ function renderDashboard() {
         renderTriageModule();
       } else if (viewName === 'cie10') {
         renderCie10Module();
+      } else if (viewName === 'billing') {
+        renderBillingView();
       }
     });
   });
@@ -6132,14 +6135,15 @@ function initMedicalQuickSearch() {
       { id: 'triage', name: 'Triaje y Signos Vitales (PA, FC, SpO2, Temp)', icon: 'activity', type: 'Módulo' },
       { id: 'cie10', name: 'Catálogo de Diagnósticos Médicos CIE-10', icon: 'book-open', type: 'Módulo' },
       { id: 'quotes', name: 'Cotizador y Generador de Presupuestos', icon: 'calculator', type: 'Módulo' },
-      { id: 'catalog', name: 'Catálogo de Estudios y Precios', icon: 'database', type: 'Módulo' }
+      { id: 'catalog', name: 'Catálogo de Estudios y Precios', icon: 'database', type: 'Módulo' },
+      { id: 'billing', name: 'Facturación Electrónica SUNAT (Boletas y Facturas)', icon: 'credit-card', type: 'Módulo' }
     ];
 
     // 2. Acciones Rápidas
     const actions = [
       { name: 'Nueva Cita Médica (Abrir formulario)', icon: 'plus-circle', action: () => document.querySelector('.btn-primary.open-booking-modal, #btn-new-appointment, button[data-view="calendar"]')?.click(), type: 'Acción' },
       { name: 'Alternar Modo Claro / Modo Oscuro', icon: 'moon', action: () => document.getElementById('btn-theme-toggle')?.click(), type: 'Acción' },
-      { name: 'Abrir Calculadora Clínica de IMC', icon: 'calculator', action: () => document.getElementById('btn-quick-calc-trigger')?.click(), type: 'Herramienta' },
+      { name: 'Abrir Calculadora Clínica de IMC', icon: 'calculator', action: () => (document.getElementById('btn-imc-calculator') || document.getElementById('btn-quick-calc-trigger'))?.click(), type: 'Herramienta' },
       { name: 'Sincronizar y Refrescar Datos en Vivo', icon: 'refresh-cw', action: () => document.getElementById('btn-refresh-data')?.click(), type: 'Acción' }
     ];
 
@@ -7700,5 +7704,21 @@ function renderCie10Module() {
     cie10ModuleInitialized = true;
     searchInput?.addEventListener('input', renderRows);
     categoryFilter?.addEventListener('change', renderRows);
+  }
+}
+
+// ==========================================================================
+// 💳 MÓDULO: FACTURACIÓN ELECTRÓNICA (SUNAT / NUBEFACT)
+// ==========================================================================
+let billingModuleInitialized = false;
+
+async function renderBillingView() {
+  try {
+    const { initBillingModule } = await import('./billing-module.mjs?v=20261124');
+    initBillingModule('view-billing', supabaseClient || window.supabaseClient);
+    billingModuleInitialized = true;
+  } catch (err) {
+    console.error('Error al inicializar facturación electrónica:', err);
+    showMedicalToast('No se pudo inicializar el módulo de facturación: ' + err.message, 'error');
   }
 }
