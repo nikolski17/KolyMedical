@@ -155,7 +155,7 @@ let bulletinLeadsModulePromise = null;
 let bulletinLeadsCache = [];
 async function getQuotationModule() {
   if (!quotationModulePromise) {
-    quotationModulePromise = import('./quotation-module.mjs?v=20260929-platform-admin').then(async (module) => {
+    quotationModulePromise = import('./quotation-module.mjs?v=20261124c').then(async (module) => {
       await module.initializeQuotationModule({
         client: supabaseClient,
         getCurrentUser,
@@ -165,6 +165,10 @@ async function getQuotationModule() {
         wrapText
       });
       return module;
+    }).catch((err) => {
+      quotationModulePromise = null;
+      console.error('Error cargando quotation-module:', err);
+      throw err;
     });
   }
   return quotationModulePromise;
