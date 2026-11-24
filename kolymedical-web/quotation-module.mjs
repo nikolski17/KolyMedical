@@ -386,17 +386,21 @@ function editCatalogItem(item) {
     'catalog-appointment-duration': item.appointment_duration_hours ?? 1,
     'catalog-term': item.material_or_term, 'catalog-notes': item.notes,
   };
-  Object.entries(values).forEach(([id, value]) => { byId(id).value = value ?? ''; });
-  byId('catalog-appointment-enabled').checked = Boolean(item.appointment_enabled);
-  byId('catalog-requires-confirmation').checked = Boolean(item.requires_confirmation);
-  byId('catalog-active').checked = Boolean(item.active);
-  byId('catalog-form-title').textContent = `Editar ${item.code}`;
-  byId('catalog-code').readOnly = true;
-  byId('catalog-admin-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  Object.entries(values).forEach(([id, value]) => { const el = byId(id); if (el) el.value = value ?? ''; });
+  if (byId('catalog-appointment-enabled')) byId('catalog-appointment-enabled').checked = Boolean(item.appointment_enabled);
+  if (byId('catalog-requires-confirmation')) byId('catalog-requires-confirmation').checked = Boolean(item.requires_confirmation);
+  if (byId('catalog-active')) byId('catalog-active').checked = Boolean(item.active);
+  if (byId('catalog-form-title')) byId('catalog-form-title').textContent = `Editar ${item.code}`;
+  if (byId('catalog-code')) byId('catalog-code').readOnly = true;
+  byId('catalog-admin-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function resetCatalogForm() {
-  byId('catalog-admin-form').reset(); byId('catalog-item-id').value = ''; byId('catalog-active').checked = true; byId('catalog-code').readOnly = false; byId('catalog-form-title').textContent = 'Agregar estudio';
+  byId('catalog-admin-form')?.reset();
+  if (byId('catalog-item-id')) byId('catalog-item-id').value = '';
+  if (byId('catalog-active')) byId('catalog-active').checked = true;
+  if (byId('catalog-code')) byId('catalog-code').readOnly = false;
+  if (byId('catalog-form-title')) byId('catalog-form-title').textContent = 'Agregar estudio';
 }
 
 async function saveCatalogItem(event) {
@@ -577,19 +581,19 @@ function cancelCatalogImport() {
 
 function bindEvents() {
   document.querySelectorAll('input[name="quote-patient-mode"]').forEach((input) => input.addEventListener('change', applyPatientMode));
-  byId('quote-patient-search').addEventListener('input', () => { clearTimeout(patientSearchTimer); patientSearchTimer = setTimeout(searchPatients, 280); });
-  ['quote-catalog-search', 'quote-provider-filter', 'quote-category-filter', 'quote-catalog-sort'].forEach((id) => byId(id).addEventListener(id.includes('search') ? 'input' : 'change', renderCatalogPicker));
-  byId('btn-quote-reset').addEventListener('click', resetQuote);
-  byId('btn-quote-pdf').addEventListener('click', saveAndDownloadQuote);
-  ['catalog-admin-search', 'catalog-admin-provider', 'catalog-admin-category', 'catalog-admin-sort'].forEach((id) => byId(id).addEventListener(id.includes('search') ? 'input' : 'change', renderAdminCatalog));
-  byId('catalog-admin-form').addEventListener('submit', saveCatalogItem);
-  byId('btn-catalog-cancel').addEventListener('click', resetCatalogForm);
-  byId('btn-catalog-import').addEventListener('click', openCatalogImportPicker);
-  byId('catalog-import-file').addEventListener('change', readCatalogImportFile);
-  ['catalog-import-provider', 'catalog-import-category'].forEach((id) => byId(id).addEventListener('input', refreshCatalogImportPreview));
-  byId('catalog-import-currency').addEventListener('change', refreshCatalogImportPreview);
-  byId('btn-catalog-import-confirm').addEventListener('click', confirmCatalogImport);
-  byId('btn-catalog-import-cancel').addEventListener('click', cancelCatalogImport);
+  byId('quote-patient-search')?.addEventListener('input', () => { clearTimeout(patientSearchTimer); patientSearchTimer = setTimeout(searchPatients, 280); });
+  ['quote-catalog-search', 'quote-provider-filter', 'quote-category-filter', 'quote-catalog-sort'].forEach((id) => byId(id)?.addEventListener(id.includes('search') ? 'input' : 'change', renderCatalogPicker));
+  byId('btn-quote-reset')?.addEventListener('click', resetQuote);
+  byId('btn-quote-pdf')?.addEventListener('click', saveAndDownloadQuote);
+  ['catalog-admin-search', 'catalog-admin-provider', 'catalog-admin-category', 'catalog-admin-sort'].forEach((id) => byId(id)?.addEventListener(id.includes('search') ? 'input' : 'change', renderAdminCatalog));
+  byId('catalog-admin-form')?.addEventListener('submit', saveCatalogItem);
+  byId('btn-catalog-cancel')?.addEventListener('click', resetCatalogForm);
+  byId('btn-catalog-import')?.addEventListener('click', openCatalogImportPicker);
+  byId('catalog-import-file')?.addEventListener('change', readCatalogImportFile);
+  ['catalog-import-provider', 'catalog-import-category'].forEach((id) => byId(id)?.addEventListener('input', refreshCatalogImportPreview));
+  byId('catalog-import-currency')?.addEventListener('change', refreshCatalogImportPreview);
+  byId('btn-catalog-import-confirm')?.addEventListener('click', confirmCatalogImport);
+  byId('btn-catalog-import-cancel')?.addEventListener('click', cancelCatalogImport);
 }
 
 export async function initializeQuotationModule(nextContext) {

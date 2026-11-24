@@ -1,19 +1,29 @@
 // admin-boot.mjs — Bootloader modular para KolyMedical Admin
-import { initImcCalculator } from './imc-calculator.mjs?v=20261124f';
-import { initPushupBooking } from './booking-pushup.mjs?v=20261124f';
-import { initBillingModule } from './billing-module.mjs?v=20261124f';
-import { initAnalyticsDashboard } from './analytics-module.mjs?v=20261124f';
-import { initProfileModule } from './profile-module.mjs?v=20261124f';
+import { initImcCalculator } from './imc-calculator.mjs?v=20261124g';
+import { initPushupBooking } from './booking-pushup.mjs?v=20261124g';
+import { initBillingModule } from './billing-module.mjs?v=20261124g';
+import { initAnalyticsDashboard } from './analytics-module.mjs?v=20261124g';
+import { initProfileModule } from './profile-module.mjs?v=20261124g';
 
-export function bootModules() {
-  try {
-    initImcCalculator('#btn-imc-calculator');
-  } catch (err) {
-    console.warn('[KolyTech] IMC init error:', err);
+let imcInitialized = false;
+
+export function bootModules(authenticatedUser = null) {
+  if (!imcInitialized) {
+    try {
+      initImcCalculator('#btn-imc-calculator');
+      imcInitialized = true;
+    } catch (err) {
+      console.warn('[KolyTech] IMC init error:', err);
+    }
   }
 
-  const sb = window.supabaseClient || (window.supabase && window.supabase.createClient ? window.supabaseClient : null);
-  const user = (typeof window.getCurrentUser === 'function') ? window.getCurrentUser() : { role: 'Administrador' };
+  const user = authenticatedUser || (typeof window.getCurrentUser === 'function' ? window.getCurrentUser() : null);
+  if (!user || !user.role) {
+    // No inicializar módulos protegidos si aún no hay sesión autenticada
+    return;
+  }
+
+  const sb = window.supabaseClient || null;
 
   try {
     initPushupBooking(sb, () => typeof window.loadAppointments === 'function' && window.loadAppointments());
@@ -44,7 +54,7 @@ export function bootModules() {
 }
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', bootModules);
+  document.addEventListener('DOMContentLoaded', () => bootModules());
 } else {
   bootModules();
 }

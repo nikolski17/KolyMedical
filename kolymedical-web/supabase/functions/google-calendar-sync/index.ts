@@ -41,12 +41,32 @@ serve(async (req) => {
       throw new Error("Faltan configurar las variables de entorno de Supabase.");
     }
 
+    // Verificar secreto de webhook si está configurado en Edge Function Secrets
+    const expectedSecret = Deno.env.get("WEBHOOK_SECRET");
+    if (expectedSecret) {
+      const providedSecret = req.headers.get("x-webhook-secret") || "";
+      if (providedSecret !== expectedSecret) {
+        return new Response(JSON.stringify({ error: "Unauthorized webhook request" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } else {
+      console.warn("[SECURITY] WEBHOOK_SECRET no configurado en Supabase Edge Function Secrets.");
+    }
+
     // Inicializar cliente Supabase con privilegios Service Role para bypass RLS
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // 2. Leer payload del webhook de la base de datos
+    // 2. Leer y validar payload del webhook de la base de datos
     const payload = await req.json();
-    const { type, record, old_record } = payload;
+    const { type, record, old_record } = payload || {};
+    if (!type || !["INSERT", "UPDATE", "DELETE"].includes(type)) {
+      return new Response(JSON.stringify({ error: "Invalid webhook payload type" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     console.log(`Google Calendar Sync - Evento recibido: ${type}`, record || old_record);
 
     // 3. Obtener un Access Token fresco usando el Refresh Token corporativo

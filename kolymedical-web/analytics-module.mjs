@@ -54,37 +54,42 @@ export async function initAnalyticsDashboard(containerId = 'view-analytics', sup
     }
   }
 
+  function parseLocalDate(raw) {
+    if (!raw) return null;
+    const str = String(raw).trim();
+    const d = new Date(str.length === 10 ? `${str}T12:00:00` : str);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
   // Filtrar citas del mes seleccionado
   const monthAppointments = allAppointments.filter(a => {
-    if (!a.date) return true;
-    const d = new Date(a.date);
-    if (isNaN(d.getTime())) return true;
+    const d = parseLocalDate(a.date);
+    if (!d) return false;
     return d.getMonth() === selectedMonthIndex && d.getFullYear() === selectedYearVal;
   });
 
   // Filtrar comprobantes del mes seleccionado (excluyendo comprobantes anulados)
   const monthInvoices = allInvoices.filter(i => {
-    if (i.sunat_status === 'ANULADA') return false; // Excluir anuladas
-    if (!i.created_at) return true;
-    const d = new Date(i.created_at);
-    if (isNaN(d.getTime())) return true;
+    if (i.sunat_status === 'ANULADA') return false;
+    const d = parseLocalDate(i.created_at);
+    if (!d) return false;
     return d.getMonth() === selectedMonthIndex && d.getFullYear() === selectedYearVal;
   });
 
-  // Cálculos estadísticos mensuales
+  // Cálculos estadísticos mensuales reales (sin valores falsos)
   const currentMonthName = MONTH_NAMES[selectedMonthIndex];
-  const totalCitas = monthAppointments.length || allAppointments.length || 11;
+  const totalCitas = monthAppointments.length;
   const confirmadas = monthAppointments.filter(a => {
     const st = String(a.status || '').toUpperCase();
     return st === 'CONFIRMADA' || st === 'REALIZADA';
-  }).length || 7;
+  }).length;
   const pendientes = monthAppointments.filter(a => {
     const st = String(a.status || '').toLowerCase();
     return st === 'pendiente' || st === 'por coordinar';
-  }).length || 1;
-  const canceladas = monthAppointments.filter(a => String(a.status || '').toUpperCase() === 'CANCELADA').length || 0;
-  const tasaAsistencia = totalCitas ? Math.round((confirmadas / totalCitas) * 100) : 88;
-  const recaudacion = monthInvoices.reduce((acc, i) => acc + Number(i.total || 0), 0) || 1500;
+  }).length;
+  const canceladas = monthAppointments.filter(a => String(a.status || '').toUpperCase() === 'CANCELADA').length;
+  const tasaAsistencia = totalCitas ? Math.round((confirmadas / totalCitas) * 100) : 0;
+  const recaudacion = monthInvoices.reduce((acc, i) => acc + Number(i.total || 0), 0);
 
   // Pacientes nuevos vs recurrentes
   const dniCounts = monthAppointments.reduce((map, a) => {
@@ -92,8 +97,37 @@ export async function initAnalyticsDashboard(containerId = 'view-analytics', sup
     map[key] = (map[key] || 0) + 1;
     return map;
   }, {});
-  const nuevos = Object.values(dniCounts).filter(c => c === 1).length || 8;
-  const recurrentes = Object.values(dniCounts).filter(c => c > 1).length || 3;
+  const nuevos = Object.values(dniCounts).filter(c => c === 1).length;
+  const recurrentes = Object.values(dniCounts).filter(c => c > 1).length;
+
+  // Datos reales para gráficas
+  const attendedByMonth = Array(12).fill(0);
+  const scheduledByMonth = Array(12).fill(0);
+  allAppointments.forEach(a => {
+    const d = parseLocalDate(a.date);
+    if (!d || d.getFullYear() !== selectedYearVal) return;
+    const m = d.getMonth();
+    scheduledByMonth[m]++;
+    const st = String(a.status || '').toUpperCase();
+    if (st === 'REALIZADA' || st === 'CONFIRMADA') attendedByMonth[m]++;
+  });
+
+  const specCounts = { med_reg: 0, fibroscan: 0, nutricion: 0, otros: 0 };
+  monthAppointments.forEach(a => {
+    const s = String(a.service_id || a.service || '').toLowerCase();
+    if (s.includes('reg') || s.includes('madre')) specCounts.med_reg++;
+    else if (s.includes('fibro') || s.includes('hep')) specCounts.fibroscan++;
+    else if (s.includes('nutri')) specCounts.nutricion++;
+    else specCounts.otros++;
+  });
+
+  const weeklyCounts = [0, 0, 0, 0, 0, 0]; // Lun..Sáb
+  monthAppointments.forEach(a => {
+    const d = parseLocalDate(a.date);
+    if (!d) return;
+    const dow = d.getDay(); // 0=Dom, 1=Lun .. 6=Sab
+    if (dow >= 1 && dow <= 6) weeklyCounts[dow - 1]++;
+  });
 
   container.innerHTML = `
     <div style="display:grid; gap:24px; color:#f8fafc; font-family:var(--font-family, sans-serif);">
@@ -368,7 +402,7 @@ export async function initAnalyticsDashboard(containerId = 'view-analytics', sup
         datasets: [
           {
             label: 'Atendidas',
-            data: [14, 18, 22, 28, 25, 34, 30, 42, 38, 48, 52, 60],
+            data: attendedByMonth,
             borderColor: '#00d2c4',
             backgroundColor: gradCyan,
             fill: true,
@@ -382,7 +416,7 @@ export async function initAnalyticsDashboard(containerId = 'view-analytics', sup
           },
           {
             label: 'Agendadas',
-            data: [20, 24, 30, 35, 32, 40, 38, 50, 46, 56, 62, 70],
+            data: scheduledByMonth,
             borderColor: '#38bdf8',
             backgroundColor: gradSky,
             fill: true,
@@ -434,7 +468,7 @@ export async function initAnalyticsDashboard(containerId = 'view-analytics', sup
       data: {
         labels: ['Medicina Regenerativa', 'Hepatología / FibroScan', 'Nutrición', 'Otros'],
         datasets: [{
-          data: [42, 28, 18, 12],
+          data: [specCounts.med_reg, specCounts.fibroscan, specCounts.nutricion, specCounts.otros],
           backgroundColor: ['#00d2c4', '#10b981', '#38bdf8', '#f59e0b'],
           borderWidth: 3,
           borderColor: '#11192c',
@@ -473,7 +507,7 @@ export async function initAnalyticsDashboard(containerId = 'view-analytics', sup
         labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
         datasets: [{
           label: 'Pacientes',
-          data: [11, 15, 14, 21, 18, 13],
+          data: weeklyCounts,
           backgroundColor: gradBar,
           borderRadius: 10,
           borderSkipped: false,

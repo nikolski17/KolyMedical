@@ -90,7 +90,7 @@ export function initPushupBooking(supabaseClient = null, onSaved = null) {
     setTimeout(() => { backdrop.style.display = 'none'; }, 240);
   };
 
-  document.querySelectorAll('#btn-trigger-pushup-booking').forEach(btn => {
+  document.querySelectorAll('.js-trigger-pushup-booking, #btn-trigger-pushup-booking').forEach(btn => {
     btn.onclick = open;
   });
   backdrop.querySelector('#btn-close-pushup-booking').onclick = close;
@@ -99,32 +99,61 @@ export function initPushupBooking(supabaseClient = null, onSaved = null) {
   form.onsubmit = async (e) => {
     e.preventDefault();
     const data = Object.fromEntries(new FormData(form).entries());
+    const patientName = String(data.patient_name || '').trim();
+    const patientDni = String(data.patient_dni || '').trim();
+    const patientPhone = String(data.patient_phone || '').trim();
+
+    if (patientName.length < 2 || /[<>]/.test(patientName)) {
+      return showToast('Ingresa un nombre de paciente válido (mín. 2 caracteres, sin < >).');
+    }
+    if (patientDni && !/^\d{8,12}$/.test(patientDni)) {
+      return showToast('El DNI/Cédula debe tener entre 8 y 12 dígitos.');
+    }
+    if (!data.date || !data.time) {
+      return showToast('Selecciona fecha y hora de la cita.');
+    }
+
     const appointment = {
       ...data,
-      status: 'confirmada',
+      patient_name: patientName,
+      patient_dni: patientDni,
+      patient_phone: patientPhone,
+      status: 'Confirmada',
       created_at: new Date().toISOString()
     };
 
-    const cached = JSON.parse(localStorage.getItem(APPOINTMENTS_KEY) || '[]');
+    let cached = [];
+    try {
+      cached = JSON.parse(localStorage.getItem(APPOINTMENTS_KEY) || '[]');
+    } catch (_) {
+      cached = [];
+    }
     cached.unshift(appointment);
     localStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(cached));
 
+    let dbError = null;
     if (supabaseClient) {
       try {
         const dbApt = {
           patient_name: appointment.patient_name,
           patient_dni: appointment.patient_dni || null,
           patient_phone: appointment.patient_phone || null,
+          service: appointment.service || 'Consulta Médica',
+          service_id: 'consulta',
           date: appointment.date,
           time: appointment.time,
           modality: appointment.modality || 'Presencial',
           motivo_consulta: appointment.motive || appointment.service || 'Consulta',
-          status: 'confirmada',
+          status: 'Confirmada',
           tracked_by: appointment.lead_source || 'Recepción'
         };
         const { error } = await supabaseClient.from('appointments').insert([dbApt]);
-        if (error) console.warn('[KolyTech] Appointments Supabase sync:', error.message);
+        if (error) {
+          dbError = error.message;
+          console.warn('[KolyTech] Appointments Supabase sync:', error.message);
+        }
       } catch (err) {
+        dbError = err.message;
         console.warn('[KolyTech] Offline local storage active for booking:', err);
       }
     }
@@ -135,11 +164,12 @@ export function initPushupBooking(supabaseClient = null, onSaved = null) {
         patientName: appointment.patient_name,
         patientDni: appointment.patient_dni,
         patientPhone: appointment.patient_phone,
+        service: appointment.service || 'Consulta Médica',
         date: appointment.date,
         time: appointment.time,
         modality: appointment.modality,
         motivoConsulta: appointment.motive,
-        status: 'confirmada',
+        status: 'Confirmada',
         trackedBy: appointment.lead_source
       });
       if (typeof window.renderAppointmentsTable === 'function') window.renderAppointmentsTable();
@@ -148,7 +178,7 @@ export function initPushupBooking(supabaseClient = null, onSaved = null) {
 
     form.reset();
     close();
-    showToast(`Cita agendada: ${buildCalendarTitle(appointment)}`);
+    showToast(dbError ? `Cita guardada localmente (${dbError})` : `Cita agendada: ${buildCalendarTitle(appointment)}`);
     if (typeof onSaved === 'function') onSaved(appointment);
   };
 }

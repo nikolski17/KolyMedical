@@ -143,6 +143,7 @@ try {
 function getCurrentUser() {
   return currentUserProfile;
 }
+window.getCurrentUser = getCurrentUser;
 
 const KOLYMEDICAL_CENTER_ID = '00000000-0000-4000-8000-000000000001';
 function centerStorageKey(key, centerId = getCurrentUser()?.centerId || currentUserProfile?.centerId) {
@@ -155,7 +156,7 @@ let bulletinLeadsModulePromise = null;
 let bulletinLeadsCache = [];
 async function getQuotationModule() {
   if (!quotationModulePromise) {
-    quotationModulePromise = import('./quotation-module.mjs?v=20261124c').then(async (module) => {
+    quotationModulePromise = import('./quotation-module.mjs?v=20261124g').then(async (module) => {
       await module.initializeQuotationModule({
         client: supabaseClient,
         getCurrentUser,
@@ -821,6 +822,15 @@ function mapPrescriptionFromDb(d) {
   };
 }
 
+window.DB = DB;
+window.loadAppointments = () => DB.syncWithCloud(() => {
+  if (typeof updateStats === 'function') updateStats();
+  if (typeof renderCalendarWidget === 'function') renderCalendarWidget();
+  if (typeof renderAppointmentsTable === 'function') renderAppointmentsTable();
+});
+window.renderAppointmentsTable = () => { if (typeof renderAppointmentsTable === 'function') renderAppointmentsTable(); };
+window.renderCalendarWidget = () => { if (typeof renderCalendarWidget === 'function') renderCalendarWidget(); };
+
 const ClinicalDB = {
   // ---------- Expedientes (clinical_records) ----------
   getRecords: function () {
@@ -1296,7 +1306,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initAdminThemeToggle();
     initLoginParticles();
     initMedicalQuickSearch();
-    initClinicalImcCalculator();
     initLiveSyncIndicator();
   }
 
@@ -2404,8 +2413,7 @@ function renderDashboard() {
       view.style.display = view.id === 'view-platform' ? 'block' : 'none';
     });
     initUserManagementForm();
-    initProfileForm();
-    bindPlatformAdminNavigation();
+      bindPlatformAdminNavigation();
     renderPlatformAdmin();
     return;
   }
@@ -2488,6 +2496,7 @@ function renderDashboard() {
     if (menuBulletinLeads) menuBulletinLeads.style.display = 'none';
   }
   applyCenterModuleVisibility();
+  if (typeof window.bootModules === 'function') window.bootModules(currentUser);
 
   // 🔒 "Ingresos Proyectados" y "Agendar Cita Interna" solo para Administrador y Comercial.
   // Los médicos/especialistas no ven estos módulos.
@@ -2608,6 +2617,12 @@ function renderDashboard() {
     safeLocalStorage.removeItem('koly_cached_profile');
     safeLocalStorage.removeItem('koly_cached_appointments');
     safeLocalStorage.removeItem('koly_cached_users');
+    safeLocalStorage.removeItem('koly_invoices_v1');
+    safeLocalStorage.removeItem('koly_billing_config_v1');
+    safeLocalStorage.removeItem('koly_quotes_v1');
+    safeLocalStorage.removeItem('koly_appointments_offline_v1');
+    safeLocalStorage.removeItem('koly_user_profile_v1');
+    safeLocalStorage.removeItem('koly_notifications_read_v1');
     if (supabaseClient) {
       await supabaseClient.auth.signOut();
     }
@@ -2685,7 +2700,7 @@ function applyCenterModuleVisibility() {
 // -----------------------------------------------------
 async function renderProfileView() {
   try {
-    const { initProfileModule } = await import('./profile-module.mjs?v=20261124d');
+    const { initProfileModule } = await import('./profile-module.mjs?v=20261124g');
     initProfileModule('view-profile', supabaseClient || window.supabaseClient);
   } catch (err) {
     console.warn('Profile module fallback:', err);
@@ -3147,12 +3162,12 @@ function openSignatureManager(user) {
   modal.innerHTML = `
     <div class="modal-content" style="max-width:480px; width:94%; padding:1.5rem;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-        <h3 style="color:var(--color-primary); font-weight:700; margin:0; font-size:1.1rem;">Firma de ${user.fullname}</h3>
+        <h3 style="color:var(--color-primary); font-weight:700; margin:0; font-size:1.1rem;">Firma de ${escapeHtml(user.fullname)}</h3>
         <button id="sig-close" style="font-size:1.5rem; line-height:1; color:var(--color-text-muted);">&times;</button>
       </div>
-      <p style="font-size:0.82rem; color:var(--color-text-muted); margin-bottom:1rem;">Etiqueta: <code>${user.specialistId}</code>. Sube una imagen PNG/JPG de la firma (fondo transparente recomendado). Aparecerá en las recetas y órdenes de este médico.</p>
+      <p style="font-size:0.82rem; color:var(--color-text-muted); margin-bottom:1rem;">Etiqueta: <code>${escapeHtml(user.specialistId)}</code>. Sube una imagen PNG/JPG de la firma (fondo transparente recomendado). Aparecerá en las recetas y órdenes de este médico.</p>
       <div id="sig-preview" style="border:1px dashed var(--color-border); border-radius:var(--border-radius-sm); padding:1rem; text-align:center; margin-bottom:1rem; min-height:90px; display:flex; align-items:center; justify-content:center; background:#fff;">
-        ${existing ? `<img src="${existing}" alt="Firma" style="max-height:120px; max-width:100%;">` : '<span style="color:var(--color-text-muted); font-size:0.85rem;">Sin firma cargada.</span>'}
+        ${safeSignatureDataUrl(existing) ? `<img src="${escapeHtml(safeSignatureDataUrl(existing))}" alt="Firma" style="max-height:120px; max-width:100%;">` : '<span style="color:var(--color-text-muted); font-size:0.85rem;">Sin firma cargada.</span>'}
       </div>
       <input type="file" id="sig-file" accept="image/png,image/jpeg" style="font-size:0.85rem; margin-bottom:1rem;">
       <div style="display:flex; justify-content:space-between; gap:0.75rem;">
@@ -3179,7 +3194,7 @@ function openSignatureManager(user) {
     const reader = new FileReader();
     reader.onload = () => {
       pendingDataUrl = reader.result;
-      preview.innerHTML = `<img src="${pendingDataUrl}" alt="Firma" style="max-height:120px; max-width:100%;">`;
+      const safePending = safeSignatureDataUrl(pendingDataUrl); preview.innerHTML = safePending ? `<img src="${escapeHtml(safePending)}" alt="Firma" style="max-height:120px; max-width:100%;">` : '';
       saveBtn.disabled = false;
     };
     reader.readAsDataURL(file);
@@ -5386,6 +5401,10 @@ function historyChipsHtml(list, kind, canEdit) {
 function openClinicalRecord(recordId, opts) {
   opts = opts || {};
   const currentUser = getCurrentUser();
+  if (currentUser && currentUser.role === 'Comercial') {
+    alert('Acceso restringido: el rol Comercial no tiene permisos para abrir historias clínicas.');
+    return;
+  }
   const record = ClinicalDB.getRecordById(recordId);
   if (!record) {
     alert('No se encontró el expediente solicitado.');
@@ -6329,21 +6348,17 @@ function initMedicalQuickSearch() {
     const modules = [
       { id: 'dashboard', name: 'Panel de Control / Resumen General', icon: 'layout-dashboard', type: 'Módulo' },
       { id: 'calendar', name: 'Agenda Calendario / Cronograma de Citas', icon: 'calendar', type: 'Módulo' },
-      { id: 'list', name: 'Listado General de Citas y Pacientes', icon: 'list', type: 'Módulo' },
+      { id: 'list', name: 'Historias Clínicas & Órdenes Médicas', icon: 'list', type: 'Módulo' },
       { id: 'availability', name: 'Disponibilidad y Horarios de Especialistas', icon: 'clock', type: 'Módulo' },
       { id: 'users', name: 'Especialistas y Usuarios del Sistema', icon: 'users', type: 'Módulo' },
-      { id: 'prescriptions', name: 'Recetas Médicas y Órdenes Digitales', icon: 'file-text', type: 'Módulo' },
-      { id: 'triage', name: 'Triaje y Signos Vitales (PA, FC, SpO2, Temp)', icon: 'activity', type: 'Módulo' },
       { id: 'cie10', name: 'Catálogo de Diagnósticos Médicos CIE-10', icon: 'book-open', type: 'Módulo' },
-      { id: 'quotes', name: 'Cotizador y Generador de Presupuestos', icon: 'calculator', type: 'Módulo' },
-      { id: 'catalog', name: 'Catálogo de Estudios y Precios', icon: 'database', type: 'Módulo' },
-      { id: 'billing', name: 'Facturación Electrónica SUNAT (Boletas y Facturas)', icon: 'credit-card', type: 'Módulo' },
+      { id: 'billing', name: 'Facturación Electrónica, Cotizador y Catálogo de Costos', icon: 'credit-card', type: 'Módulo' },
       { id: 'analytics', name: 'Métricas & Dashboard Clínico (Gráficas)', icon: 'bar-chart-2', type: 'Módulo' }
     ];
 
     // 2. Acciones Rápidas
     const actions = [
-      { name: 'Nueva Cita Médica (Abrir formulario)', icon: 'plus-circle', action: () => document.querySelector('.btn-primary.open-booking-modal, #btn-new-appointment, button[data-view="calendar"]')?.click(), type: 'Acción' },
+      { name: 'Nueva Cita Médica (Abrir formulario)', icon: 'plus-circle', action: () => document.querySelector('.js-trigger-pushup-booking, #btn-trigger-pushup-booking')?.click(), type: 'Acción' },
       { name: 'Alternar Modo Claro / Modo Oscuro', icon: 'moon', action: () => document.getElementById('btn-theme-toggle')?.click(), type: 'Acción' },
       { name: 'Abrir Calculadora Clínica de IMC', icon: 'calculator', action: () => { if (window.openImcCalculator) { window.openImcCalculator(); } else { document.getElementById('btn-imc-calculator')?.click(); } }, type: 'Herramienta' },
       { name: 'Sincronizar y Refrescar Datos en Vivo', icon: 'refresh-cw', action: () => document.getElementById('btn-refresh-data')?.click(), type: 'Acción' }
@@ -7916,8 +7931,8 @@ let billingModuleInitialized = false;
 
 async function renderBillingView() {
   try {
-    const { initBillingModule } = await import('./billing-module.mjs?v=20261124');
-    initBillingModule('view-billing', supabaseClient || window.supabaseClient);
+    const { initBillingModule } = await import('./billing-module.mjs?v=20261124g');
+    initBillingModule('view-billing', supabaseClient || window.supabaseClient, getCurrentUser());
     billingModuleInitialized = true;
   } catch (err) {
     console.error('Error al inicializar facturación electrónica:', err);
@@ -7933,7 +7948,7 @@ let analyticsModuleInitialized = false;
 
 async function renderAnalyticsView() {
   try {
-    const { initAnalyticsDashboard } = await import('./analytics-module.mjs?v=20261124d');
+    const { initAnalyticsDashboard } = await import('./analytics-module.mjs?v=20261124g');
     initAnalyticsDashboard('view-analytics', supabaseClient || window.supabaseClient);
     analyticsModuleInitialized = true;
   } catch (err) {
