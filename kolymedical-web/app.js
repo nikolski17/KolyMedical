@@ -2406,6 +2406,8 @@ function initSidebarCollapse() {
 
   const applyCollapsed = (collapsed) => {
     sidebar.classList.toggle('collapsed', collapsed);
+    const layout = document.querySelector('.admin-layout');
+    if (layout) layout.classList.toggle('sidebar-collapsed', collapsed);
     toggleBtn.setAttribute('aria-expanded', String(!collapsed));
     toggleBtn.setAttribute('title', collapsed ? 'Expandir menú lateral' : 'Contraer menú lateral');
   };
@@ -2498,7 +2500,7 @@ function renderDashboard() {
     if (menuPrescriptions) menuPrescriptions.style.display = 'none';
     if (menuQuotes) menuQuotes.style.display = 'none';
     if (menuCostCatalog) menuCostCatalog.style.display = 'none';
-    if (menuBulletinLeads) menuBulletinLeads.style.display = 'block';
+    if (menuBulletinLeads) menuBulletinLeads.style.display = 'none';
   } else if (currentUser && currentUser.specialistId) {
     if (menuUsers) menuUsers.style.display = 'none';
     if (menuAvailability) menuAvailability.style.display = 'none';
@@ -2514,7 +2516,7 @@ function renderDashboard() {
     if (menuPrescriptions) menuPrescriptions.style.display = 'none';
     if (menuQuotes) menuQuotes.style.display = 'block';
     if (menuCostCatalog) menuCostCatalog.style.display = 'none';
-    if (menuBulletinLeads) menuBulletinLeads.style.display = 'block';
+    if (menuBulletinLeads) menuBulletinLeads.style.display = 'none';
   } else {
     if (menuUsers) menuUsers.style.display = 'none';
     if (menuAvailability) menuAvailability.style.display = 'none';
@@ -3893,23 +3895,37 @@ function resetUserForm() {
 
 // Actualizar Tarjetas de Estadísticas
 function updateStats() {
-  let appointments = DB.getAppointments();
+  const now = new Date();
+  const curMonth = now.getMonth();
+  const curYear = now.getFullYear();
+  const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  const curMonthLabel = monthNames[curMonth];
 
-  // Filtrar citas si el usuario es Médico / Especialista o Comercial
+  const isCurrentMonth = (rawDate) => {
+    if (!rawDate) return false;
+    const str = String(rawDate).trim();
+    const d = new Date(str.length === 10 ? `${str}T12:00:00` : str);
+    return !isNaN(d.getTime()) && d.getMonth() === curMonth && d.getFullYear() === curYear;
+  };
+
+  let allVisible = DB.getAppointments();
   const currentUser = getCurrentUser();
   if (currentUser) {
     if (currentUser.specialistId) {
-      appointments = appointments.filter(a => a.specialistId === currentUser.specialistId && a.serviceId !== 'curacion_heridas');
+      allVisible = allVisible.filter(a => a.specialistId === currentUser.specialistId && a.serviceId !== 'curacion_heridas');
     } else if (currentUser.role === 'Comercial' && currentUser.trackedBy) {
-      appointments = appointments.filter(a => a.trackedBy === currentUser.trackedBy);
+      allVisible = allVisible.filter(a => a.trackedBy === currentUser.trackedBy);
     }
   }
+
+  // Filtrar al mes en curso (renovación mensual automática)
+  const appointments = allVisible.filter(a => isCurrentMonth(a.date));
 
   const total = appointments.length;
   const pendientes = appointments.filter(a => a.status === 'pendiente').length;
   const realizadas = appointments.filter(a => a.status === 'realizada').length;
 
-  // Calcular Ingresos generados basados en las citas confirmadas o realizadas
+  // Calcular Ingresos generados en el mes en curso
   const ingresos = appointments
     .filter(a => a.status === 'realizada' || a.status === 'confirmada')
     .reduce((sum, a) => {
@@ -3922,17 +3938,32 @@ function updateStats() {
   document.getElementById('stat-completed').textContent = realizadas;
   document.getElementById('stat-income').textContent = `S/ ${ingresos}`;
 
-  // Conteo de rendimiento comercial dinámico
-  const allAppointments = DB.getAppointments();
+  // Etiquetas mensuales dinámicas en tarjetas del Resumen General
+  const labelMap = {
+    'stat-total': `Citas (${curMonthLabel})`,
+    'stat-pending': `Pendientes (${curMonthLabel})`,
+    'stat-completed': `Realizadas (${curMonthLabel})`,
+    'stat-income': `Ingresos (${curMonthLabel})`
+  };
+  Object.entries(labelMap).forEach(([id, txt]) => {
+    const numEl = document.getElementById(id);
+    const h3 = numEl?.closest('.stat-info')?.querySelector('h3');
+    if (h3) h3.textContent = txt;
+  });
+
+  // Conteo de rendimiento comercial mensual dinámico
+  const monthAll = DB.getAppointments().filter(a => isCurrentMonth(a.date));
   const trackers = DB_Users.getUsers().filter(u => u.role === 'Comercial' && u.trackedBy);
   const container = document.getElementById('commercial-performance-container');
+  const perfTitle = document.querySelector('#commercial-performance-card .admin-card-header h3');
+  if (perfTitle) perfTitle.textContent = `Rendimiento Comercial — ${curMonthLabel} ${curYear}`;
   if (container) {
     container.innerHTML = trackers.map(u => {
-      const count = allAppointments.filter(a => a.trackedBy === u.trackedBy).length;
+      const count = monthAll.filter(a => a.trackedBy === u.trackedBy).length;
       return `
-        <div style="background: rgba(61, 90, 115, 0.05); padding: 1.25rem; border-radius: var(--border-radius-sm); text-align: center; border: 1px solid rgba(61,90,115,0.08);">
-          <h4 style="color: var(--color-primary-dark); font-size: 0.9rem; margin-bottom: 0.5rem; font-weight: 600;">${escapeHtml(u.fullname)}</h4>
-          <div style="font-size: 1.8rem; font-weight: 700; color: var(--color-primary);">${count} cita${count === 1 ? '' : 's'}</div>
+        <div style="background: rgba(255, 255, 255, 0.03); padding: 1.25rem; border-radius: var(--border-radius-sm); text-align: center; border: 1px solid rgba(255,255,255,0.08);">
+          <h4 style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 0.5rem; font-weight: 600;">${escapeHtml(u.fullname)}</h4>
+          <div style="font-size: 1.8rem; font-weight: 700; color: #00d2c4;">${count} cita${count === 1 ? '' : 's'}</div>
         </div>
       `;
     }).join('');

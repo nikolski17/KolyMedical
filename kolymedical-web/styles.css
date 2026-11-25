@@ -4196,3 +4196,58 @@ body.admin-body:not(.dark-theme) .system-sync-pill {
   height: 20px !important;
   margin: 0 !important;
 }
+
+/* ==========================================================================
+   PROPORCIÓN CENTRADA, GRID COLAPSABLE Y BOTÓN DE EXPANDIR VISIBLE
+   ========================================================================== */
+.admin-layout {
+  grid-template-columns: 250px minmax(0, 1fr);
+}
+
+.admin-layout:has(.admin-sidebar.collapsed),
+.admin-layout.sidebar-collapsed {
+  grid-template-columns: 76px minmax(0, 1fr) !important;
+}
+
+.admin-sidebar {
+  padding: 1.5rem 1rem !important;
+}
+
+.admin-main {
+  padding: 1.75rem 2.25rem !important;
+  min-width: 0;
+}
+
+.admin-main > .admin-header,
+.admin-main > .dashboard-view {
+  max-width: 1440px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+}
+
+.admin-sidebar.collapsed .theme-switch-btn {
+  width: 42px !important;
+  height: 42px !important;
+  padding: 0 !important;
+  margin: 0 auto 0.65rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 10px !important;
+}
+
+.admin-sidebar.collapsed .theme-switch-track {
+  width: auto !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  justify-content: center !important;
+}
+
+.admin-sidebar.collapsed .theme-switch-thumb,
+.admin-sidebar.collapsed .theme-switch-icon {
+  margin: 0 !important;
+  position: static !important;
+  transform: none !important;
+}
