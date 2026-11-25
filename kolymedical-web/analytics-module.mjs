@@ -129,6 +129,16 @@ export async function initAnalyticsDashboard(containerId = 'view-analytics', sup
     if (dow >= 1 && dow <= 6) weeklyCounts[dow - 1]++;
   });
 
+  const specPct = (n) => totalCitas ? Math.round((n / totalCitas) * 100) : 0;
+  const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const maxWeekly = Math.max(...weeklyCounts);
+  const peakDay = maxWeekly > 0 ? dayNames[weeklyCounts.indexOf(maxWeekly)] : 'Sin registros';
+
+  const virtualCount = monthAppointments.filter(a => String(a.modality || '').toLowerCase().includes('virtual')).length;
+  const presencialCount = Math.max(0, totalCitas - virtualCount);
+  const presencialPct = totalCitas ? Math.round((presencialCount / totalCitas) * 100) : 0;
+  const virtualPct = totalCitas ? (100 - presencialPct) : 0;
+
   container.innerHTML = `
     <div style="display:grid; gap:24px; color:#f8fafc; font-family:var(--font-family, sans-serif);">
       
@@ -260,20 +270,20 @@ export async function initAnalyticsDashboard(containerId = 'view-analytics', sup
           </div>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:14px; font-size:0.74rem;">
             <div style="background:rgba(0,210,196,0.08); border:1px solid rgba(0,210,196,0.2); padding:6px 10px; border-radius:8px;">
-              <div style="color:#00d2c4; font-weight:700;">42% Regenerativa</div>
-              <div style="color:#94a3b8; font-size:0.68rem;">38 consultas</div>
+              <div style="color:#00d2c4; font-weight:700;">${specPct(specCounts.med_reg)}% Regenerativa</div>
+              <div style="color:#94a3b8; font-size:0.68rem;">${specCounts.med_reg} consulta(s)</div>
             </div>
             <div style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2); padding:6px 10px; border-radius:8px;">
-              <div style="color:#10b981; font-weight:700;">28% Hepatología</div>
-              <div style="color:#94a3b8; font-size:0.68rem;">25 consultas</div>
+              <div style="color:#10b981; font-weight:700;">${specPct(specCounts.fibroscan)}% Hepatología</div>
+              <div style="color:#94a3b8; font-size:0.68rem;">${specCounts.fibroscan} consulta(s)</div>
             </div>
             <div style="background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.2); padding:6px 10px; border-radius:8px;">
-              <div style="color:#38bdf8; font-weight:700;">18% Nutrición</div>
-              <div style="color:#94a3b8; font-size:0.68rem;">16 consultas</div>
+              <div style="color:#38bdf8; font-weight:700;">${specPct(specCounts.nutricion)}% Nutrición</div>
+              <div style="color:#94a3b8; font-size:0.68rem;">${specCounts.nutricion} consulta(s)</div>
             </div>
             <div style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.2); padding:6px 10px; border-radius:8px;">
-              <div style="color:#f59e0b; font-weight:700;">12% Otros</div>
-              <div style="color:#94a3b8; font-size:0.68rem;">11 consultas</div>
+              <div style="color:#f59e0b; font-weight:700;">${specPct(specCounts.otros)}% Otros</div>
+              <div style="color:#94a3b8; font-size:0.68rem;">${specCounts.otros} consulta(s)</div>
             </div>
           </div>
         </div>
@@ -291,7 +301,7 @@ export async function initAnalyticsDashboard(containerId = 'view-analytics', sup
               <p style="margin:3px 0 0; font-size:0.78rem; color:#94a3b8;">Volumen diario de atención en ${currentMonthName}</p>
             </div>
             <span style="font-size:0.72rem; padding:3px 8px; border-radius:12px; background:rgba(0,210,196,0.12); color:#00d2c4; font-weight:700;">
-              Pico: Jueves
+              Pico: ${peakDay}
             </span>
           </div>
           <div style="position:relative; height:200px; width:100%;">
@@ -304,9 +314,9 @@ export async function initAnalyticsDashboard(containerId = 'view-analytics', sup
           <div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
               <h3 style="margin:0; font-size:1.05rem; font-weight:700; color:#f8fafc;">Canales y Rendimiento Operativo</h3>
-              <span style="font-size:0.8rem; font-weight:800; color:#10b981;">89.5% Score</span>
+              <span style="font-size:0.8rem; font-weight:800; color:#10b981;">${tasaAsistencia}% Asistencia</span>
             </div>
-            <p style="margin:0 0 16px; font-size:0.78rem; color:#94a3b8;">Desempeño mensual de modalidad y tiempo de respuesta</p>
+            <p style="margin:0 0 16px; font-size:0.78rem; color:#94a3b8;">Desempeño mensual de modalidad en ${currentMonthName}</p>
           </div>
 
           <div style="display:grid; gap:14px;">
@@ -314,10 +324,10 @@ export async function initAnalyticsDashboard(containerId = 'view-analytics', sup
             <div>
               <div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-bottom:5px;">
                 <span style="color:#f8fafc; font-weight:600;">Atención Presencial (Consultorio)</span>
-                <span style="color:#00d2c4; font-weight:700;">76%</span>
+                <span style="color:#00d2c4; font-weight:700;">${presencialPct}% (${presencialCount})</span>
               </div>
               <div style="height:8px; border-radius:6px; background:rgba(255,255,255,0.06); overflow:hidden;">
-                <div style="width:76%; height:100%; border-radius:6px; background:linear-gradient(90deg, #00d2c4, #10b981);"></div>
+                <div style="width:${presencialPct}%; height:100%; border-radius:6px; background:linear-gradient(90deg, #00d2c4, #10b981);"></div>
               </div>
             </div>
 
@@ -325,32 +335,32 @@ export async function initAnalyticsDashboard(containerId = 'view-analytics', sup
             <div>
               <div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-bottom:5px;">
                 <span style="color:#f8fafc; font-weight:600;">Consultas Virtuales (Telemedicina)</span>
-                <span style="color:#38bdf8; font-weight:700;">24%</span>
+                <span style="color:#38bdf8; font-weight:700;">${virtualPct}% (${virtualCount})</span>
               </div>
               <div style="height:8px; border-radius:6px; background:rgba(255,255,255,0.06); overflow:hidden;">
-                <div style="width:24%; height:100%; border-radius:6px; background:linear-gradient(90deg, #38bdf8, #818cf8);"></div>
+                <div style="width:${virtualPct}%; height:100%; border-radius:6px; background:linear-gradient(90deg, #38bdf8, #818cf8);"></div>
               </div>
             </div>
 
             <!-- Progreso 3 -->
             <div>
               <div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-bottom:5px;">
-                <span style="color:#f8fafc; font-weight:600;">Puntualidad en Apertura de Historia</span>
-                <span style="color:#10b981; font-weight:700;">94%</span>
+                <span style="color:#f8fafc; font-weight:600;">Tasa de Citas Confirmadas / Realizadas</span>
+                <span style="color:#10b981; font-weight:700;">${tasaAsistencia}%</span>
               </div>
               <div style="height:8px; border-radius:6px; background:rgba(255,255,255,0.06); overflow:hidden;">
-                <div style="width:94%; height:100%; border-radius:6px; background:#10b981;"></div>
+                <div style="width:${tasaAsistencia}%; height:100%; border-radius:6px; background:#10b981;"></div>
               </div>
             </div>
 
             <!-- Progreso 4 -->
             <div>
               <div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-bottom:5px;">
-                <span style="color:#f8fafc; font-weight:600;">Tiempo de Espera Promedio</span>
-                <span style="color:#f59e0b; font-weight:700;">11 min</span>
+                <span style="color:#f8fafc; font-weight:600;">Comprobantes Emitidos (${currentMonthName})</span>
+                <span style="color:#f59e0b; font-weight:700;">${monthInvoices.length} doc(s)</span>
               </div>
               <div style="height:8px; border-radius:6px; background:rgba(255,255,255,0.06); overflow:hidden;">
-                <div style="width:35%; height:100%; border-radius:6px; background:#f59e0b;"></div>
+                <div style="width:${Math.min(100, monthInvoices.length * 10)}%; height:100%; border-radius:6px; background:#f59e0b;"></div>
               </div>
             </div>
           </div>

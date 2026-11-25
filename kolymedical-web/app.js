@@ -828,8 +828,6 @@ window.loadAppointments = () => DB.syncWithCloud(() => {
   if (typeof renderCalendarWidget === 'function') renderCalendarWidget();
   if (typeof renderAppointmentsTable === 'function') renderAppointmentsTable();
 });
-window.renderAppointmentsTable = () => { if (typeof renderAppointmentsTable === 'function') renderAppointmentsTable(); };
-window.renderCalendarWidget = () => { if (typeof renderCalendarWidget === 'function') renderCalendarWidget(); };
 
 const ClinicalDB = {
   // ---------- Expedientes (clinical_records) ----------
@@ -2395,6 +2393,37 @@ function initLoginForm() {
   });
 }
 
+
+function initSidebarCollapse() {
+  const sidebar = document.querySelector('.admin-sidebar');
+  const toggleBtn = document.getElementById('btn-toggle-sidebar');
+  if (!sidebar || !toggleBtn) return;
+
+  sidebar.querySelectorAll('.sidebar-item').forEach(item => {
+    const label = (item.textContent || '').replace(/\s+/g, ' ').trim();
+    if (label && !item.getAttribute('title')) item.setAttribute('title', label);
+  });
+
+  const applyCollapsed = (collapsed) => {
+    sidebar.classList.toggle('collapsed', collapsed);
+    toggleBtn.setAttribute('aria-expanded', String(!collapsed));
+    toggleBtn.setAttribute('title', collapsed ? 'Expandir menú lateral' : 'Contraer menú lateral');
+  };
+
+  if (safeLocalStorage.getItem('koly_sidebar_collapsed') === '1') {
+    applyCollapsed(true);
+  }
+
+  if (!toggleBtn.dataset.bound) {
+    toggleBtn.dataset.bound = '1';
+    toggleBtn.addEventListener('click', () => {
+      const next = !sidebar.classList.contains('collapsed');
+      applyCollapsed(next);
+      safeLocalStorage.setItem('koly_sidebar_collapsed', next ? '1' : '0');
+    });
+  }
+}
+
 function renderDashboard() {
   const currentUser = getCurrentUser();
   const platformMenu = document.getElementById('menu-platform');
@@ -2466,7 +2495,7 @@ function renderDashboard() {
     if (menuUsers) menuUsers.style.display = 'block';
     if (menuAvailability) menuAvailability.style.display = 'block';
     if (menuSuggestions) menuSuggestions.style.display = 'block';
-    if (menuPrescriptions) menuPrescriptions.style.display = 'block';
+    if (menuPrescriptions) menuPrescriptions.style.display = 'none';
     if (menuQuotes) menuQuotes.style.display = 'none';
     if (menuCostCatalog) menuCostCatalog.style.display = 'none';
     if (menuBulletinLeads) menuBulletinLeads.style.display = 'block';
@@ -2482,7 +2511,7 @@ function renderDashboard() {
     if (menuUsers) menuUsers.style.display = 'none';
     if (menuAvailability) menuAvailability.style.display = 'none';
     if (menuSuggestions) menuSuggestions.style.display = 'block';
-    if (menuPrescriptions) menuPrescriptions.style.display = 'block';
+    if (menuPrescriptions) menuPrescriptions.style.display = 'none';
     if (menuQuotes) menuQuotes.style.display = 'block';
     if (menuCostCatalog) menuCostCatalog.style.display = 'none';
     if (menuBulletinLeads) menuBulletinLeads.style.display = 'block';
@@ -2636,6 +2665,7 @@ function renderDashboard() {
   initAvailabilityManagement();
 
   // Renderizar Vista Inicial (Estadísticas, Citas y Notificaciones)
+  initSidebarCollapse();
   initNotificationsHandler();
   updateStats();
   renderCalendarWidget();

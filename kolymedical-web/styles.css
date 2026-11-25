@@ -4126,3 +4126,73 @@ body.admin-body:not(.dark-theme) .system-sync-pill {
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
   color: #f8fafc !important;
 }
+
+/* ==========================================================================
+   SIDEBAR COLAPSABLE (SOLO ICONOS)
+   ========================================================================== */
+.admin-sidebar {
+  transition: width 0.24s cubic-bezier(0.4, 0, 0.2, 1), padding 0.24s ease;
+}
+
+.admin-sidebar.collapsed {
+  width: 76px !important;
+  min-width: 76px !important;
+  padding: 1.1rem 0.65rem !important;
+}
+
+.admin-sidebar.collapsed .logo-container {
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-bottom: 1.25rem !important;
+}
+
+.admin-sidebar.collapsed .sidebar-brand-text,
+.admin-sidebar.collapsed #btn-sidebar-profile,
+.admin-sidebar.collapsed #theme-toggle-text {
+  display: none !important;
+}
+
+.admin-sidebar.collapsed #btn-toggle-sidebar svg {
+  transform: rotate(180deg);
+}
+
+.admin-sidebar.collapsed .sidebar-item {
+  font-size: 0 !important;
+  line-height: 0 !important;
+  gap: 0 !important;
+  justify-content: center !important;
+  padding: 0.72rem !important;
+  text-align: center !important;
+}
+
+.admin-sidebar.collapsed .sidebar-item .sidebar-icon,
+.admin-sidebar.collapsed .sidebar-item svg {
+  width: 20px !important;
+  height: 20px !important;
+  margin: 0 !important;
+  flex-shrink: 0;
+}
+
+.admin-sidebar.collapsed .theme-switch-btn {
+  padding: 0.55rem !important;
+  justify-content: center !important;
+}
+
+.admin-sidebar.collapsed .theme-switch-track {
+  justify-content: center !important;
+}
+
+.admin-sidebar.collapsed #btn-logout {
+  font-size: 0 !important;
+  gap: 0 !important;
+  justify-content: center !important;
+  padding: 0.7rem !important;
+}
+
+.admin-sidebar.collapsed #btn-logout svg {
+  width: 20px !important;
+  height: 20px !important;
+  margin: 0 !important;
+}
